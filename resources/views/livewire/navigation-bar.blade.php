@@ -30,7 +30,7 @@
                         <span>Programs</span><span class="ban-site-nav__chevron" aria-hidden="true">▾</span>
                     </button>
                     <div class="ban-site-nav__dropdown-panel">
-                        {{-- <a href="{{ route('ban-wealth.index') }}">BAN Wealth</a> --}}
+                        <a href="{{ route('ban-wealth.index') }}">BAN Wealth</a>
                         <a href="{{ route('bwin') }}">BWIN</a>
                         <a href="{{ route('angel-academy') }}">Angel Academy</a>
                         <a href="{{ route('resources') }}">DeckVue</a>

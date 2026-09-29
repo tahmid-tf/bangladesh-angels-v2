@@ -74,8 +74,8 @@ Route::get('/deckvue', [PrimaryController::class, 'viewResources'])->name('resou
 Route::get('/team', [PrimaryController::class, 'viewTeam'])->name('team');
 Route::get('/angel-academy', [PrimaryController::class, 'viewAngelAcademy'])->name('angel-academy');
 Route::get('/bwin', [PrimaryController::class, 'viewBwin'])->name('bwin');
-// Route::get('/ban-wealth', [BanWealthController::class, 'landing'])->name('ban-wealth.index');
-// Route::get('/ban-wealth/invest', [BanWealthController::class, 'invest'])->name('ban-wealth.invest');
+Route::get('/ban-wealth', [BanWealthController::class, 'landing'])->name('ban-wealth.index');
+Route::get('/ban-wealth/invest', [BanWealthController::class, 'invest'])->name('ban-wealth.invest');
 Route::get('/angel-academy/apply', [AngelAcademyNetworkApplicationController::class, 'create'])->name('angel-academy.apply');
 Route::post('/angel-academy/apply', [AngelAcademyNetworkApplicationController::class, 'store'])
     ->middleware('throttle:10,1')
