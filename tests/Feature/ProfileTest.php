@@ -21,6 +21,34 @@ class ProfileTest extends TestCase
         $response->assertOk();
     }
 
+    public function test_admin_profile_uses_the_panel_profile_design(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $response = $this
+            ->actingAs($user)
+            ->get('/profile');
+
+        $response
+            ->assertOk()
+            ->assertSee('Your administrator profile')
+            ->assertSee('Admin access');
+    }
+
+    public function test_super_admin_profile_uses_the_panel_profile_design(): void
+    {
+        $user = User::factory()->create(['role' => 'superadmin']);
+
+        $response = $this
+            ->actingAs($user)
+            ->get('/profile');
+
+        $response
+            ->assertOk()
+            ->assertSee('Your administrator profile')
+            ->assertSee('Super Admin access');
+    }
+
     public function test_profile_information_can_be_updated(): void
     {
         $user = User::factory()->create();

@@ -1,0 +1,445 @@
+{
+  "about-us": {
+    "title": "About Us",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "Bangladesh Angels Network Limited (\"BAN\", \"we\", \"us\", \"our\") is Bangladesh's largest angel investment network. BAN connects vetted, investment-ready founders with a global community of active angel investors."
+      },
+      {
+        "type": "paragraph",
+        "text": "Since our founding in 2019, BAN has facilitated over USD 11.4 million in early-stage equity investments across 54 startups, with individual cheque sizes ranging from USD 10,000 to USD 500,000"
+      },
+      {
+        "type": "paragraph",
+        "text": "Our work prioritizes inclusion and climate impact. A majority of the ventures we support are women-led or climate-aligned. Our sister initiative, Bangladesh Women Investor Network (BWIN), exclusively sources women-led startups and mobilizes women angels to close representation gaps in boardrooms and leadership. We also manage dedicated mandates for climate and biodiversity, directing capital toward ventures with measurable environmental outcomes."
+      },
+      {
+        "type": "paragraph",
+        "text": "BAN's model combines syndication with hands-on founder services, including cap table advisory, investor-readiness coaching, and post-investment support, to make underrepresented founders investment-ready for angel capital. Angel Academy, our investor-education program, builds informed, active angels through tailored curricula and practical deal workshops."
+      },
+      {
+        "type": "paragraph",
+        "text": "BAN's early-stage capacity has been seeded by the Dutch Global Fund and Aavishkaar Capital."
+      },
+      {
+        "type": "paragraph",
+        "text": "BAN is not an investment fund. We do not pool member capital, and we do not provide investment advice. Each angel investor who transacts through BAN's network makes an independent investment decision."
+      },
+      {
+        "type": "heading",
+        "text": "Registered office"
+      },
+      {
+        "type": "paragraph",
+        "text": "Gulshan 1, Niketon Housing Society, Road 12, House 27, Level 3, Dhaka 1212, Bangladesh."
+      },
+      {
+        "type": "heading",
+        "text": "Contact"
+      },
+      {
+        "type": "paragraph",
+        "text": "Email: hello@bdangels.co"
+      }
+    ]
+  },
+  "terms-and-conditions": {
+    "title": "Terms & Conditions",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "These Terms & Conditions (\"Terms\") govern access to and use of bdangels.co (the \"Website\") and any paid membership purchased through it. By creating an account, submitting payment, or otherwise using the Website, you agree to be bound by these Terms. If you do not agree, do not use the Website."
+      },
+      {
+        "type": "heading",
+        "text": "2.1 Membership plans"
+      },
+      {
+        "type": "paragraph",
+        "text": "BAN offers three paid annual membership tiers to individuals and institutions seeking access to BAN's deal flow and investor community:"
+      },
+      {
+        "type": "plans",
+        "rows": [
+          [
+            "Plan",
+            "Price",
+            "Included"
+          ],
+          [
+            "Core",
+            "USD 399 / year",
+            "Deal access, data room access with approval, active deal participation, investment capability"
+          ],
+          [
+            "Advanced",
+            "USD 599 / year",
+            "All Core features, full data room access, portfolio monitoring, full access to deal flows and showcases"
+          ],
+          [
+            "Institutional",
+            "USD 999 / year",
+            "All Advanced features, plus 3 to 4 additional linked user accounts"
+          ]
+        ]
+      },
+      {
+        "type": "paragraph",
+        "text": "Plan features, pricing, and inclusions may be updated by BAN from time to time; the version displayed on the Website at the time of purchase governs that transaction."
+      },
+      {
+        "type": "heading",
+        "text": "2.2 Eligibility and account registration"
+      },
+      {
+        "type": "paragraph",
+        "text": "Membership is intended for individuals and institutions with a genuine interest in early-stage angel investing in Bangladesh."
+      },
+      {
+        "type": "paragraph",
+        "text": "You must provide accurate, current information when registering and keep your account credentials confidential."
+      },
+      {
+        "type": "paragraph",
+        "text": "BAN reserves the right to decline, suspend, or terminate any membership application or account at its discretion, including where information provided is false or incomplete."
+      },
+      {
+        "type": "heading",
+        "text": "2.3 Payments"
+      },
+      {
+        "type": "paragraph",
+        "text": "Membership fees are payable in advance, in full, through the Website's payment gateway (aamarPay) using the payment methods it supports."
+      },
+      {
+        "type": "paragraph",
+        "text": "All fees are quoted in US Dollars unless stated otherwise. Where payment is processed in Bangladeshi Taka, the applicable exchange rate is set by the payment gateway or issuing bank at the time of transaction."
+      },
+      {
+        "type": "paragraph",
+        "text": "BAN does not store or have access to your full card or payment credentials. Payment data is collected and processed directly by aamarPay under its own security standards; see the Privacy Policy for details."
+      },
+      {
+        "type": "paragraph",
+        "text": "Membership access is granted upon confirmed, successful payment. See the Delivery Policy for timing."
+      },
+      {
+        "type": "heading",
+        "text": "2.4 Nature of BAN's role and no investment advice"
+      },
+      {
+        "type": "paragraph",
+        "text": "BAN is a facilitator and intermediary. BAN is not a broker-dealer, fund manager, or licensed investment adviser in Bangladesh or any other jurisdiction, and membership does not create an advisory relationship. Nothing on the Website, in BAN communications, or in deal materials shared with members constitutes investment advice or a recommendation to invest. Startup investing is illiquid and high-risk, and capital invested may be lost in full. Members are solely responsible for their own investment decisions and should seek independent legal, tax, and financial advice before investing."
+      },
+      {
+        "type": "heading",
+        "text": "2.5 Intellectual property"
+      },
+      {
+        "type": "paragraph",
+        "text": "All content on the Website, including text, graphics, logos, and the BAN and BWIN names and marks, is owned by or licensed to BAN and is protected by applicable intellectual property law. You may not reproduce, distribute, or create derivative works from Website content without BAN's prior written consent, other than for your own personal, non-commercial reference as a member."
+      },
+      {
+        "type": "heading",
+        "text": "2.6 Confidentiality"
+      },
+      {
+        "type": "paragraph",
+        "text": "Deal materials, pitch decks, data room contents, and other non-public information shared with members through the Website are confidential and provided solely to support each member's own investment evaluation. Members must not redistribute such materials outside BAN's network without the relevant founder's consent."
+      },
+      {
+        "type": "heading",
+        "text": "2.7 Limitation of liability"
+      },
+      {
+        "type": "paragraph",
+        "text": "To the fullest extent permitted by law, BAN, its directors, officers, and staff are not liable for any indirect, incidental, or consequential loss arising from use of the Website or from any investment decision made in connection with BAN's network, including loss of invested capital."
+      },
+      {
+        "type": "heading",
+        "text": "2.8 Governing law"
+      },
+      {
+        "type": "paragraph",
+        "text": "These Terms are governed by the laws of the People's Republic of Bangladesh. Disputes are subject to the exclusive jurisdiction of the courts of Dhaka, Bangladesh."
+      },
+      {
+        "type": "heading",
+        "text": "2.9 Changes to these Terms"
+      },
+      {
+        "type": "paragraph",
+        "text": "BAN may update these Terms from time to time. Material changes will be posted on this page with an updated effective date. Continued use of the Website after changes take effect constitutes acceptance."
+      },
+      {
+        "type": "heading",
+        "text": "2.10 Contact"
+      },
+      {
+        "type": "paragraph",
+        "text": "Questions about these Terms can be sent to hello@bdangels.co."
+      }
+    ]
+  },
+  "privacy-policy": {
+    "title": "Privacy Policy",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "This Privacy Policy explains how BAN collects, uses, shares, and protects personal information collected through bdangels.co, including in connection with membership payments."
+      },
+      {
+        "type": "heading",
+        "text": "3.1 Information we collect"
+      },
+      {
+        "type": "paragraph",
+        "text": "Identity and contact information: name, email address, phone number, and organization, provided when you register or submit a pitch."
+      },
+      {
+        "type": "paragraph",
+        "text": "Membership and transaction information: plan selected, billing history, and payment status."
+      },
+      {
+        "type": "paragraph",
+        "text": "Payment information: card or mobile-banking details are entered directly into aamarPay's secure payment page. BAN does not receive or store full card numbers, CVV, or banking credentials; BAN receives only confirmation of payment status and a transaction reference."
+      },
+      {
+        "type": "paragraph",
+        "text": "Usage information: pages visited, device and browser type, and similar technical data collected automatically through cookies and standard web logs."
+      },
+      {
+        "type": "paragraph",
+        "text": "Pitch and deal information: for founders, the startup information and pitch deck submitted through the Website."
+      },
+      {
+        "type": "heading",
+        "text": "3.2 How we use information"
+      },
+      {
+        "type": "paragraph",
+        "text": "To create and administer member accounts and process membership payments."
+      },
+      {
+        "type": "paragraph",
+        "text": "To provide access to deal flow, data rooms, and showcases in line with a member's plan."
+      },
+      {
+        "type": "paragraph",
+        "text": "To communicate with members and founders about their account, transactions, and BAN programs (BWIN, Angel Academy, DeckVue, events)."
+      },
+      {
+        "type": "paragraph",
+        "text": "To maintain the security and integrity of the Website."
+      },
+      {
+        "type": "paragraph",
+        "text": "To comply with legal, regulatory, and banking requirements, including those of our payment gateway and its acquiring bank."
+      },
+      {
+        "type": "heading",
+        "text": "3.3 Sharing of information"
+      },
+      {
+        "type": "paragraph",
+        "text": "BAN shares information only as needed to operate the Website and process payments:"
+      },
+      {
+        "type": "paragraph",
+        "text": "With aamarPay, our payment gateway, solely to process and confirm membership payments."
+      },
+      {
+        "type": "paragraph",
+        "text": "With service providers who support hosting, email delivery, or Website analytics, under confidentiality obligations."
+      },
+      {
+        "type": "paragraph",
+        "text": "With regulators, banks, or law enforcement where required by law."
+      },
+      {
+        "type": "paragraph",
+        "text": "BAN does not sell personal information to third parties."
+      },
+      {
+        "type": "heading",
+        "text": "3.4 Data security"
+      },
+      {
+        "type": "paragraph",
+        "text": "BAN applies reasonable administrative and technical safeguards to protect personal information. Payment card data is handled entirely within aamarPay's PCI-compliant environment and is not transmitted to or stored on BAN's own systems."
+      },
+      {
+        "type": "heading",
+        "text": "3.5 Data retention"
+      },
+      {
+        "type": "paragraph",
+        "text": "BAN retains account and transaction information for as long as an account is active, and thereafter for as long as needed to meet accounting, tax, and regulatory record-keeping obligations."
+      },
+      {
+        "type": "heading",
+        "text": "3.6 Your rights"
+      },
+      {
+        "type": "paragraph",
+        "text": "You may request access to, correction of, or deletion of your personal information by writing to hello@bdangels.co. BAN will respond within a reasonable time, subject to any information BAN or aamarPay is required to retain by law."
+      },
+      {
+        "type": "heading",
+        "text": "3.7 Cookies"
+      },
+      {
+        "type": "paragraph",
+        "text": "The Website uses cookies to keep you signed in and to understand how the Website is used. You can control cookies through your browser settings; disabling cookies may limit some Website functionality."
+      },
+      {
+        "type": "heading",
+        "text": "3.8 Changes to this policy"
+      },
+      {
+        "type": "paragraph",
+        "text": "BAN may update this Privacy Policy from time to time. Updates will be posted on this page with a revised effective date."
+      },
+      {
+        "type": "heading",
+        "text": "3.9 Contact"
+      },
+      {
+        "type": "paragraph",
+        "text": "Privacy questions or requests: hello@bdangels.co."
+      }
+    ]
+  },
+  "delivery-policy": {
+    "title": "Delivery Policy",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "BAN's membership plans are digital services delivered electronically through the Website. No physical goods are shipped."
+      },
+      {
+        "type": "heading",
+        "text": "4.1 How access is delivered"
+      },
+      {
+        "type": "paragraph",
+        "text": "Upon successful payment confirmation from aamarPay, the member's account is upgraded to the purchased plan (Core, Advanced, or Institutional)."
+      },
+      {
+        "type": "paragraph",
+        "text": "Account activation is automatic in most cases and typically completes within 24 hours of payment confirmation. Where manual review is required (for example, additional linked accounts under the Institutional plan), activation may take up to 2 business days."
+      },
+      {
+        "type": "paragraph",
+        "text": "A confirmation email is sent to the address provided at registration once the account is active, along with a payment receipt."
+      },
+      {
+        "type": "heading",
+        "text": "4.2 Delivery issues"
+      },
+      {
+        "type": "paragraph",
+        "text": "If payment has been confirmed but membership access has not been activated within 2 business days, members should contact hello@bdangels.co with their transaction reference so BAN can investigate."
+      }
+    ]
+  },
+  "refund-return-policy": {
+    "title": "Refund / Return Policy",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "Because BAN's memberships are digital access subscriptions rather than physical products, there is nothing to \"return.\" This policy sets out when a paid membership fee is eligible for a refund."
+      },
+      {
+        "type": "heading",
+        "text": "5.1 Eligibility window"
+      },
+      {
+        "type": "paragraph",
+        "text": "Members may request a full refund within 7 calendar days of the original payment date, provided the member has not yet accessed the data room, participated in a deal, or attended a showcase under the paid plan."
+      },
+      {
+        "type": "paragraph",
+        "text": "After 7 calendar days from payment, or after any member benefit under the plan has been used (whichever comes first), the membership fee becomes non-refundable, except where required by law."
+      },
+      {
+        "type": "paragraph",
+        "text": "Refunds are not available for partial or unused periods once a membership term has begun and benefits have been accessed."
+      },
+      {
+        "type": "heading",
+        "text": "5.2 How to request a refund"
+      },
+      {
+        "type": "paragraph",
+        "text": "Send a refund request to hello@bdangels.co with your registered email address and payment transaction reference. BAN will confirm eligibility within 3 business days."
+      },
+      {
+        "type": "heading",
+        "text": "5.3 Refund processing and timeline"
+      },
+      {
+        "type": "paragraph",
+        "text": "Approved refunds are issued to the original payment method through aamarPay within 10 working days of approval."
+      },
+      {
+        "type": "paragraph",
+        "text": "Funds typically reflect in the payer's account within a further 5 to 10 working days, depending on the issuing bank or mobile financial service; this portion of the timeline is outside BAN's control."
+      },
+      {
+        "type": "paragraph",
+        "text": "Refunds are issued in the same currency and to the same payment instrument used for the original transaction, where supported by aamarPay."
+      },
+      {
+        "type": "heading",
+        "text": "5.4 Duplicate or failed transactions"
+      },
+      {
+        "type": "paragraph",
+        "text": "Where a payment is deducted more than once for the same membership due to a technical error, or where payment is deducted but membership is not activated, the duplicate or failed amount is refunded in full within 10 working days of verification, with no request window restriction."
+      }
+    ]
+  },
+  "cancellation-policy": {
+    "title": "Cancellation Policy",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "Members may cancel their membership at any time. This policy explains what cancellation means for access and billing."
+      },
+      {
+        "type": "heading",
+        "text": "6.1 How to cancel"
+      },
+      {
+        "type": "paragraph",
+        "text": "Send a cancellation request to hello@bdangels.co from your registered email address, or use the cancellation option in your account dashboard where available."
+      },
+      {
+        "type": "heading",
+        "text": "6.2 Effect of cancellation"
+      },
+      {
+        "type": "paragraph",
+        "text": "Membership plans are annual"
+      },
+      {
+        "type": "paragraph",
+        "text": "Cancelling stops any future renewal; it does not end access to the current paid term early. Members retain access to their plan's benefits until the end of the period already paid for."
+      },
+      {
+        "type": "paragraph",
+        "text": "No prorated refund is issued for the unused portion of a current term upon cancellation, except as set out in the Refund/Return Policy (7-day window, duplicate charges, or failed activation)."
+      },
+      {
+        "type": "heading",
+        "text": "6.3 Cancellation by BAN"
+      },
+      {
+        "type": "paragraph",
+        "text": "BAN may suspend or cancel a membership, with notice where practicable, if a member breaches these Terms, provides false information, or misuses confidential deal materials. In such cases, fees already paid are not refunded."
+      }
+    ]
+  }
+}

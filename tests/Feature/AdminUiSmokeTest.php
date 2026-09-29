@@ -23,6 +23,7 @@ class AdminUiSmokeTest extends TestCase
             'admin.dashboard',
             'admin.members',
             'admin.events',
+            'admin.blogs.index',
             'admin.resource-hub',
             'admin.startup-services',
             'admin.what-we-do-cards',

@@ -447,6 +447,14 @@
                         </li>
                     </ul>
                 </div>
+                <input type="hidden" name="policy_version" value="{{ \App\Support\MembershipPolicies::version() }}">
+                <input type="hidden" name="policy_accepted_at" id="policy-accepted-at" value="">
+                <label class="ban-checkout-consent" for="policy-consent">
+                    <input type="checkbox" id="policy-consent" name="policy_consent" value="1" required onchange="document.getElementById('policy-accepted-at').value = this.checked ? new Date().toISOString() : ''">
+                    <span>I have read and agree to the <a href="{{ route('policies.show', 'terms-and-conditions') }}" target="_blank" rel="noopener noreferrer">Terms &amp; Conditions</a>, <a href="{{ route('policies.show', 'privacy-policy') }}" target="_blank" rel="noopener noreferrer">Privacy Policy</a>, <a href="{{ route('policies.show', 'delivery-policy') }}" target="_blank" rel="noopener noreferrer">Delivery Policy</a>, <a href="{{ route('policies.show', 'refund-return-policy') }}" target="_blank" rel="noopener noreferrer">Refund/Return Policy</a>, and <a href="{{ route('policies.show', 'cancellation-policy') }}" target="_blank" rel="noopener noreferrer">Cancellation Policy</a>.</span>
+                </label>
+                @error('policy_consent')<p class="text-sm text-red-700" role="alert">{{ $message }}</p>@enderror
+                @error('policy_version')<p class="text-sm text-red-700" role="alert">The policies have changed. Please read and accept the current policies before continuing.</p>@enderror
                 <button type="submit" class="mt-4 bg-green-600 text-white w-full py-3 rounded-lg hover:bg-green-700 transition duration-200 flex items-center justify-center font-medium">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />

@@ -25,6 +25,14 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+            'phone' => ['nullable', 'string', 'max:40'],
+            'designation' => ['nullable', 'string', 'max:255'],
+            'company_name' => ['nullable', 'string', 'max:255'],
+            'gender' => ['nullable', Rule::in(['male', 'female', 'other'])],
+            'primary_country' => ['nullable', 'string', 'max:255'],
+            'linkedin' => ['nullable', 'string', 'max:255'],
+            'public_profile' => ['nullable', Rule::in(['true', 'false'])],
+            'profile_picture' => ['nullable', 'image', 'max:5120'],
         ];
     }
 }

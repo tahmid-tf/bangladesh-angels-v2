@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -109,5 +110,35 @@ class Resource extends Model implements HasMedia
         }
 
         return asset('what-we-do-placeholder.svg');
+    }
+
+    /**
+     * Human-readable time range (e.g. "3:00 PM – 5:00 PM" or "3:00 PM").
+     */
+    public function formattedTimeRange(): ?string
+    {
+        $start = $this->start_time ? Carbon::parse($this->start_time)->format('g:i A') : null;
+        $end = $this->end_time ? Carbon::parse($this->end_time)->format('g:i A') : null;
+
+        if ($start && $end) {
+            return $start === $end ? $start : "{$start} – {$end}";
+        }
+
+        return $start ?? $end;
+    }
+
+    /**
+     * Formatted date and time (e.g. "Sep 24, 2026 · 3:00 PM – 5:00 PM").
+     */
+    public function formattedDateTime(): ?string
+    {
+        $date = $this->date?->format('M j, Y');
+        $time = $this->formattedTimeRange();
+
+        if ($date && $time) {
+            return "{$date} · {$time}";
+        }
+
+        return $date ?? $time;
     }
 }

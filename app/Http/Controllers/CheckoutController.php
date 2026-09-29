@@ -3,17 +3,23 @@
 namespace App\Http\Controllers;
 
 use App\Mail\CheckoutConfirmation;
+use App\Models\MembershipOrder;
 use App\Models\Payment;
 use App\Models\Subscription;
 use App\Models\SubscriptionTier;
 use App\Models\User;
 use App\Services\AamarpayGateway;
+use App\Services\MembershipEvidence;
+use App\Support\MembershipPolicies;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class CheckoutController extends Controller
 {
@@ -23,6 +29,10 @@ class CheckoutController extends Controller
 
     public function checkout(Request $request)
     {
+        if ($request->user()?->hasPaidMembership()) {
+            return redirect()->route('dashboard')->with('info', 'Your membership plan is already active.');
+        }
+
         if ($request->isMethod('post')) {
             $validated = $request->validate([
                 'plan' => ['required', 'string', 'max:64'],
@@ -54,9 +64,17 @@ class CheckoutController extends Controller
 
     public function processCheckout(Request $request)
     {
+        if ($request->user()?->hasPaidMembership()) {
+            return redirect()->route('dashboard')->with('info', 'Your membership plan is already active.');
+        }
+
+        if ($request->user()) {
+            $request->merge(['email' => $request->user()->email]);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email',
+            'email' => array_filter(['required', 'email', Auth::check() ? null : Rule::unique('users', 'email')]),
             'address' => 'required|string|max:255',
             'phone' => 'required|string|max:20',
             'country_code' => 'required|string',
@@ -70,7 +88,12 @@ class CheckoutController extends Controller
             'profile_photo' => 'nullable',
             'plan' => 'required|string|max:64',
             'price' => 'required|numeric|min:0',
+            'policy_consent' => ['required', 'accepted'],
+            'policy_version' => ['required', Rule::in([MembershipPolicies::version()])],
+            'policy_accepted_at' => ['nullable', 'date'],
         ]);
+
+        abort_unless(Schema::hasTable('membership_orders'), 503, 'Membership checkout is being updated. Please try again shortly.');
 
         $tier = SubscriptionTier::query()
             ->active()
@@ -83,6 +106,11 @@ class CheckoutController extends Controller
 
         if (abs((float) $tier->price_yearly - (float) $validated['price']) > 0.009) {
             return redirect()->route('plans')->with('error', 'Plan pricing was updated. Please choose your plan again.');
+        }
+
+        // The public catalogue quotes USD; never send the same numeric price as BDT.
+        if (strtoupper((string) config('aamarpay.currency', 'USD')) !== 'USD') {
+            return redirect()->route('checkout')->with('error', 'USD membership checkout is unavailable. Please contact support.');
         }
 
         try {
@@ -182,10 +210,12 @@ class CheckoutController extends Controller
             }
 
             $tranPrefix = $gatewayMode === 'live' ? 'bdangels' : 'test';
-            $tran_id = $tranPrefix.rand(1111111, 9999999);
+            $tran_id = $tranPrefix.Str::ulid();
 
             $currency = strtoupper((string) config('aamarpay.currency', 'USD'));
             $amount = $validated['price'];
+
+            app(MembershipEvidence::class)->begin($request, $user, $subscription, $tier, $tran_id, $currency);
 
             $callbackUrl = route('payment.aamarpay.callback', [], true);
 
@@ -202,38 +232,18 @@ class CheckoutController extends Controller
                 'cus_name' => $validated['name'],
                 'cus_email' => $validated['email'],
                 'cus_add1' => $validated['address'],
-                'cus_add2' => 'Mohakhali DOHS',
-                'cus_city' => 'Dhaka',
-                'cus_state' => 'Dhaka',
-                'cus_postcode' => '1206',
-                'cus_country' => 'Bangladesh',
-                'cus_phone' => $validated['phone'],
+                'cus_country' => $validated['primary_country'],
+                'cus_phone' => $validated['country_code'].$validated['phone'],
                 'opt_a' => $validated['plan'],
                 'opt_b' => (string) $user->id,
                 'opt_c' => $gatewayMode,
                 'type' => 'json',
             ];
 
-            $curl = curl_init();
-            curl_setopt_array($curl, [
-                CURLOPT_URL => $cfg['jsonpost_url'],
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_ENCODING => '',
-                CURLOPT_MAXREDIRS => 10,
-                CURLOPT_TIMEOUT => 30,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST => 'POST',
-                CURLOPT_POSTFIELDS => json_encode($payload),
-                CURLOPT_HTTPHEADER => [
-                    'Content-Type: application/json',
-                ],
-            ]);
-
-            $response = curl_exec($curl);
-            $err = curl_error($curl);
-            $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-            curl_close($curl);
+            $gatewayResponse = $this->aamarpay->initiateTransaction($cfg['jsonpost_url'], $payload);
+            $response = $gatewayResponse['body'];
+            $err = $gatewayResponse['error'];
+            $httpCode = $gatewayResponse['status'];
 
             Log::info("AamarPay init response ({$gatewayMode}, HTTP {$httpCode}): ".($response ?: '(empty)'));
 
@@ -352,12 +362,18 @@ class CheckoutController extends Controller
         }
 
         $status_code = isset($data->status_code) ? (int) $data->status_code : null;
-        $pg_txnid = $data->pg_txnid ?? $request->input('pg_txnid');
-        $amount = $data->amount ?? $request->input('amount');
-        $currency = $request->input('currency', config('aamarpay.currency', 'USD'));
+        $pg_txnid = $data->pg_txnid ?? null;
+        $currency = strtoupper((string) ($data->currency_merchant ?? $data->currency ?? ''));
+        $amount = $data->amount_currency ?? $data->amount ?? null;
+        $order = MembershipOrder::where('merchant_txnid', $mer_txnid)->first();
+        // Old in-flight transactions can use server-verified gateway metadata, never callback form fields.
+        $subscription_plan = $order?->plan_slug ?? ($data->opt_a ?? null);
+        $user_id = $order?->user_id ?? ($data->opt_b ?? null);
 
-        $subscription_plan = $request->input('opt_a', 'core');
-        $user_id = $request->input('opt_b');
+        if (($data->mer_txnid ?? '') !== $mer_txnid || ! is_numeric($amount) || ! $subscription_plan
+            || ($order && ($currency !== $order->currency || abs((float) $amount - (float) $order->amount) > 0.009))) {
+            return redirect()->route('upgrade.page')->with('error', 'Payment details could not be matched to your order. Please contact support.');
+        }
 
         if (empty($user_id) || ! User::query()->whereKey($user_id)->exists()) {
             Log::error('AamarPay callback invalid user', ['user_id' => $user_id, 'mer_txnid' => $mer_txnid]);
@@ -377,6 +393,8 @@ class CheckoutController extends Controller
                     $status_code,
                     $request->ip()
                 );
+
+                app(MembershipEvidence::class)->sendReceipt($payment);
 
                 return redirect()->temporarySignedRoute(
                     'payment.complete',
@@ -424,6 +442,8 @@ class CheckoutController extends Controller
         ?string $customerIp
     ): Payment {
         return DB::transaction(function () use ($user_id, $subscription_plan, $mer_txnid, $pg_txnid, $amount, $currency, $status_code, $customerIp) {
+            $order = MembershipOrder::where('merchant_txnid', $mer_txnid)->lockForUpdate()->first();
+            $user = User::query()->whereKey($user_id)->lockForUpdate()->firstOrFail();
             $existing = Payment::query()
                 ->where('merchant_txnid', $mer_txnid)
                 ->where('status', 'completed')
@@ -433,8 +453,6 @@ class CheckoutController extends Controller
             if ($existing) {
                 return $existing;
             }
-
-            $user = User::query()->whereKey($user_id)->lockForUpdate()->firstOrFail();
 
             $user->update([
                 'account_status' => $subscription_plan,
@@ -467,6 +485,10 @@ class CheckoutController extends Controller
                     'end_date' => now()->addYear(),
                 ]
             );
+
+            if ($order) {
+                $order->update(['payment_id' => $payment->id, 'delivered_at' => now()]);
+            }
 
             Log::info("Payment fulfilled for user #{$user_id}: {$amount} {$currency} ({$subscription_plan})");
 
@@ -530,20 +552,10 @@ class CheckoutController extends Controller
             abort(403, 'Invalid or expired payment link.');
         }
 
-        Subscription::updateOrCreate(
-            ['user_id' => $payment->user_id, 'plan' => $payment->subscription_plan],
-            [
-                'price' => $payment->amount,
-                'status' => 'active',
-                'payment_id' => $payment->id,
-                'start_date' => $payment->payment_date ?? now(),
-                'end_date' => $payment->expiry_date ?? now()->addYear(),
-            ]
-        );
-
         $plan = $payment->subscription_plan;
+        $membershipOrder = MembershipOrder::where('payment_id', $payment->id)->first();
 
-        return view('payment.success', compact('payment', 'plan'));
+        return view('payment.success', compact('payment', 'plan', 'membershipOrder'));
     }
 
     public function fail(Request $request)

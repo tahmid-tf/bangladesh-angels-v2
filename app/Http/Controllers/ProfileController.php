@@ -16,7 +16,11 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): View
     {
-        return view('profile.edit', [
+        $view = ($request->user()->isInvestor() || $request->user()->isAdmin())
+            ? 'profile.investor-edit'
+            : 'profile.edit';
+
+        return view($view, [
             'user' => $request->user(),
         ]);
     }

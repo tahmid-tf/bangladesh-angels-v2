@@ -1,0 +1,36 @@
+.ban-policy-shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 64px 0 80px; color: #123c35; }
+.ban-policy-header { max-width: 780px; margin-bottom: 40px; }
+.ban-policy-header h1 { font-size: clamp(2rem, 4vw, 3.2rem); line-height: 1.15; letter-spacing: -.035em; font-weight: 600; margin: 0 0 18px; }
+.ban-policy-header > p:last-child { color: #536c65; line-height: 1.7; }
+.ban-policy-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 64px; align-items: start; }
+.ban-policy-nav { display: grid; gap: 4px; position: sticky; top: 90px; }
+.ban-policy-nav a { padding: 11px 14px; font-size: .9rem; border-radius: 5px; }
+.ban-policy-nav a:hover, .ban-policy-nav a[aria-current] { background: #ecf3ef; color: #07694f; }
+.ban-policy-prose { min-width: 0; line-height: 1.8; font-size: 1rem; }
+.ban-policy-prose h2 { font-size: 1.3rem; font-weight: 650; line-height: 1.4; margin: 32px 0 12px; }
+.ban-policy-prose h2:first-child { margin-top: 0; }
+.ban-policy-prose p { color: #475f59; margin: 0 0 16px; }
+.ban-policy-prose a:not(.ban2-button), .ban-order-links a { color: #08654e; text-decoration: underline; text-underline-offset: 3px; }
+.ban-policy-prose ul { list-style: disc; margin: 0 0 24px; padding-left: 22px; }
+.ban-policy-table-wrap { overflow-x: auto; margin: 24px 0; }
+.ban-policy-shell table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.ban-policy-shell th, .ban-policy-shell td { text-align: left; vertical-align: top; padding: 14px; border: 1px solid #dce5e1; }
+.ban-policy-shell th { background: #eef4f0; font-weight: 650; }
+.ban-business-details { margin: 16px 0 32px; }
+.ban-business-details > div { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 20px; padding: 12px 0; border-bottom: 1px solid #e1e8e4; }
+.ban-business-details dt { color: #4f6861; }
+.ban-business-details dd { margin: 0; overflow-wrap: anywhere; }
+.ban-checkout-consent { display: flex; gap: 10px; align-items: flex-start; font-size: .85rem; line-height: 1.65; color: #344f47; margin-top: 20px; }
+.ban-checkout-consent input { flex: 0 0 auto; margin-top: 5px; }
+.ban-checkout-consent a { color: #08654e; text-decoration: underline; }
+.ban-order-notice { background: #edf5f0; padding: 18px; margin: 20px 0; }
+.ban-order-record { padding: 22px 0; border-top: 1px solid #dce5e1; }
+.ban-order-record pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; font-size: .85rem; }
+.ban-order-form { display: grid; gap: 12px; max-width: 700px; }
+.ban-order-form label { display: grid; gap: 5px; }
+.ban-order-links { display: flex; flex-wrap: wrap; gap: 20px; margin: 18px 0; }
+@media (max-width: 760px) { .ban-policy-shell { padding: 38px 0 50px; } .ban-policy-layout { grid-template-columns: 1fr; gap: 32px; } .ban-policy-nav { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); } .ban-business-details > div { grid-template-columns: 1fr; gap: 3px; } }
+@media print { body { padding: 0 !important; } .ban-site-nav, .ban-footer, #loading-screen, .phpdebugbar, .ban-no-print { display: none !important; } .ban-policy-shell { width: 100%; padding: 0; } .ban-policy-shell table { font-size: 10pt; } }
+.ban-policy-page { width: 100%; }
+.ban-about-hero .ban-team-hero__copy h1 { font-size: clamp(2.75rem, 5vw, 4.5rem); line-height: 1.08; }
+.ban-policy-page #our-story, .ban-policy-page #business-details { scroll-margin-top: 100px; }

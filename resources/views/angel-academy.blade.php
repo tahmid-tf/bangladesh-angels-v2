@@ -346,10 +346,10 @@
                 <div class="mx-auto flex max-w-5xl flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center sm:gap-6 md:gap-8">
                     <p class="text-center text-base font-medium leading-relaxed text-emerald-50/95 sm:flex-1 sm:text-left sm:text-base">Not sure which path fits you? We’ll help you find it.</p>
                     <a
-                        href="{{ route('investor.signup') }}"
+                        href="{{ auth()->check() && auth()->user()->hasPaidMembership() ? route('dashboard') : route('investor.signup') }}"
                         class="inline-flex min-h-[48px] w-full min-w-0 shrink-0 items-center justify-center gap-2 self-center rounded-full border border-white/40 bg-transparent px-6 py-3.5 text-sm font-semibold text-white transition duration-300 ease-out hover:-translate-y-0.5 hover:border-white/70 hover:bg-white/10 active:scale-[0.98] sm:w-auto sm:min-w-[11rem] sm:self-auto"
                     >
-                        <span>Find your path</span>
+                        <span>{{ auth()->check() && auth()->user()->hasPaidMembership() ? 'Open dashboard' : 'Find your path' }}</span>
                         <span aria-hidden="true" class="text-base leading-none">↗</span>
                     </a>
                 </div>

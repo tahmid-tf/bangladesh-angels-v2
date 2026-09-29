@@ -25,6 +25,7 @@ class LandingProgramCard extends Model
         'primary_link',
         'secondary_label',
         'secondary_link',
+        'dropdown_items',
         'theme',
         'sort_order',
     ];
@@ -33,6 +34,7 @@ class LandingProgramCard extends Model
     {
         return [
             'sort_order' => 'integer',
+            'dropdown_items' => 'array',
         ];
     }
 
@@ -44,5 +46,10 @@ class LandingProgramCard extends Model
     public function themeClass(): string
     {
         return array_key_exists($this->theme, self::THEMES) ? $this->theme : 'white';
+    }
+
+    public function hasDropdown(): bool
+    {
+        return filled($this->dropdown_items['label'] ?? null);
     }
 }

@@ -11,6 +11,9 @@
     background: var(--admin-canvas);
     font-family: "Manrope", "Figtree", ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
 }
 
 .admin-shell #loading-screen {
@@ -174,6 +177,8 @@
 }
 
 .admin-shell > .flex-1 {
+    min-height: 0;
+    height: 100vh;
     background: var(--admin-canvas);
 }
 
@@ -241,16 +246,19 @@
 }
 
 .admin-shell #dropdown-menu a,
-.admin-shell #dropdown-menu form {
+.admin-shell #dropdown-menu form,
+.admin-shell #dropdown-menu form button {
     font-size: 0.84rem;
-    font-weight: 600;
+    font-weight: 400;
 }
 
 .admin-shell main {
+    min-height: 0;
     padding: 0;
     background:
         radial-gradient(circle at 96% 0%, rgba(117, 202, 166, 0.12), transparent 24rem),
         var(--admin-canvas);
+    overscroll-behavior: contain;
 }
 
 .admin-dashboard {

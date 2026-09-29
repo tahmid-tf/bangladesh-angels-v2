@@ -9,6 +9,7 @@
     <link href="https://fonts.bunny.net/css?family=manrope:400,500,600,700,800&display=swap" rel="stylesheet">
     @vite('resources/css/app.css')
     <livewire:styles />
+    @stack('head_styles')
 
     <style>
         /* Critical CSS */
@@ -110,6 +111,16 @@
                 <span>Members</span>
             </a>
             <p class="admin-nav-label">Content</p>
+            <a href="{{ route('admin.blogs.index') }}" class="py-3 px-6 hover:bg-green-600 transition-colors flex items-center space-x-2 {{ request()->routeIs('admin.blogs.*') ? 'bg-green-600' : '' }}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V7.414A2 2 0 0015.414 6L13 3.586A2 2 0 0011.586 3H4zm3 4a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 100 2h6a1 1 0 100-2H7z" />
+                </svg>
+                <span>Blogs</span>
+            </a>
+            <a href="{{ route('admin.publications.index') }}" class="py-3 px-6 hover:bg-green-600 transition-colors flex items-center space-x-2 {{ request()->routeIs('admin.publications.*') ? 'bg-green-600' : '' }}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5 3a2 2 0 0 0-2 2v14l7-3 7 3V5a2 2 0 0 0-2-2H5z" /></svg>
+                <span>Publications</span>
+            </a>
             <a href="{{ route('admin.landing-page-stats') }}" class="py-3 px-6 hover:bg-green-600 transition-colors flex items-center space-x-2 {{ request()->routeIs('admin.landing-page-stats*') ? 'bg-green-600' : '' }}">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M3 3a1 1 0 000 2h10a1 1 0 100-2H3zM3 7a1 1 0 000 2h6a1 1 0 100-2H3zM3 11a1 1 0 100 2h4a1 1 0 100-2H3zM13 8a1 1 0 011 1v5h2a1 1 0 110 2h-6a1 1 0 110-2h2V9a1 1 0 011-1z" />
@@ -121,6 +132,13 @@
                     <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h4V3H4zM10 3v14h6a2 2 0 002-2V5a2 2 0 00-2-2h-6z" />
                 </svg>
                 <span>Homepage Programs</span>
+            </a>
+            <a href="{{ route('admin.homepage-portfolios') }}" class="py-3 px-6 hover:bg-green-600 transition-colors flex items-center space-x-2 {{ request()->routeIs('admin.homepage-portfolios*') ? 'bg-green-600' : '' }}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd" />
+                    <path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z" />
+                </svg>
+                <span>Homepage Portfolios</span>
             </a>
             <a href="{{ route('admin.team-about-section.edit') }}" class="py-3 px-6 hover:bg-green-600 transition-colors flex items-center space-x-2 {{ request()->routeIs('admin.team-about-section*') ? 'bg-green-600' : '' }}">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -196,6 +214,12 @@
                 </svg>
                 <span>Investors Investments</span>
             </a>
+            <a href="{{ route('admin.ban-wealth-orders.index') }}" class="py-3 px-6 hover:bg-green-600 transition-colors flex items-center space-x-2 {{ request()->routeIs('admin.ban-wealth-orders.*') ? 'bg-green-600' : '' }}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path d="M10 2a1 1 0 011 1v1.07A7.002 7.002 0 0117 11v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4a7.002 7.002 0 016-6.93V3a1 1 0 011-1zm0 5a4 4 0 100 8 4 4 0 000-8z" />
+                </svg>
+                <span>BAN Wealth Orders</span>
+            </a>
             <p class="admin-nav-label">Communication</p>
             <a href="{{ route('admin.mail') }}" class="py-3 px-6 hover:bg-green-600 transition-colors flex items-center space-x-2 {{ request()->routeIs('admin.mail*') ? 'bg-green-600' : '' }}">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -249,7 +273,7 @@
 
         <!-- Content Area -->
         <main class="flex-1 overflow-y-auto p-4 bg-gray-50">
-            <div class="admin-page {{ request()->routeIs('admin.dashboard') ? 'admin-page--dashboard' : '' }}">
+            <div class="admin-page {{ request()->routeIs('admin.dashboard') || (request()->routeIs('profile.edit') && auth()->user()->isAdmin()) ? 'admin-page--dashboard' : '' }}">
                 @yield('page_content')
             </div>
         </main>
@@ -330,5 +354,6 @@
     </script>
 
     <livewire:scripts />
+    @stack('scripts')
 </body>
 </html>

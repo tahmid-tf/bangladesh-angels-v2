@@ -21,9 +21,9 @@
                     Join a global network of executives and operators who have built and expanded companies all over the world.
                 </p>
                 <div class="mt-8">
-                    <a href="{{ route('investor.signup') }}"
+                    <a href="{{ auth()->check() && auth()->user()->hasPaidMembership() ? route('dashboard') : route('investor.signup') }}"
                        class="inline-flex items-center justify-center px-6 py-3 rounded-lg font-semibold text-sm sm:text-base bg-white text-[#0a5554] shadow-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#0a5554] transition">
-                        Become an Investor
+                        {{ auth()->check() && auth()->user()->hasPaidMembership() ? 'Investor Dashboard' : 'Become an Investor' }}
                     </a>
                 </div>
             </div>
@@ -138,8 +138,8 @@
                     </div>
                     <p class="text-lg font-semibold text-[#0f3d34]">Highlights coming soon</p>
                     <p class="mt-2 text-sm sm:text-base text-gray-600 leading-relaxed">We showcase selected members here. Join the network to appear in future spotlights.</p>
-                    <a href="{{ route('investor.signup') }}" class="inline-flex mt-8 items-center justify-center rounded-full bg-[#0f3d34] px-6 py-3 text-sm font-semibold text-white shadow-md hover:bg-[#156755] transition">
-                        Become an Investor
+                    <a href="{{ auth()->check() && auth()->user()->hasPaidMembership() ? route('dashboard') : route('investor.signup') }}" class="inline-flex mt-8 items-center justify-center rounded-full bg-[#0f3d34] px-6 py-3 text-sm font-semibold text-white shadow-md hover:bg-[#156755] transition">
+                        {{ auth()->check() && auth()->user()->hasPaidMembership() ? 'Investor Dashboard' : 'Become an Investor' }}
                     </a>
                 </div>
             @endforelse

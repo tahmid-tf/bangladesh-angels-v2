@@ -106,8 +106,7 @@
                     <p>Whether you invest, operate, or build, there is a place to contribute to Bangladesh’s next generation
                         of enduring companies.</p>
                     <div class="ban-page-actions">
-                        <a href="{{ route('investor.signup') }}" class="ban-page-button ban-page-button--primary">Become an
-                            investor <span aria-hidden="true">→</span></a>
+                        <a href="{{ auth()->check() && auth()->user()->hasPaidMembership() ? route('dashboard') : route('investor.signup') }}" class="ban-page-button ban-page-button--primary">{{ auth()->check() && auth()->user()->hasPaidMembership() ? 'Dashboard' : 'Become an investor' }} <span aria-hidden="true">→</span></a>
                         <a href="{{ route('home') }}#pitch-form" class="ban-team-cta__secondary">Pitch your startup <span
                                 aria-hidden="true">↗</span></a>
                     </div>

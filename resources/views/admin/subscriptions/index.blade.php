@@ -16,6 +16,7 @@
             <div>
                 <h1 class="text-lg md:text-xl font-bold text-gray-900">Subscriptions</h1>
                 <p class="text-sm text-gray-600 mt-1">Manage membership tiers, pricing, and member subscription records in one place.</p>
+                <a href="{{ route('admin.membership-orders.index') }}" class="text-sm text-green-700 underline">Order receipts, consent &amp; communication records</a>
             </div>
             <a href="{{ route('member.add') }}" class="inline-flex items-center justify-center rounded-lg bg-[#0a5554] px-4 py-2 text-sm font-semibold text-white hover:bg-[#084646]">
                 + Add New Member

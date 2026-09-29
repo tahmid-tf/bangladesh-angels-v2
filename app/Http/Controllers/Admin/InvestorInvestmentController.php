@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
@@ -19,10 +18,10 @@ class InvestorInvestmentController extends Controller
         $this->authorizeAdmin($request);
 
         $filters = $request->validate([
-            'q' => ['nullable', 'string', 'max:100'],
+            'q'        => ['nullable', 'string', 'max:100'],
             'currency' => ['nullable', 'string', 'size:3'],
-            'from' => ['nullable', 'date'],
-            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'from'     => ['nullable', 'date'],
+            'to'       => ['nullable', 'date', 'after_or_equal:from'],
         ]);
 
         $query = InvestorInvestment::query()
@@ -35,12 +34,12 @@ class InvestorInvestmentController extends Controller
                         ->orWhere('startup_name', 'like', "%{$term}%");
                 });
             })
-            ->when(filled($filters['currency'] ?? null), fn ($query) => $query->where('currency', strtoupper($filters['currency'])))
-            ->when(filled($filters['from'] ?? null), fn ($query) => $query->whereDate('completed_at', '>=', $filters['from']))
-            ->when(filled($filters['to'] ?? null), fn ($query) => $query->whereDate('completed_at', '<=', $filters['to']));
+            ->when(filled($filters['currency'] ?? null), fn($query) => $query->where('currency', strtoupper($filters['currency'])))
+            ->when(filled($filters['from'] ?? null), fn($query) => $query->whereDate('completed_at', '>=', $filters['from']))
+            ->when(filled($filters['to'] ?? null), fn($query) => $query->whereDate('completed_at', '<=', $filters['to']));
 
-        $summaryQuery = clone $query;
-        $totalRecords = (clone $summaryQuery)->count();
+        $summaryQuery   = clone $query;
+        $totalRecords   = (clone $summaryQuery)->count();
         $totalInvestors = (clone $summaryQuery)->distinct()->count('investor_id');
         $currencyTotals = (clone $summaryQuery)
             ->selectRaw('currency, SUM(amount) as total')
@@ -81,7 +80,7 @@ class InvestorInvestmentController extends Controller
     public function store(InvestorInvestmentRequest $request): RedirectResponse
     {
         $investor = User::query()->findOrFail($request->integer('investor_id'));
-        $startup = Deal::query()->findOrFail($request->integer('deal_id'));
+        $startup  = Deal::query()->findOrFail($request->integer('deal_id'));
 
         InvestorInvestment::create($this->payload($request, $investor, $startup) + [
             'created_by' => $request->user()->id,
@@ -89,8 +88,8 @@ class InvestorInvestmentController extends Controller
         ]);
 
         return redirect()
-            ->route('admin.investor-investments.index')
-            ->with('success', 'Investor investment recorded successfully.');
+            ->route('admin.investor-investments.create')
+            ->with('success', 'Investor investment recorded successfully. Add another record.');
     }
 
     public function show(Request $request, InvestorInvestment $investorInvestment): View
@@ -111,7 +110,7 @@ class InvestorInvestmentController extends Controller
     public function update(InvestorInvestmentRequest $request, InvestorInvestment $investorInvestment): RedirectResponse
     {
         $investor = User::query()->findOrFail($request->integer('investor_id'));
-        $startup = Deal::query()->findOrFail($request->integer('deal_id'));
+        $startup  = Deal::query()->findOrFail($request->integer('deal_id'));
 
         $investorInvestment->update($this->payload($request, $investor, $startup) + [
             'updated_by' => $request->user()->id,
@@ -138,19 +137,19 @@ class InvestorInvestmentController extends Controller
 
         $validated = $request->validate([
             'field' => ['required', 'in:name,email,startup'],
-            'q' => ['nullable', 'string', 'max:100'],
+            'q'     => ['nullable', 'string', 'max:100'],
         ]);
         $term = trim((string) ($validated['q'] ?? ''));
 
         if ($validated['field'] === 'startup') {
             $items = Deal::query()
                 ->select(['id', 'title'])
-                ->when($term !== '', fn ($query) => $query->where('title', 'like', "%{$term}%"))
+                ->when($term !== '', fn($query) => $query->where('title', 'like', "%{$term}%"))
                 ->orderBy('title')
                 ->limit(10)
                 ->get()
-                ->map(fn (Deal $deal) => [
-                    'id' => $deal->id,
+                ->map(fn(Deal $deal) => [
+                    'id'    => $deal->id,
                     'label' => $deal->title,
                     'title' => $deal->title,
                 ]);
@@ -159,7 +158,7 @@ class InvestorInvestmentController extends Controller
         }
 
         $column = $validated['field'] === 'email' ? 'email' : 'name';
-        $items = User::query()
+        $items  = User::query()
             ->select(['id', 'name', 'email'])
             ->where('role', 'investor')
             ->when($term !== '', function ($query) use ($column, $term) {
@@ -171,10 +170,10 @@ class InvestorInvestmentController extends Controller
             ->orderBy($column)
             ->limit(10)
             ->get()
-            ->map(fn (User $user) => [
-                'id' => $user->id,
+            ->map(fn(User $user) => [
+                'id'    => $user->id,
                 'label' => $validated['field'] === 'email' ? $user->email : $user->name,
-                'name' => $user->name,
+                'name'  => $user->name,
                 'email' => $user->email,
             ]);
 
@@ -189,14 +188,14 @@ class InvestorInvestmentController extends Controller
     private function payload(InvestorInvestmentRequest $request, User $investor, Deal $startup): array
     {
         return [
-            'investor_id' => $investor->id,
-            'deal_id' => $startup->id,
-            'investor_name' => $investor->name,
+            'investor_id'    => $investor->id,
+            'deal_id'        => $startup->id,
+            'investor_name'  => $investor->name,
             'investor_email' => $investor->email,
-            'startup_name' => $startup->title,
-            'amount' => $request->input('amount'),
-            'currency' => strtoupper($request->string('currency')->toString()),
-            'completed_at' => $request->date('completed_at'),
+            'startup_name'   => $startup->title,
+            'amount'         => $request->input('amount'),
+            'currency'       => strtoupper($request->string('currency')->toString()),
+            'completed_at'   => $request->date('completed_at'),
         ];
     }
 }

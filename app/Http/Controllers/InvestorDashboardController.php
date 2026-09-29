@@ -26,12 +26,6 @@ class InvestorDashboardController extends Controller
         $startupCount = (clone $baseQuery)->distinct()->count('deal_id');
         $lastCompletedAt = (clone $baseQuery)->max('completed_at');
 
-        $investments = (clone $baseQuery)
-            ->with('startup:id,title')
-            ->orderByDesc('completed_at')
-            ->orderByDesc('id')
-            ->paginate(12);
-
         $chartStart = CarbonImmutable::now()->startOfMonth()->subMonths(11);
         $monthlyInvestments = (clone $baseQuery)
             ->whereDate('completed_at', '>=', $chartStart->toDateString())
@@ -65,7 +59,6 @@ class InvestorDashboardController extends Controller
             'investmentCount',
             'startupCount',
             'lastCompletedAt',
-            'investments',
             'monthlyLabels',
             'monthlyDatasets',
             'startupAllocation',

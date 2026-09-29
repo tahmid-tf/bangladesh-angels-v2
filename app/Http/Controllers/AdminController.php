@@ -6,6 +6,7 @@ use App\Exports\MembersExport;
 use App\Mail\AccountApproved;
 use App\Models\Deal;
 use App\Models\CommitSubmission;
+use App\Models\HomepagePortfolio;
 use App\Models\Payment;
 use App\Models\Subscription;
 use App\Models\SubscriptionTier;
@@ -417,6 +418,10 @@ class AdminController extends Controller
 
     public function memberApply(Request $request)
     {
+        if ($request->user()?->hasPaidMembership()) {
+            return redirect()->route('dashboard')->with('info', 'Your membership plan is already active.');
+        }
+
         $approval = false;
 
         $googleSignup = $request->session()->get('google_signup');
@@ -635,7 +640,9 @@ class AdminController extends Controller
     public function addDeal()
     {
         if (auth()->user()->isAdmin()) {
-            return view('admin.deals.create');
+            $homepageSelectionsCount = HomepagePortfolio::count();
+
+            return view('admin.deals.create', compact('homepageSelectionsCount'));
         } else {
             return redirect()->route('home');
         }
@@ -721,6 +728,16 @@ class AdminController extends Controller
                 }
             }
 
+            if ($request->has('show_on_homepage') && $request->boolean('show_on_homepage')) {
+                if ($deal->isListedInPortfolio() && HomepagePortfolio::count() < HomepagePortfolio::MAX_SELECTIONS) {
+                    $nextOrder = (int) (HomepagePortfolio::max('sort_order') ?? 0) + 1;
+                    HomepagePortfolio::create([
+                        'deal_id' => $deal->id,
+                        'sort_order' => $nextOrder,
+                    ]);
+                }
+            }
+
             return redirect()->route('admin.deals')->with('success', 'Deal added successfully!');
         } else {
             return redirect()->route('home');
@@ -742,6 +759,9 @@ class AdminController extends Controller
         $deal->clearMediaCollection('company_cover'); // Deletes all media in the 'company_cover' collection
         $deal->clearMediaCollection('image_gallery'); // Deletes all media in the 'image_gallery' collection
 
+        // Delete associated homepage portfolio selection if any
+        $deal->homepagePortfolio()?->delete();
+
         // Delete the deal record
         $deal->delete();
 
@@ -751,7 +771,10 @@ class AdminController extends Controller
 
     public function editDeal(Deal $deal)
     {
-        return view('admin.deals.edit', compact('deal'));
+        $deal->load('homepagePortfolio');
+        $homepageSelectionsCount = HomepagePortfolio::count();
+
+        return view('admin.deals.edit', compact('deal', 'homepageSelectionsCount'));
     }
 
     public function updateDeal(Request $request, Deal $deal)
@@ -790,6 +813,23 @@ class AdminController extends Controller
 
         if ($request->hasFile('company_cover')) {
             $deal->updateCover($request->file('company_cover'));
+        }
+
+        $deal->refresh();
+        if (! $deal->isListedInPortfolio()) {
+            $deal->homepagePortfolio()?->delete();
+        } elseif ($request->has('show_on_homepage')) {
+            if ($request->boolean('show_on_homepage')) {
+                if (! $deal->homepagePortfolio && HomepagePortfolio::count() < HomepagePortfolio::MAX_SELECTIONS) {
+                    $nextOrder = (int) (HomepagePortfolio::max('sort_order') ?? 0) + 1;
+                    HomepagePortfolio::create([
+                        'deal_id' => $deal->id,
+                        'sort_order' => $nextOrder,
+                    ]);
+                }
+            } else {
+                $deal->homepagePortfolio()?->delete();
+            }
         }
 
         return redirect()->route('admin.deals')->with('success', 'Deal updated successfully!');

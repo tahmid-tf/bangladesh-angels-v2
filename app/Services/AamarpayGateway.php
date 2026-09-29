@@ -2,11 +2,24 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class AamarpayGateway
 {
+    public function initiateTransaction(string $url, array $payload): array
+    {
+        try {
+            $response = Http::timeout(30)->acceptJson()->post($url, $payload);
+
+            return ['body' => $response->body(), 'status' => $response->status(), 'error' => null];
+        } catch (ConnectionException $exception) {
+            return ['body' => '', 'status' => 0, 'error' => 'Could not connect to payment gateway.'];
+        }
+    }
+
     public function mode(): string
     {
         $mode = config('aamarpay.mode', 'sandbox');

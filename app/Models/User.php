@@ -159,6 +159,18 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
     }
 
     /**
+     * Whether the account already has an active paid membership tier.
+     */
+    public function hasPaidMembership(): bool
+    {
+        return in_array(strtolower((string) $this->account_status), [
+            'core',
+            'advanced',
+            'institutional',
+        ], true);
+    }
+
+    /**
      * Whether the member may view paywalled deal listings (e.g. Active Deals on /startups).
      */
     public function canViewPaywalledDeals(): bool
@@ -265,6 +277,11 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
     public function completedInvestments()
     {
         return $this->hasMany(InvestorInvestment::class, 'investor_id');
+    }
+
+    public function banWealthOrders()
+    {
+        return $this->hasMany(BanWealthOrder::class, 'investor_id');
     }
 
     /**

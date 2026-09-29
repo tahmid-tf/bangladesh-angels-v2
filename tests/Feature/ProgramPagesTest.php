@@ -19,7 +19,8 @@ class ProgramPagesTest extends TestCase
             ->assertSee('<a href="#membership-plans" class="ban-site-nav__link">Plans</a>', false)
             ->assertSee('<a href="'.route('startups').'" class="ban-site-nav__link">Featured Startups</a>', false)
             ->assertSee('<a href="'.route('portfolio').'" class="ban-site-nav__link">Portfolio</a>', false)
-            ->assertSee('<a href="'.route('team').'" class="ban-site-nav__link">Team</a>', false)
+            ->assertSee('class="ban-site-nav__dropdown-button"', false)
+            ->assertSee('<a href="'.route('team').'">Team</a>', false)
             ->assertDontSee('<a href="'.route('investor.signup').'" class="ban-site-nav__link">Investor Signup</a>', false)
             ->assertSee('<a href="'.route('investor.signup').'">Become an Investor</a>', false)
             ->assertSee('id="join"', false)
@@ -45,7 +46,7 @@ class ProgramPagesTest extends TestCase
             ->assertSee('id="faq"', false)
             ->assertSee('What sort of returns are you seeing or expecting?')
             ->assertSee('Are startups registered in the US, and do syndicates issue K-1 tax forms for US investors?')
-            ->assertSee('<a href="'.route('faq').'" class="ban-site-nav__link">FAQ</a>', false)
+            ->assertSee('<a href="'.route('faq').'">FAQ</a>', false)
             ->assertSee(route('bwin'), false)
             ->assertSee(route('angel-academy'), false)
             ->assertSee(route('resources'), false);

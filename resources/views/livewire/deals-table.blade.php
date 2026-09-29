@@ -49,7 +49,14 @@
                         <td class="px-4 py-2 flex items-center space-x-4">
                             <img src="{{ $deal->getLogoUrl() }}" alt="{{ $deal->title }} Logo" class="h-[30px] rounded-full">
                             <div>
-                                <p class="font-semibold">{{ $deal->title }}</p>
+                                <div class="flex items-center gap-2">
+                                    <p class="font-semibold">{{ $deal->title }}</p>
+                                    @if ($deal->homepagePortfolio)
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-semibold bg-emerald-100 text-emerald-800" title="Selected for homepage portfolio section (Position #{{ $deal->homepagePortfolio->sort_order }})">
+                                            Homepage #{{ $deal->homepagePortfolio->sort_order }}
+                                        </span>
+                                    @endif
+                                </div>
                                 <p class="text-sm text-gray-500">{{ $deal->sector }}</p>
                             </div>
                         </td>

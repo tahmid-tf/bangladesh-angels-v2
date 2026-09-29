@@ -206,7 +206,7 @@
                             <input type="hidden" name="user_id" value="{{ auth()->id() }}">
                             <input type="hidden" name="deal_id" value="{{ $deal->id }}">
                             <input type="hidden" name="type" value="review">
-                            <button type="submit">Join Investors WhatsApp group <span aria-hidden="true">&rarr;</span></button>
+                            {{-- <button type="submit">Join Investors WhatsApp group <span aria-hidden="true">&rarr;</span></button> --}}
                         </form>
                     @endif
 

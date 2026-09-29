@@ -1,7 +1,10 @@
 <?php
 
 use App\Http\Controllers\Admin\AngelAcademyNetworkApplicationController as AdminAngelAcademyNetworkApplicationController;
+use App\Http\Controllers\Admin\BanWealthOrderController as AdminBanWealthOrderController;
+use App\Http\Controllers\Admin\BlogController as AdminBlogController;
 use App\Http\Controllers\Admin\FounderPitchSubmissionController;
+use App\Http\Controllers\Admin\HomepagePortfolioController;
 use App\Http\Controllers\Admin\InvestorInvestmentController as AdminInvestorInvestmentController;
 use App\Http\Controllers\Admin\LandingPageStatController;
 use App\Http\Controllers\Admin\LandingProgramCardController;
@@ -12,16 +15,22 @@ use App\Http\Controllers\Admin\TeamMemberController;
 use App\Http\Controllers\Admin\WhatWeDoCardController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AngelAcademyNetworkApplicationController;
+use App\Http\Controllers\BanWealthController;
+use App\Http\Controllers\BlogController;
+use App\Http\Controllers\PublicationController;
+use App\Http\Controllers\Admin\PublicationController as AdminPublicationController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CommitSubmissionController;
 use App\Http\Controllers\FounderPitchController;
 use App\Http\Controllers\InvestmentController;
 use App\Http\Controllers\InvestorDashboardController;
 use App\Http\Controllers\MailController;
+use App\Http\Controllers\MembershipOrderController;
 use App\Http\Controllers\PrimaryController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ResourceController;
 use App\Http\Controllers\SubscriptionController;
+use App\Http\Controllers\WebsitePolicyController;
 use App\Http\Middleware\ApprovedUserMiddleware;
 use App\Models\Deal;
 use App\Models\Payment;
@@ -35,6 +44,26 @@ use Illuminate\Support\Facades\Route;
  */
 Route::get('/', PrimaryController::class)->name('home');
 
+Route::get('/blogs', [BlogController::class, 'index'])->name('blogs.index');
+Route::get('/blogs/{slug}', [BlogController::class, 'show'])->name('blogs.show');
+Route::get('/publications', [PublicationController::class, 'index'])->name('publications.index');
+Route::get('/publications/{publication}/download', [PublicationController::class, 'download'])->name('publications.download');
+
+Route::get('/about-us', [WebsitePolicyController::class, 'show'])->name('about-us');
+Route::get('/services', [WebsitePolicyController::class, 'services'])->name('services');
+Route::get('/contact', [WebsitePolicyController::class, 'contact'])->name('contact');
+Route::get('/policies/{policy}', [WebsitePolicyController::class, 'show'])->name('policies.show');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/membership/orders', [MembershipOrderController::class, 'index'])->name('membership-orders.index');
+    Route::get('/membership/orders/{membershipOrder}', [MembershipOrderController::class, 'show'])->name('membership-orders.show');
+    Route::get('/membership/orders/{membershipOrder}/policies', [MembershipOrderController::class, 'policies'])->name('membership-orders.policies');
+    Route::post('/membership/orders/{membershipOrder}/confirm-delivery', [MembershipOrderController::class, 'confirmDelivery'])->middleware('throttle:10,1')->name('membership-orders.confirm-delivery');
+    Route::get('/admin/membership-orders', [MembershipOrderController::class, 'adminIndex'])->name('admin.membership-orders.index');
+    Route::post('/admin/membership-orders/{membershipOrder}/records', [MembershipOrderController::class, 'storeRecord'])->middleware('throttle:20,1')->name('admin.membership-orders.records.store');
+    Route::get('/admin/membership-records/{record}/download', [MembershipOrderController::class, 'downloadRecord'])->name('admin.membership-orders.records.download');
+});
+
 Route::redirect('/our-team', '/team', 301);
 
 Route::redirect('/ban-investors', '/our-investors', 301);
@@ -45,6 +74,8 @@ Route::get('/deckvue', [PrimaryController::class, 'viewResources'])->name('resou
 Route::get('/team', [PrimaryController::class, 'viewTeam'])->name('team');
 Route::get('/angel-academy', [PrimaryController::class, 'viewAngelAcademy'])->name('angel-academy');
 Route::get('/bwin', [PrimaryController::class, 'viewBwin'])->name('bwin');
+// Route::get('/ban-wealth', [BanWealthController::class, 'landing'])->name('ban-wealth.index');
+// Route::get('/ban-wealth/invest', [BanWealthController::class, 'invest'])->name('ban-wealth.invest');
 Route::get('/angel-academy/apply', [AngelAcademyNetworkApplicationController::class, 'create'])->name('angel-academy.apply');
 Route::post('/angel-academy/apply', [AngelAcademyNetworkApplicationController::class, 'store'])
     ->middleware('throttle:10,1')
@@ -158,11 +189,29 @@ Route::get('/resources/{resource:slug}', [ResourceController::class, 'view'])->n
  */
 Route::middleware('auth')->group(function () {
 
+    Route::get('/ban-wealth/continue', fn () => redirect()->route('ban-wealth.invest', ['resume' => 1]))
+        ->name('ban-wealth.continue');
+
     /**
      * Admin Dashboard Routes
      */
     Route::prefix('admin')->group(function () {
         Route::get('/dashboard', AdminController::class)->name('admin.dashboard');
+        Route::get('/blogs', [AdminBlogController::class, 'index'])->name('admin.blogs.index');
+        Route::get('/blogs/create', [AdminBlogController::class, 'create'])->name('admin.blogs.create');
+        Route::post('/blogs', [AdminBlogController::class, 'store'])->name('admin.blogs.store');
+        Route::get('/blogs/{blog}', [AdminBlogController::class, 'show'])->name('admin.blogs.show');
+        Route::get('/blogs/{blog}/edit', [AdminBlogController::class, 'edit'])->name('admin.blogs.edit');
+        Route::put('/blogs/{blog}', [AdminBlogController::class, 'update'])->name('admin.blogs.update');
+        Route::patch('/blogs/{blog}/status', [AdminBlogController::class, 'updateStatus'])->name('admin.blogs.status');
+        Route::delete('/blogs/{blog}', [AdminBlogController::class, 'destroy'])->name('admin.blogs.destroy');
+        Route::get('/publications', [AdminPublicationController::class, 'index'])->name('admin.publications.index');
+        Route::get('/publications/create', [AdminPublicationController::class, 'create'])->name('admin.publications.create');
+        Route::post('/publications', [AdminPublicationController::class, 'store'])->name('admin.publications.store');
+        Route::get('/publications/{publication}/edit', [AdminPublicationController::class, 'edit'])->name('admin.publications.edit');
+        Route::put('/publications/{publication}', [AdminPublicationController::class, 'update'])->name('admin.publications.update');
+        Route::patch('/publications/{publication}/status', [AdminPublicationController::class, 'updateStatus'])->name('admin.publications.status');
+        Route::delete('/publications/{publication}', [AdminPublicationController::class, 'destroy'])->name('admin.publications.destroy');
         Route::redirect('/resources', '/admin/events', 301);
         Route::get('/events', ResourceController::class)->name('admin.events');
         Route::get('/events/create', [ResourceController::class, 'create'])->name('admin.events.create');
@@ -244,6 +293,15 @@ Route::middleware('auth')->group(function () {
         Route::put('/landing-program-cards/{landingProgramCard}', [LandingProgramCardController::class, 'update'])->name('admin.landing-program-cards.update');
         Route::delete('/landing-program-cards/{landingProgramCard}', [LandingProgramCardController::class, 'destroy'])->name('admin.landing-program-cards.destroy');
 
+        Route::get('/homepage-portfolios', [HomepagePortfolioController::class, 'index'])->name('admin.homepage-portfolios');
+        Route::post('/homepage-portfolios', [HomepagePortfolioController::class, 'store'])->name('admin.homepage-portfolios.store');
+        Route::put('/homepage-portfolios/reorder', [HomepagePortfolioController::class, 'reorder'])->name('admin.homepage-portfolios.reorder');
+        Route::post('/homepage-portfolios/sync', [HomepagePortfolioController::class, 'sync'])->name('admin.homepage-portfolios.sync');
+        Route::delete('/homepage-portfolios/batch-destroy', [HomepagePortfolioController::class, 'batchDestroy'])->name('admin.homepage-portfolios.batch-destroy');
+        Route::post('/homepage-portfolios/{homepagePortfolio}/move-up', [HomepagePortfolioController::class, 'moveUp'])->name('admin.homepage-portfolios.move-up');
+        Route::post('/homepage-portfolios/{homepagePortfolio}/move-down', [HomepagePortfolioController::class, 'moveDown'])->name('admin.homepage-portfolios.move-down');
+        Route::delete('/homepage-portfolios/{homepagePortfolio}', [HomepagePortfolioController::class, 'destroy'])->name('admin.homepage-portfolios.destroy');
+
         Route::get('/team-about-section', [TeamAboutSectionController::class, 'edit'])->name('admin.team-about-section.edit');
         Route::put('/team-about-section', [TeamAboutSectionController::class, 'update'])->name('admin.team-about-section.update');
 
@@ -289,11 +347,21 @@ Route::middleware('auth')->group(function () {
             ->parameters(['investor-investments' => 'investorInvestment'])
             ->names('admin.investor-investments');
 
+        Route::get('/ban-wealth-orders', [AdminBanWealthOrderController::class, 'index'])->name('admin.ban-wealth-orders.index');
+        Route::get('/ban-wealth-orders/{banWealthOrder}', [AdminBanWealthOrderController::class, 'show'])->name('admin.ban-wealth-orders.show');
+        Route::patch('/ban-wealth-orders/{banWealthOrder}', [AdminBanWealthOrderController::class, 'update'])->name('admin.ban-wealth-orders.update');
+
     });
 
     Route::get('/investor/dashboard', InvestorDashboardController::class)
         ->middleware('verified')
         ->name('investor.dashboard');
+
+    Route::post('/ban-wealth/orders', [BanWealthController::class, 'store'])
+        ->middleware(['verified', 'throttle:5,1'])
+        ->name('ban-wealth.orders.store');
+    Route::get('/ban-wealth/orders/{banWealthOrder}/proof', [BanWealthController::class, 'proof'])
+        ->name('ban-wealth.orders.proof');
 
     /**
      * User Profile Routes

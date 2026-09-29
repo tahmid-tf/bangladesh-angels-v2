@@ -114,6 +114,25 @@
                         </span>
                     </label>
                 </div>
+                <div class="rounded-lg border border-emerald-200 bg-emerald-50/60 px-4 py-3">
+                    <input type="hidden" name="show_on_homepage" value="0">
+                    <label for="show_on_homepage" class="flex cursor-pointer items-start gap-3">
+                        <input type="checkbox" id="show_on_homepage" name="show_on_homepage" value="1" 
+                            class="mt-1 rounded border-gray-300 text-green-600 focus:ring-green-500" 
+                            {{ old('show_on_homepage') ? 'checked' : '' }}
+                            {{ (($homepageSelectionsCount ?? 0) >= \App\Models\HomepagePortfolio::MAX_SELECTIONS) ? 'disabled' : '' }}>
+                        <div>
+                            <span class="block font-semibold text-gray-800">Feature in Homepage Selected Portfolios</span>
+                            <span class="block text-sm text-gray-600">
+                                Showcase this company in the Portfolio section of the homepage (requires deal type 'Portfolio only' or 'Also show in Portfolio').
+                                (Currently {{ $homepageSelectionsCount ?? 0 }} / {{ \App\Models\HomepagePortfolio::MAX_SELECTIONS }} selected)
+                                @if (($homepageSelectionsCount ?? 0) >= \App\Models\HomepagePortfolio::MAX_SELECTIONS)
+                                    <span class="text-amber-700 font-medium block mt-1">Maximum of {{ \App\Models\HomepagePortfolio::MAX_SELECTIONS }} portfolios already selected.</span>
+                                @endif
+                            </span>
+                        </div>
+                    </label>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label for="sector" class="block text-gray-700 font-semibold mb-2">Sector *</label>

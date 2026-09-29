@@ -11,19 +11,39 @@
         <nav class="ban-site-nav__desktop" aria-label="Primary navigation">
             <ul class="ban-site-nav__list">
                 <li><a href="{{ $homeSection('ban-events') }}" class="ban-site-nav__link">Events</a></li>
-                <li><a href="{{ $homeSection('membership-plans') }}" class="ban-site-nav__link">Plans</a></li>
+                @if (!auth()->check() || !auth()->user()->hasPaidMembership())
+                    <li><a href="{{ $homeSection('membership-plans') }}" class="ban-site-nav__link">Plans</a></li>
+                @endif
                 <li><a href="{{ route('startups') }}" class="ban-site-nav__link">Featured Startups</a></li>
                 <li><a href="{{ route('portfolio') }}" class="ban-site-nav__link">Portfolio</a></li>
-                <li><a href="{{ route('team') }}" class="ban-site-nav__link">Team</a></li>
-                <li><a href="{{ route('faq') }}" class="ban-site-nav__link">FAQ</a></li>
+                <li class="ban-site-nav__dropdown">
+                    <button type="button" class="ban-site-nav__dropdown-button" aria-haspopup="true">
+                        <span>About Us</span><span class="ban-site-nav__chevron" aria-hidden="true">▾</span>
+                    </button>
+                    <div class="ban-site-nav__dropdown-panel">
+                        <a href="{{ route('team') }}">Team</a>
+                        <a href="{{ route('about-us') }}" @if(request()->routeIs('about-us')) aria-current="page" @endif>About</a>
+                    </div>
+                </li>
                 <li class="ban-site-nav__dropdown">
                     <button type="button" class="ban-site-nav__dropdown-button" aria-haspopup="true">
                         <span>Programs</span><span class="ban-site-nav__chevron" aria-hidden="true">▾</span>
                     </button>
                     <div class="ban-site-nav__dropdown-panel">
+                        {{-- <a href="{{ route('ban-wealth.index') }}">BAN Wealth</a> --}}
                         <a href="{{ route('bwin') }}">BWIN</a>
                         <a href="{{ route('angel-academy') }}">Angel Academy</a>
                         <a href="{{ route('resources') }}">DeckVue</a>
+                    </div>
+                </li>
+                <li class="ban-site-nav__dropdown">
+                    <button type="button" class="ban-site-nav__dropdown-button" aria-haspopup="true" @if(request()->routeIs('blogs.*', 'faq', 'publications.*')) aria-current="page" @endif>
+                        <span>Learn</span><span class="ban-site-nav__chevron" aria-hidden="true">▾</span>
+                    </button>
+                    <div class="ban-site-nav__dropdown-panel">
+                        <a href="{{ route('blogs.index') }}" @if(request()->routeIs('blogs.*')) aria-current="page" @endif>Blogs</a>
+                        <a href="{{ route('publications.index') }}" @if(request()->routeIs('publications.*')) aria-current="page" @endif>Publications</a>
+                        <a href="{{ route('faq') }}" @if(request()->routeIs('faq')) aria-current="page" @endif>FAQ</a>
                     </div>
                 </li>
             </ul>
@@ -51,6 +71,7 @@
 
             @guest
                 <a href="{{ route('login') }}" class="ban-site-nav__login">SIGN IN</a>
+                <a href="{{ route('investor.signup') }}" class="ban-site-nav__register">REGISTER</a>
             @endguest
         </div>
 
@@ -70,19 +91,36 @@
                 @endauth
                 @guest
                     <li><a href="{{ route('login') }}" class="ban-mobile-secondary">Login</a></li>
+                    <li><a href="{{ route('investor.signup') }}" class="ban-mobile-primary">Register</a></li>
                 @endguest
                 <li><a href="{{ $homeSection('ban-events') }}">Events</a></li>
-                <li><a href="{{ $homeSection('membership-plans') }}">Plans</a></li>
+                @if (!auth()->check() || !auth()->user()->hasPaidMembership())
+                    <li><a href="{{ $homeSection('membership-plans') }}">Plans</a></li>
+                @endif
                 <li><a href="{{ route('startups') }}">Featured Startups</a></li>
                 <li><a href="{{ route('portfolio') }}">Portfolio</a></li>
-                <li><a href="{{ route('team') }}">Team</a></li>
-                <li><a href="{{ route('faq') }}">FAQ</a></li>
                 <li>
-                    <span>Our Programs</span>
+                    <span>About Us</span>
                     <div class="ban-site-nav__mobile-subnav">
+                        <a href="{{ route('team') }}">Team</a>
+                        <a href="{{ route('about-us') }}" @if(request()->routeIs('about-us')) aria-current="page" @endif>About</a>
+                    </div>
+                </li>
+                <li>
+                    <span>Programs</span>
+                    <div class="ban-site-nav__mobile-subnav">
+                        {{-- <a href="{{ route('ban-wealth.index') }}">BAN Wealth</a> --}}
                         <a href="{{ route('bwin') }}">BWIN</a>
                         <a href="{{ route('angel-academy') }}">Angel Academy</a>
                         <a href="{{ route('resources') }}">DeckVue</a>
+                    </div>
+                </li>
+                <li>
+                    <span>Learn</span>
+                    <div class="ban-site-nav__mobile-subnav">
+                        <a href="{{ route('blogs.index') }}" @if(request()->routeIs('blogs.*')) aria-current="page" @endif>Blogs</a>
+                        <a href="{{ route('publications.index') }}" @if(request()->routeIs('publications.*')) aria-current="page" @endif>Publications</a>
+                        <a href="{{ route('faq') }}" @if(request()->routeIs('faq')) aria-current="page" @endif>FAQ</a>
                     </div>
                 </li>
                 <li><a href="{{ $homeSection('pitch-form') }}" class="ban-mobile-pitch">Pitch your startup</a></li>

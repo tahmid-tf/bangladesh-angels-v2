@@ -68,29 +68,9 @@
     <section class="investor-panel investor-ledger" id="my-investments">
         <header>
             <div><p class="investor-eyebrow">Personal ledger</p><h2>My investments</h2></div>
-            <span>{{ $investments->total() }} {{ Str::plural('record', $investments->total()) }}</span>
+            <span>{{ $investmentCount }} {{ Str::plural('record', $investmentCount) }}</span>
         </header>
-        <div class="investor-ledger__table-wrap">
-            <table>
-                <thead><tr><th>Startup</th><th>Amount</th><th>Currency</th><th>Completed</th><th>Status</th></tr></thead>
-                <tbody>
-                    @forelse ($investments as $investment)
-                        <tr>
-                            <td><span class="investor-startup-mark" aria-hidden="true">{{ Str::upper(Str::substr($investment->startup_name, 0, 1)) }}</span><strong>{{ $investment->startup_name }}</strong></td>
-                            <td><strong>{{ number_format((float) $investment->amount, 2) }}</strong></td>
-                            <td><span class="investor-currency">{{ $investment->currency }}</span></td>
-                            <td>{{ $investment->completed_at->format('d M Y') }}</td>
-                            <td><span class="investor-status"><i></i> Completed</span></td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="5" class="investor-ledger__empty">No completed investments have been recorded for your account yet.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        @if ($investments->hasPages())
-            <div class="investor-ledger__pagination">{{ $investments->fragment('my-investments')->links() }}</div>
-        @endif
+        <livewire:investor-investments-table />
     </section>
 
     <footer class="investor-dashboard__footer">Investment records are maintained by Bangladesh Angels administrators. Contact the team if a record needs correction.</footer>
