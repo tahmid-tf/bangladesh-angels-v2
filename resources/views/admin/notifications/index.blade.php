@@ -1,6 +1,153 @@
 @extends('layouts.admin')
 @section('page_title', 'Member Activity Notifications | Dashboard')
 
+@push('head_styles')
+<style>
+    /* Scoped styles to prevent admin-dashboard.css aggressive table overrides */
+    .notif-table td a:has(svg) {
+        display: inline-flex !important;
+        width: auto !important;
+        height: auto !important;
+        background: transparent !important;
+        border: none !important;
+        transform: none !important;
+        border-radius: 0 !important;
+    }
+    .notif-table td a:has(svg) svg {
+        width: auto !important;
+        height: auto !important;
+        fill: currentColor !important;
+    }
+    .notif-table :is(a, button)[class*="bg-[#0a5554]"] {
+        min-height: auto !important;
+        border-radius: inherit !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        color: inherit !important;
+    }
+
+    /* Target Company Badge */
+    .notif-company-badge {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        padding: 4px 10px !important;
+        border-radius: 8px !important;
+        font-size: 0.8125rem !important;
+        font-weight: 700 !important;
+        color: #064e3b !important;
+        background: #ecfdf5 !important;
+        border: 1px solid #a7f3d0 !important;
+        text-decoration: none !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+        transition: all 150ms ease !important;
+        max-width: 100% !important;
+    }
+    .notif-company-badge:hover {
+        background: #d1fae5 !important;
+        border-color: #6ee7b7 !important;
+        color: #064e3b !important;
+        transform: translateY(-1px) !important;
+        text-decoration: none !important;
+    }
+    .notif-company-badge .arrow-icon {
+        font-size: 11px !important;
+        color: #059669 !important;
+        transition: transform 150ms ease !important;
+    }
+    .notif-company-badge:hover .arrow-icon {
+        transform: translate(1px, -1px) !important;
+    }
+
+    /* Activity Signal Link */
+    .notif-activity-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 5px !important;
+        padding: 4px 12px !important;
+        border-radius: 9999px !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        color: #065f46 !important;
+        background: #f0fdf4 !important;
+        border: 1px solid #bbf7d0 !important;
+        text-decoration: none !important;
+        min-height: 28px !important;
+        box-shadow: none !important;
+        transition: all 160ms ease !important;
+    }
+    .notif-activity-btn:hover {
+        background: #0a5554 !important;
+        border-color: #0a5554 !important;
+        color: #ffffff !important;
+        transform: translateY(-1px) !important;
+        text-decoration: none !important;
+    }
+
+    /* Read/Unread Toggle Button */
+    .notif-toggle-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 6px !important;
+        padding: 4px 11px !important;
+        border-radius: 9999px !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        min-height: 28px !important;
+        box-shadow: none !important;
+        transition: all 150ms ease !important;
+        cursor: pointer !important;
+        outline: none !important;
+    }
+    .notif-toggle-btn[data-viewed="1"] {
+        background: #ecfdf5 !important;
+        color: #065f46 !important;
+        border: 1px solid #a7f3d0 !important;
+    }
+    .notif-toggle-btn[data-viewed="1"]:hover {
+        background: #d1fae5 !important;
+        border-color: #6ee7b7 !important;
+    }
+    .notif-toggle-btn[data-viewed="0"] {
+        background: #ffffff !important;
+        color: #374151 !important;
+        border: 1px solid #d1d5db !important;
+    }
+    .notif-toggle-btn[data-viewed="0"]:hover {
+        border-color: #10b981 !important;
+        color: #047857 !important;
+        background: #f0fdf4 !important;
+    }
+    .notif-toggle-btn .tick-icon-wrapper {
+        width: 14px !important;
+        height: 14px !important;
+        border-radius: 9999px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: all 150ms ease !important;
+        shrink: 0 !important;
+    }
+    .notif-toggle-btn[data-viewed="1"] .tick-icon-wrapper {
+        background: #059669 !important;
+        color: #ffffff !important;
+        border: none !important;
+    }
+    .notif-toggle-btn[data-viewed="0"] .tick-icon-wrapper {
+        background: transparent !important;
+        border: 1.5px solid #9ca3af !important;
+        color: transparent !important;
+    }
+    .notif-toggle-btn[data-viewed="0"]:hover .tick-icon-wrapper {
+        border-color: #059669 !important;
+        background: #059669 !important;
+        color: #ffffff !important;
+    }
+</style>
+@endpush
+
 @section('page_content')
 <section class="container mx-auto p-4 md:p-6 max-w-7xl">
     <!-- Header -->
@@ -30,7 +177,7 @@
                     <span>Mark all as read</span>
                 </button>
                 <a href="{{ route('admin.investments') }}" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-gray-300 text-gray-700 bg-white text-xs font-semibold hover:bg-gray-50 transition-colors">
-                    <span>← Investments deals list</span>
+                    <span>&larr; Investments deals list</span>
                 </a>
             </div>
         </div>
@@ -125,16 +272,16 @@
     <!-- Notifications Table -->
     <div class="bg-white rounded-xl shadow overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full text-sm text-left">
+            <table class="min-w-full text-sm text-left notif-table">
                 <thead class="bg-gray-50 text-xs font-semibold text-gray-600 uppercase border-b border-gray-100">
                     <tr>
-                        <th class="px-4 py-3 whitespace-nowrap">Status</th>
-                        <th class="px-4 py-3">Member</th>
-                        <th class="px-4 py-3">Target Company</th>
-                        <th class="px-4 py-3">Activity Signal</th>
-                        <th class="px-4 py-3 whitespace-nowrap">Recorded</th>
-                        <th class="px-4 py-3">Admin Review</th>
-                        <th class="px-4 py-3 text-right whitespace-nowrap">Action</th>
+                        <th class="px-4 py-3 whitespace-nowrap">STATUS</th>
+                        <th class="px-4 py-3">MEMBER</th>
+                        <th class="px-4 py-3">TARGET COMPANY</th>
+                        <th class="px-4 py-3">ACTIVITY SIGNAL</th>
+                        <th class="px-4 py-3 whitespace-nowrap">RECORDED</th>
+                        <th class="px-4 py-3 whitespace-nowrap">ADMIN REVIEW</th>
+                        <th class="px-4 py-3 text-right whitespace-nowrap">ACTION</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100" id="notifications-table-body">
@@ -147,9 +294,9 @@
                         <tr class="hover:bg-gray-50/80 transition-colors {{ !$isViewed ? 'bg-amber-50/20' : '' }}" id="notification-row-{{ $notification->id }}">
                             <!-- Status -->
                             <td class="px-4 py-3 whitespace-nowrap">
-                                <div class="flex items-center gap-2">
-                                    <span class="status-indicator-dot w-2.5 h-2.5 rounded-full {{ $isViewed ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse' }}" title="{{ $isViewed ? 'Viewed' : 'Unread' }}"></span>
-                                    <span class="status-indicator-label text-xs font-semibold {{ $isViewed ? 'text-emerald-700' : 'text-amber-700' }}">
+                                <div class="inline-flex items-center gap-2">
+                                    <span class="status-indicator-dot w-2 h-2 rounded-full {{ $isViewed ? 'bg-emerald-500' : 'bg-amber-500 ring-2 ring-amber-200 animate-pulse' }}" title="{{ $isViewed ? 'Viewed' : 'Unread' }}"></span>
+                                    <span class="status-indicator-label text-xs font-bold {{ $isViewed ? 'text-emerald-700' : 'text-amber-700' }}">
                                         {{ $isViewed ? 'Read' : 'Unread' }}
                                     </span>
                                 </div>
@@ -158,32 +305,31 @@
                             <!-- Member -->
                             <td class="px-4 py-3">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full bg-[#0a5554]/10 text-[#0a5554] flex items-center justify-center font-bold text-xs ring-1 ring-[#0a5554]/20 shrink-0">
+                                    <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-800 font-bold text-xs flex items-center justify-center shrink-0 border border-emerald-200">
                                         {{ strtoupper(substr($user?->name ?? 'M', 0, 1)) }}
                                     </div>
                                     <div class="min-w-0">
-                                        <p class="font-bold text-gray-900 truncate">{{ $user?->name ?? 'Anonymous / Unknown' }}</p>
-                                        <p class="text-xs text-gray-500 truncate">{{ $user?->email ?? 'No email' }}</p>
+                                        <p class="font-bold text-gray-900 text-xs truncate">{{ $user?->name ?? 'Anonymous / Unknown' }}</p>
+                                        <p class="text-[11px] text-gray-500 truncate">{{ $user?->email ?? 'No email' }}</p>
                                     </div>
                                 </div>
                             </td>
 
-                            <!-- Company / Deal (Prominently Highlighted!) -->
+                            <!-- Target Company (Clean, highlighted badge with no squished boxes) -->
                             <td class="px-4 py-3">
                                 @if ($deal)
-                                    <div class="flex items-center gap-2.5">
-                                        <img src="{{ $deal->getLogoUrl() }}" alt="" class="w-7 h-7 rounded-full object-cover shrink-0 ring-1 ring-gray-200">
+                                    <div class="flex items-center gap-3">
+                                        <img src="{{ $deal->getLogoUrl() }}" alt="{{ $deal->title }}" class="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-gray-200">
                                         <div class="min-w-0">
-                                            <!-- Highlighted Company Badge -->
                                             <a href="{{ route('admin.deals.member-activity', $deal) }}" 
-                                               class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md font-bold text-sm text-[#0a5554] bg-[#0a5554]/10 hover:bg-[#0a5554]/20 border border-[#0a5554]/20 transition-all shadow-xs"
+                                               class="notif-company-badge"
                                                title="View {{ $deal->title }} member activity">
-                                                <span>{{ $deal->title }}</span>
-                                                <svg class="w-3.5 h-3.5 shrink-0 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                                </svg>
+                                                <span class="truncate">{{ $deal->title }}</span>
+                                                <span class="arrow-icon" aria-hidden="true">&nearr;</span>
                                             </a>
-                                            <p class="text-[11px] text-gray-500 mt-0.5 truncate">{{ $deal->sector ?: 'General' }} · {{ ucfirst($deal->type) }}</p>
+                                            <p class="text-[11px] text-gray-500 mt-1 truncate">
+                                                {{ $deal->sector ?: 'General' }} &bull; <span class="capitalize">{{ $deal->type }}</span>
+                                            </p>
                                         </div>
                                     </div>
                                 @else
@@ -193,15 +339,16 @@
 
                             <!-- Activity Signal -->
                             <td class="px-4 py-3">
-                                <div>
+                                <div class="max-w-xs">
                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold {{ 
-                                        $notification->type === 'interested' ? 'bg-emerald-100 text-emerald-800' : (
-                                        $notification->type === 'invest' ? 'bg-teal-100 text-teal-800' : 'bg-violet-100 text-violet-800'
+                                        $notification->type === 'interested' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : (
+                                        $notification->type === 'invest' ? 'bg-teal-100 text-teal-800 border border-teal-200' : 'bg-violet-100 text-violet-800 border border-violet-200'
                                     ) }}">
                                         {{ $notification->type_label }}
                                     </span>
-                                    <p class="text-xs text-gray-600 mt-1">
-                                        {{ $user?->name ?? 'Member' }} {{ $notification->action_message }} 
+                                    <p class="text-xs text-gray-700 mt-1 leading-snug">
+                                        <span class="font-semibold text-gray-900">{{ $user?->name ?? 'Member' }}</span> 
+                                        <span class="text-gray-600">{{ $notification->action_message }}</span> 
                                         <strong class="text-gray-800">{{ $deal?->title ?? 'this deal' }}</strong>
                                     </p>
                                 </div>
@@ -209,24 +356,32 @@
 
                             <!-- Recorded Time -->
                             <td class="px-4 py-3 whitespace-nowrap">
-                                <p class="text-xs font-medium text-gray-800">{{ $notification->created_at?->format('M j, Y') }}</p>
-                                <p class="text-[11px] text-gray-400">{{ $notification->created_at?->format('g:i A') }} ({{ $notification->created_at?->diffForHumans() }})</p>
+                                <p class="text-xs font-semibold text-gray-800">{{ $notification->created_at?->format('M j, Y') }}</p>
+                                <p class="text-[11px] text-gray-500">
+                                    {{ $notification->created_at?->format('g:i A') }}
+                                    @if ($notification->created_at && !$notification->created_at->isFuture())
+                                        <span class="text-gray-400">({{ $notification->created_at->diffForHumans() }})</span>
+                                    @endif
+                                </p>
                             </td>
 
-                            <!-- Review Info -->
+                            <!-- Admin Review -->
                             <td class="px-4 py-3 text-xs text-gray-500 whitespace-nowrap review-meta-cell">
                                 @if ($isViewed)
-                                    <div class="flex items-center gap-1.5 text-emerald-700 font-medium">
-                                        <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                    <div class="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                                        <svg class="w-3.5 h-3.5 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
                                         </svg>
-                                        <span>Viewed {{ $notification->viewed_at?->diffForHumans() }}</span>
+                                        <span>Viewed</span>
                                     </div>
+                                    <p class="text-[11px] text-gray-500 mt-0.5">
+                                        {{ $notification->viewed_at ? $notification->viewed_at->format('M j, Y · g:i A') : 'Recorded' }}
+                                    </p>
                                     @if ($notification->viewer)
-                                        <p class="text-[11px] text-gray-400 mt-0.5">by {{ $notification->viewer->name }}</p>
+                                        <p class="text-[11px] text-gray-400">by {{ $notification->viewer->name }}</p>
                                     @endif
                                 @else
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800">
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">
                                         Pending review
                                     </span>
                                 @endif
@@ -239,11 +394,11 @@
                                     <button type="button"
                                             onclick="toggleNotificationRowViewed({{ $notification->id }})"
                                             id="btn-toggle-{{ $notification->id }}"
-                                            class="table-toggle-btn inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all shadow-xs {{ $isViewed ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100' : 'bg-white text-gray-700 border border-gray-300 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50' }}"
+                                            class="notif-toggle-btn group"
                                             data-viewed="{{ $isViewed ? '1' : '0' }}"
                                             title="{{ $isViewed ? 'Click to mark as unread' : 'Click to mark as read' }}">
-                                        <span class="tick-icon-wrapper w-4 h-4 rounded-full flex items-center justify-center transition-colors {{ $isViewed ? 'bg-emerald-600 text-white' : 'border border-gray-400' }}">
-                                            <svg class="w-3 h-3 {{ $isViewed ? 'block' : 'hidden' }}" fill="currentColor" viewBox="0 0 20 20">
+                                        <span class="tick-icon-wrapper">
+                                            <svg class="w-2.5 h-2.5 {{ $isViewed ? 'block' : 'hidden group-hover:block' }}" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                             </svg>
                                         </span>
@@ -253,7 +408,7 @@
                                     <!-- Link to Deal Member Activity -->
                                     @if ($deal)
                                         <a href="{{ route('admin.deals.member-activity', $deal) }}" 
-                                           class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-[#0a5554] bg-[#0a5554]/10 hover:bg-[#0a5554]/20 transition-colors"
+                                           class="notif-activity-btn"
                                            title="Go to {{ $deal->title }} member activity">
                                             <span>Activity</span>
                                             <span aria-hidden="true">&rarr;</span>
@@ -337,30 +492,25 @@
                 const data = await res.json();
                 const isNowViewed = data.viewed;
 
-                // Update Button
+                // Update Button data attribute & text
                 btn.setAttribute('data-viewed', isNowViewed ? '1' : '0');
                 btn.title = isNowViewed ? 'Click to mark as unread' : 'Click to mark as read';
-                btn.className = `table-toggle-btn inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all shadow-xs ${
-                    isNowViewed 
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100' 
-                        : 'bg-white text-gray-700 border border-gray-300 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50'
-                }`;
-
-                const tickWrapper = btn.querySelector('.tick-icon-wrapper');
-                if (tickWrapper) {
-                    tickWrapper.className = `tick-icon-wrapper w-4 h-4 rounded-full flex items-center justify-center transition-colors ${
-                        isNowViewed ? 'bg-emerald-600 text-white' : 'border border-gray-400'
-                    }`;
-                    const tickSvg = tickWrapper.querySelector('svg');
-                    if (tickSvg) {
-                        tickSvg.className = `w-3 h-3 ${isNowViewed ? 'block' : 'hidden'}`;
-                    }
-                }
 
                 const btnText = btn.querySelector('.btn-text');
                 if (btnText) btnText.textContent = isNowViewed ? 'Viewed' : 'Mark read';
 
-                // Update Row styling
+                const tickSvg = btn.querySelector('.tick-icon-wrapper svg');
+                if (tickSvg) {
+                    if (isNowViewed) {
+                        tickSvg.classList.remove('hidden');
+                        tickSvg.classList.add('block');
+                    } else {
+                        tickSvg.classList.remove('block');
+                        tickSvg.classList.add('hidden');
+                    }
+                }
+
+                // Update Row background styling
                 if (isNowViewed) {
                     row.classList.remove('bg-amber-50/20');
                 } else {
@@ -370,30 +520,32 @@
                 // Update Status Indicator
                 const dot = row.querySelector('.status-indicator-dot');
                 if (dot) {
-                    dot.className = `status-indicator-dot w-2.5 h-2.5 rounded-full ${isNowViewed ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`;
+                    dot.className = `status-indicator-dot w-2 h-2 rounded-full ${isNowViewed ? 'bg-emerald-500' : 'bg-amber-500 ring-2 ring-amber-200 animate-pulse'}`;
                 }
                 const label = row.querySelector('.status-indicator-label');
                 if (label) {
                     label.textContent = isNowViewed ? 'Read' : 'Unread';
-                    label.className = `status-indicator-label text-xs font-semibold ${isNowViewed ? 'text-emerald-700' : 'text-amber-700'}`;
+                    label.className = `status-indicator-label text-xs font-bold ${isNowViewed ? 'text-emerald-700' : 'text-amber-700'}`;
                 }
 
                 // Update Review Cell
                 const reviewCell = row.querySelector('.review-meta-cell');
                 if (reviewCell) {
                     if (isNowViewed) {
+                        const timeFormatted = data.viewed_at_formatted || 'Just now';
                         reviewCell.innerHTML = `
-                            <div class="flex items-center gap-1.5 text-emerald-700 font-medium">
-                                <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            <div class="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                                <svg class="w-3.5 h-3.5 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
                                 </svg>
-                                <span>Viewed just now</span>
+                                <span>Viewed</span>
                             </div>
-                            <p class="text-[11px] text-gray-400 mt-0.5">by ${data.viewer_name || 'Admin'}</p>
+                            <p class="text-[11px] text-gray-500 mt-0.5">${timeFormatted}</p>
+                            <p class="text-[11px] text-gray-400">by ${data.viewer_name || 'Admin'}</p>
                         `;
                     } else {
                         reviewCell.innerHTML = `
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">
                                 Pending review
                             </span>
                         `;
@@ -436,10 +588,10 @@
                 // Update global badges
                 updateGlobalBadges(0);
 
-                // Reload or update rows
+                // Reload rows cleanly
                 setTimeout(() => {
                     window.location.reload();
-                }, 600);
+                }, 500);
             }
         } catch (err) {
             console.error(err);
