@@ -108,18 +108,6 @@
                         </a>
                     @endif
 
-                    @if (filled($deal->commit_link))
-                        @if ($memberDealLinks)
-                            <button type="button" id="open-commit-submission" class="ban-deal-button ban-deal-button--secondary" aria-haspopup="dialog" aria-controls="commit-submission-dialog">
-                                Commit <span aria-hidden="true">&rarr;</span>
-                            </button>
-                        @else
-                            <a href="{{ route('plans') }}" class="ban-deal-button ban-deal-button--secondary">
-                                Unlock commitment access <span aria-hidden="true">&rarr;</span>
-                            </a>
-                        @endif
-                    @endif
-
                     @if (filled($deal->substack_link))
                         <a href="{{ $memberDealLinks ? $deal->substack_link : route('plans') }}"
                            @if ($memberDealLinks) target="_blank" rel="noopener noreferrer" @endif
@@ -324,6 +312,12 @@
             };
 
             openButton?.addEventListener('click', openDialog);
+            document.addEventListener('click', function (event) {
+                if (event.target.closest('#open-commit-submission')) {
+                    event.preventDefault();
+                    openDialog();
+                }
+            });
             closeButtons.forEach(button => button.addEventListener('click', () => dialog.close()));
             dialog?.addEventListener('click', function (event) {
                 if (event.target === dialog) {
