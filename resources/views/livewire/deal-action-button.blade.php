@@ -18,7 +18,7 @@
         @endphp" class="px-4 w-full cursor-pointer py-3 bg-[#36b37e] text-white text-sm font-bold rounded-full shadow-md hover:bg-[#2f9e6f] transition leading-snug">
     </form>
 
-    @if (filled($deal->commit_link))
+    {{-- @if (filled($deal->commit_link)) --}}
         @php
             $memberDealLinks = auth()->check() && auth()->user() && ! auth()->user()->isFree();
         @endphp
@@ -33,5 +33,5 @@
                 </a>
             @endif
         </div>
-    @endif
+    {{-- @endif --}}
 </div>
