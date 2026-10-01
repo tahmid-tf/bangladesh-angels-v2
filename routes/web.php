@@ -324,6 +324,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/portfolio', [AdminController::class, 'viewDeals_portfolio'])->name('admin.deals.portfolio');
             Route::get('/invest-portfolio', [AdminController::class, 'viewDeals_investPortfolio'])->name('admin.deals.invest-portfolio');
             Route::get('/{deal:id}/member-activity', [AdminController::class, 'dealMemberActivity'])->name('admin.deals.member-activity');
+            Route::post('/{deal:id}/member-activity/investments/{investment:id}/toggle-viewed', [AdminController::class, 'toggleInvestmentViewed'])->name('admin.deals.member-activity.toggle-viewed');
+            Route::post('/{deal:id}/member-activity/mark-all-viewed', [AdminController::class, 'markAllInterestedViewed'])->name('admin.deals.member-activity.mark-all-viewed');
             Route::post('/{deal:id}/invest', [InvestmentController::class, 'invest'])->name('deal.invest');
 
             Route::get('/{deal:id}', function (Deal $deal) {
