@@ -55,4 +55,24 @@ class Investment extends Model
             'viewed_by' => null,
         ]);
     }
+
+    public function getActionMessageAttribute(): string
+    {
+        return match ($this->type) {
+            'interested' => 'expressed interest in',
+            'invest' => 'indicated intent to invest in',
+            'review' => 'requested due diligence / review for',
+            default => 'recorded activity for',
+        };
+    }
+
+    public function getTypeLabelAttribute(): string
+    {
+        return match ($this->type) {
+            'interested' => 'Expressed Interest',
+            'invest' => 'Invest Intent',
+            'review' => 'Due Diligence / Review',
+            default => ucfirst((string) $this->type),
+        };
+    }
 }

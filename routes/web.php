@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\StartupServiceController;
 use App\Http\Controllers\Admin\TeamAboutSectionController;
 use App\Http\Controllers\Admin\TeamMemberController;
 use App\Http\Controllers\Admin\WhatWeDoCardController;
+use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AngelAcademyNetworkApplicationController;
 use App\Http\Controllers\BanWealthController;
@@ -352,6 +353,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/ban-wealth-orders', [AdminBanWealthOrderController::class, 'index'])->name('admin.ban-wealth-orders.index');
         Route::get('/ban-wealth-orders/{banWealthOrder}', [AdminBanWealthOrderController::class, 'show'])->name('admin.ban-wealth-orders.show');
         Route::patch('/ban-wealth-orders/{banWealthOrder}', [AdminBanWealthOrderController::class, 'update'])->name('admin.ban-wealth-orders.update');
+
+        // Member Activity Notifications
+        Route::prefix('notifications')->group(function () {
+            Route::get('/', [AdminNotificationController::class, 'index'])->name('admin.notifications.index');
+            Route::get('/unread-count', [AdminNotificationController::class, 'unreadCount'])->name('admin.notifications.unread-count');
+            Route::post('/mark-all-viewed', [AdminNotificationController::class, 'markAllViewed'])->name('admin.notifications.mark-all-viewed');
+            Route::post('/{investment}/toggle-viewed', [AdminNotificationController::class, 'toggleViewed'])->name('admin.notifications.toggle-viewed');
+        });
 
     });
 
