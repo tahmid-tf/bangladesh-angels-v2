@@ -256,11 +256,19 @@
                     </svg>
                 </div>
 
+                <!-- Per Page selector -->
+                <select name="per_page" onchange="this.form.submit()" class="text-xs border-gray-300 rounded-lg shadow-sm focus:border-[#0a5554] focus:ring-[#0a5554] py-1.5 px-2 bg-white text-gray-700" title="Items per page">
+                    <option value="10" {{ ($filters['per_page'] ?? 20) == 10 ? 'selected' : '' }}>10 / page</option>
+                    <option value="20" {{ ($filters['per_page'] ?? 20) == 20 ? 'selected' : '' }}>20 / page</option>
+                    <option value="50" {{ ($filters['per_page'] ?? 20) == 50 ? 'selected' : '' }}>50 / page</option>
+                    <option value="100" {{ ($filters['per_page'] ?? 20) == 100 ? 'selected' : '' }}>100 / page</option>
+                </select>
+
                 <button type="submit" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-900 text-white text-xs font-semibold rounded-lg transition-colors">
                     Filter
                 </button>
 
-                @if (request()->hasAny(['type', 'deal_id', 'q']))
+                @if (request()->hasAny(['type', 'deal_id', 'q', 'per_page']))
                     <a href="{{ route('admin.notifications.index', ['status' => $filters['status'] ?? 'all']) }}" class="px-2.5 py-1.5 text-xs text-gray-500 hover:text-gray-800 underline">
                         Reset
                     </a>
@@ -437,6 +445,11 @@
         @if ($notifications->hasPages())
             <div class="px-4 py-3 border-t border-gray-100 bg-gray-50">
                 {{ $notifications->links() }}
+            </div>
+        @elseif ($notifications->total() > 0)
+            <div class="px-4 py-3 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-500">
+                <span>Showing all <strong class="text-gray-800">{{ $notifications->total() }}</strong> notifications (Page 1 of 1 &bull; {{ $filters['per_page'] ?? 20 }} per page)</span>
+                <span class="text-[11px] text-gray-400">Pagination buttons automatically activate when records exceed the page size.</span>
             </div>
         @endif
     </div>

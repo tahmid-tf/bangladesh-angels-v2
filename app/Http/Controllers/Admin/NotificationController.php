@@ -24,6 +24,10 @@ class NotificationController extends Controller
         $type = $request->query('type');
         $dealId = $request->query('deal_id');
         $search = $request->query('q');
+        $perPage = (int) $request->query('per_page', 20);
+        if (! in_array($perPage, [10, 20, 50, 100], true)) {
+            $perPage = 20;
+        }
 
         $query = Investment::query()
             ->with(['user', 'deal', 'viewer'])
@@ -55,7 +59,7 @@ class NotificationController extends Controller
             });
         }
 
-        $notifications = $query->paginate(20)->withQueryString();
+        $notifications = $query->paginate($perPage)->withQueryString();
 
         $stats = [
             'total' => Investment::count(),
@@ -78,6 +82,7 @@ class NotificationController extends Controller
                 'type' => $type,
                 'deal_id' => $dealId,
                 'q' => $search,
+                'per_page' => $perPage,
             ],
         ]);
     }
