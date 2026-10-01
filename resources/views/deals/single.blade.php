@@ -79,7 +79,7 @@
                     </div>
                 </div>
 
-                <h1 id="deal-heading">{{ $deal->title }}</h1>
+                <h1 id="deal-heading" class="break-words">{{ $deal->title }}</h1>
                 <p class="ban-deal-hero__lede">{{ $heroDescription ?: 'Company information will be available soon.' }}</p>
 
                 <dl class="ban-deal-facts" aria-label="Investment overview">

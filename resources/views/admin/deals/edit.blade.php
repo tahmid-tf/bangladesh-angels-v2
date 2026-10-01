@@ -47,7 +47,7 @@
         <!-- Responsive Grid -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Logo Upload -->
-            <div class="border-dashed border-2 border-gray-300 rounded-lg p-4">
+            <div class="border-dashed border-2 border-gray-300 rounded-lg p-4 flex flex-col justify-between">
                 <label class="block cursor-pointer">
                     <img 
                         id="logo-preview" 
@@ -56,13 +56,34 @@
                         class="mx-auto rounded-full h-24 w-24 object-cover mb-2"
                     >
                     <input type="file" name="logo" accept="image/*" class="hidden" id="logo-input">
-                    <p class="text-center text-sm text-gray-500">Replace logo</p>
+                    <p class="text-center text-sm font-semibold text-gray-700">Replace logo</p>
                     <p class="text-center text-xs text-gray-400">Max size: 3MB, Formats: JPEG, PNG, GIF</p>
                 </label>
+
+                <!-- Highlighted Dimension Guidance -->
+                <div class="mt-3 rounded-lg border-2 border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 shadow-sm">
+                    <div class="flex items-center gap-1.5 font-bold text-amber-900">
+                        <svg class="w-4 h-4 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>Recommended Logo Size: 400 &times; 400 px (1:1 Ratio)</span>
+                    </div>
+                    <div class="mt-1.5 space-y-1 text-amber-800 leading-normal">
+                        <p>
+                            &#x2022; <strong>Best dimensions:</strong> <strong>400 &times; 400 px</strong> or <strong>500 &times; 500 px</strong> (min <strong>200 &times; 200 px</strong>).
+                        </p>
+                        <p>
+                            &#x2022; <strong>Framing:</strong> Keep the mark centered with safe margins so corners aren't clipped.
+                        </p>
+                        <p class="text-amber-700">
+                            &#x26A0; <strong>Square format required:</strong> Logos are displayed in circular frames. Wide horizontal logos will shrink or get cut off.
+                        </p>
+                    </div>
+                </div>
             </div>
 
             <!-- Cover Upload -->
-            <div class="border-dashed border-2 border-gray-300 rounded-lg p-4">
+            <div class="border-dashed border-2 border-gray-300 rounded-lg p-4 flex flex-col justify-between">
                 <label class="block cursor-pointer">
                     <img 
                         id="cover-preview" 
@@ -71,9 +92,30 @@
                         class="mx-auto rounded-lg h-40 w-full object-cover mb-2"
                     >
                     <input type="file" name="company_cover" accept="image/*" class="hidden" id="cover-input">
-                    <p class="text-center text-sm text-gray-500">Replace cover</p>
+                    <p class="text-center text-sm font-semibold text-gray-700">Replace cover</p>
                     <p class="text-center text-xs text-gray-400">Max size: 3MB, Formats: JPEG, PNG, GIF</p>
                 </label>
+
+                <!-- Highlighted Dimension Guidance -->
+                <div class="mt-3 rounded-lg border-2 border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 shadow-sm">
+                    <div class="flex items-center gap-1.5 font-bold text-amber-900">
+                        <svg class="w-4 h-4 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>Recommended Cover Size: 800 &times; 600 px (4:3 Ratio)</span>
+                    </div>
+                    <div class="mt-1.5 space-y-1 text-amber-800 leading-normal">
+                        <p>
+                            &#x2022; <strong>Best dimensions:</strong> <strong>800 &times; 600 px</strong> or <strong>1200 &times; 900 px</strong> (min <strong>720 &times; 540 px</strong>).
+                        </p>
+                        <p>
+                            &#x2022; <strong>Framing:</strong> Keep key graphics/logos centered with safety margins around the edges.
+                        </p>
+                        <p class="text-amber-700">
+                            &#x26A0; <strong>Avoid wide/thin banner strips</strong> (e.g. 16:9 or horizontal headers). The deal cover frame is 4:3, so wide banners will have their sides heavily cropped.
+                        </p>
+                    </div>
+                </div>
             </div>
 
             
