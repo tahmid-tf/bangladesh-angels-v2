@@ -85,6 +85,39 @@
         text-decoration: none !important;
     }
 
+    /* Filter Action Button */
+    .notif-filter-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 6px !important;
+        padding: 8px 20px !important;
+        border-radius: 8px !important;
+        font-size: 0.8125rem !important;
+        font-weight: 700 !important;
+        min-height: 38px !important;
+        line-height: 1 !important;
+        color: #ffffff !important;
+        background: #0a5554 !important;
+        border: 1px solid #084646 !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08) !important;
+        transition: all 150ms ease !important;
+        cursor: pointer !important;
+        white-space: nowrap !important;
+        text-decoration: none !important;
+    }
+    .notif-filter-btn:hover {
+        background: #073f3e !important;
+        border-color: #053030 !important;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.16) !important;
+        transform: translateY(-1px) !important;
+        color: #ffffff !important;
+        text-decoration: none !important;
+    }
+    .notif-filter-btn:active {
+        transform: translateY(0) !important;
+    }
+
     /* Read/Unread Toggle Button */
     .notif-toggle-btn {
         display: inline-flex !important;
