@@ -38,10 +38,10 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 5h16v14H4zM8 9h8M8 13h5" /></svg>
                 My investments
             </a>
-            <a href="{{ route('ban-wealth.index') }}" class="{{ request()->routeIs('ban-wealth.*') ? 'is-active' : '' }}">
+            {{-- <a href="{{ route('ban-wealth.index') }}" class="{{ request()->routeIs('ban-wealth.*') ? 'is-active' : '' }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 19V9m5 10V5m6 14v-7m5 7V3" /></svg>
                 BAN Wealth
-            </a>
+            </a> --}}
             <p>Account</p>
             <a href="{{ route('membership-orders.index') }}" class="{{ request()->routeIs('membership-orders.*') ? 'is-active' : '' }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 7h6M9 11h6" /></svg>

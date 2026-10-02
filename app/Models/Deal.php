@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -11,6 +12,19 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 class Deal extends Model implements HasMedia
 {
     use HasFactory, InteractsWithMedia;
+
+    protected static function booted(): void
+    {
+        static::saved(function (Deal $deal) {
+            if (! $deal->isListedInPortfolio()) {
+                $deal->homepagePortfolio()?->delete();
+            }
+        });
+
+        static::deleted(function (Deal $deal) {
+            $deal->homepagePortfolio()?->delete();
+        });
+    }
 
     /**
      * Routes beginning with /deals/{slug} cannot collide with these path segments.
@@ -112,6 +126,44 @@ class Deal extends Model implements HasMedia
     public function isListedInPortfolio(): bool
     {
         return $this->type === 'portfolio' || $this->is_portfolio;
+    }
+
+    public function homepagePortfolio(): HasOne
+    {
+        return $this->hasOne(HomepagePortfolio::class);
+    }
+
+    public function isHomepageSelected(): bool
+    {
+        return $this->homepagePortfolio !== null;
+    }
+
+    /**
+     * Retrieve the portfolio companies to display on the homepage.
+     * Returns custom admin-selected portfolios (up to 8) if configured,
+     * otherwise falls back to the latest 8 published portfolio companies.
+     */
+    public static function getHomepageDeals(int $limit = HomepagePortfolio::MAX_SELECTIONS)
+    {
+        $selected = HomepagePortfolio::query()
+            ->with(['deal.media'])
+            ->ordered()
+            ->limit($limit)
+            ->get()
+            ->map(fn ($item) => $item->deal)
+            ->filter(fn ($deal) => $deal !== null && $deal->isListedInPortfolio())
+            ->values();
+
+        if ($selected->isNotEmpty()) {
+            return $selected;
+        }
+
+        return static::query()
+            ->with('media')
+            ->inPortfolio()
+            ->latest()
+            ->limit($limit)
+            ->get();
     }
 
     public function getLogoUrl(): string

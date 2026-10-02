@@ -35,7 +35,7 @@ class DealsTable extends Component
 
     public function render()
     {
-        $deals = Deal::with('media')
+        $deals = Deal::with(['media', 'homepagePortfolio'])
             ->when($this->filter === 'invest', fn ($query) => $query->where('type', 'invest'))
             ->when($this->filter === 'commit', fn ($query) => $query->where('type', 'commit'))
             ->when($this->filter === 'review', fn ($query) => $query->where('type', 'review'))

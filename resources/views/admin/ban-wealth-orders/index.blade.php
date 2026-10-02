@@ -14,10 +14,10 @@
     </div>
 
     <form method="GET" class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5 flex flex-col md:flex-row gap-3">
-        <input name="q" value="{{ $filters['q'] ?? '' }}" class="flex-1 rounded-lg border-gray-300" placeholder="Search reference, investor, email or fund">
-        <select name="status" class="rounded-lg border-gray-300"><option value="">All statuses</option>@foreach (\App\Models\BanWealthOrder::STATUSES as $status)<option value="{{ $status }}" @selected(($filters['status'] ?? '') === $status)>{{ ucfirst($status) }}</option>@endforeach</select>
-        <button class="px-5 py-2 rounded-lg bg-[#0a5554] text-white font-semibold">Filter</button>
-        <a href="{{ route('admin.ban-wealth-orders.index') }}" class="px-5 py-2 rounded-lg bg-gray-100 text-gray-700 text-center font-semibold">Reset</a>
+        <input type="text" name="q" value="{{ $filters['q'] ?? '' }}" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-green-200 focus:border-green-500" placeholder="Search reference, investor, email or fund">
+        <select name="status" class="px-3 py-2 border border-gray-300 rounded-lg bg-white shadow-sm focus:ring focus:ring-green-200 focus:border-green-500"><option value="">All statuses</option>@foreach (\App\Models\BanWealthOrder::STATUSES as $status)<option value="{{ $status }}" @selected(($filters['status'] ?? '') === $status)>{{ ucfirst($status) }}</option>@endforeach</select>
+        <button type="submit" class="px-5 py-2 rounded-lg bg-[#0a5554] text-white font-semibold hover:bg-[#084646]">Filter</button>
+        <a href="{{ route('admin.ban-wealth-orders.index') }}" class="px-5 py-2 rounded-lg bg-gray-100 text-gray-700 text-center font-semibold hover:bg-gray-200">Reset</a>
     </form>
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AngelAcademyNetworkApplicationController as Admin
 use App\Http\Controllers\Admin\BanWealthOrderController as AdminBanWealthOrderController;
 use App\Http\Controllers\Admin\BlogController as AdminBlogController;
 use App\Http\Controllers\Admin\FounderPitchSubmissionController;
+use App\Http\Controllers\Admin\HomepagePortfolioController;
 use App\Http\Controllers\Admin\InvestorInvestmentController as AdminInvestorInvestmentController;
 use App\Http\Controllers\Admin\LandingPageStatController;
 use App\Http\Controllers\Admin\LandingProgramCardController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\Admin\StartupServiceController;
 use App\Http\Controllers\Admin\TeamAboutSectionController;
 use App\Http\Controllers\Admin\TeamMemberController;
 use App\Http\Controllers\Admin\WhatWeDoCardController;
+use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AngelAcademyNetworkApplicationController;
 use App\Http\Controllers\BanWealthController;
@@ -292,6 +294,15 @@ Route::middleware('auth')->group(function () {
         Route::put('/landing-program-cards/{landingProgramCard}', [LandingProgramCardController::class, 'update'])->name('admin.landing-program-cards.update');
         Route::delete('/landing-program-cards/{landingProgramCard}', [LandingProgramCardController::class, 'destroy'])->name('admin.landing-program-cards.destroy');
 
+        Route::get('/homepage-portfolios', [HomepagePortfolioController::class, 'index'])->name('admin.homepage-portfolios');
+        Route::post('/homepage-portfolios', [HomepagePortfolioController::class, 'store'])->name('admin.homepage-portfolios.store');
+        Route::put('/homepage-portfolios/reorder', [HomepagePortfolioController::class, 'reorder'])->name('admin.homepage-portfolios.reorder');
+        Route::post('/homepage-portfolios/sync', [HomepagePortfolioController::class, 'sync'])->name('admin.homepage-portfolios.sync');
+        Route::delete('/homepage-portfolios/batch-destroy', [HomepagePortfolioController::class, 'batchDestroy'])->name('admin.homepage-portfolios.batch-destroy');
+        Route::post('/homepage-portfolios/{homepagePortfolio}/move-up', [HomepagePortfolioController::class, 'moveUp'])->name('admin.homepage-portfolios.move-up');
+        Route::post('/homepage-portfolios/{homepagePortfolio}/move-down', [HomepagePortfolioController::class, 'moveDown'])->name('admin.homepage-portfolios.move-down');
+        Route::delete('/homepage-portfolios/{homepagePortfolio}', [HomepagePortfolioController::class, 'destroy'])->name('admin.homepage-portfolios.destroy');
+
         Route::get('/team-about-section', [TeamAboutSectionController::class, 'edit'])->name('admin.team-about-section.edit');
         Route::put('/team-about-section', [TeamAboutSectionController::class, 'update'])->name('admin.team-about-section.update');
 
@@ -314,6 +325,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/portfolio', [AdminController::class, 'viewDeals_portfolio'])->name('admin.deals.portfolio');
             Route::get('/invest-portfolio', [AdminController::class, 'viewDeals_investPortfolio'])->name('admin.deals.invest-portfolio');
             Route::get('/{deal:id}/member-activity', [AdminController::class, 'dealMemberActivity'])->name('admin.deals.member-activity');
+            Route::post('/{deal:id}/member-activity/investments/{investment:id}/toggle-viewed', [AdminController::class, 'toggleInvestmentViewed'])->name('admin.deals.member-activity.toggle-viewed');
+            Route::post('/{deal:id}/member-activity/mark-all-viewed', [AdminController::class, 'markAllInterestedViewed'])->name('admin.deals.member-activity.mark-all-viewed');
             Route::post('/{deal:id}/invest', [InvestmentController::class, 'invest'])->name('deal.invest');
 
             Route::get('/{deal:id}', function (Deal $deal) {
@@ -340,6 +353,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/ban-wealth-orders', [AdminBanWealthOrderController::class, 'index'])->name('admin.ban-wealth-orders.index');
         Route::get('/ban-wealth-orders/{banWealthOrder}', [AdminBanWealthOrderController::class, 'show'])->name('admin.ban-wealth-orders.show');
         Route::patch('/ban-wealth-orders/{banWealthOrder}', [AdminBanWealthOrderController::class, 'update'])->name('admin.ban-wealth-orders.update');
+
+        // Member Activity Notifications
+        Route::prefix('notifications')->group(function () {
+            Route::get('/', [AdminNotificationController::class, 'index'])->name('admin.notifications.index');
+            Route::get('/unread-count', [AdminNotificationController::class, 'unreadCount'])->name('admin.notifications.unread-count');
+            Route::post('/mark-all-viewed', [AdminNotificationController::class, 'markAllViewed'])->name('admin.notifications.mark-all-viewed');
+            Route::post('/{investment}/toggle-viewed', [AdminNotificationController::class, 'toggleViewed'])->name('admin.notifications.toggle-viewed');
+        });
 
     });
 

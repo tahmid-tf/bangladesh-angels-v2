@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Publication;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class PublicationController extends Controller
@@ -46,7 +49,7 @@ class PublicationController extends Controller
         $this->authorizeAdmin();
         $data = $this->validated($request, true);
         $file = $request->file('pdf');
-        $path = $file->store('publications', 'local');
+        $path = $this->storePdf($file);
         unset($data['pdf']);
 
         try {
@@ -81,7 +84,7 @@ class PublicationController extends Controller
         $file = $request->file('pdf');
 
         if ($file) {
-            $newPath = $file->store('publications', 'local');
+            $newPath = $this->storePdf($file);
             $data['pdf_path'] = $newPath;
             $data['pdf_original_name'] = $file->getClientOriginalName();
         }
@@ -147,6 +150,42 @@ class PublicationController extends Controller
             'published_at' => ['nullable', 'date'],
             'pdf' => [$requiredPdf ? 'required' : 'nullable', 'file', 'mimes:pdf', 'max:20480'],
         ]);
+    }
+
+    private function storePdf(?UploadedFile $file): string
+    {
+        if (! $file?->isValid()) {
+            throw ValidationException::withMessages([
+                'pdf' => 'The PDF upload could not be read. Please choose the file again and retry.',
+            ]);
+        }
+
+        // UploadedFile::store() resolves the temporary filename through
+        // realpath(). On some Windows/PHP setups that returns false for a
+        // valid upload, which leads to fopen('') and "Path cannot be empty".
+        $stream = @fopen($file->getPathname(), 'rb');
+
+        if (! is_resource($stream)) {
+            throw ValidationException::withMessages([
+                'pdf' => 'The PDF upload could not be read. Please choose the file again and retry.',
+            ]);
+        }
+
+        $path = 'publications/'.Str::uuid().'.pdf';
+
+        try {
+            $stored = Storage::disk('local')->put($path, $stream);
+        } finally {
+            fclose($stream);
+        }
+
+        if (! $stored) {
+            throw ValidationException::withMessages([
+                'pdf' => 'The PDF could not be saved. Please retry the upload.',
+            ]);
+        }
+
+        return $path;
     }
 
     private function publicationDate(array $data, ?Publication $publication = null): mixed

@@ -25,7 +25,10 @@ class MembershipVisibilityTest extends TestCase
             ->assertDontSee('id="membership-plans"', false)
             ->assertDontSee('href="#membership-plans"', false)
             ->assertDontSee(route('investor.signup'), false)
-            ->assertSee('Investor Dashboard');
+            ->assertDontSee('>Dashboard</a>', false)
+            ->assertDontSee('>Fundraise</a>', false)
+            ->assertSee('<a href="'.route('startups').'" class="ban2-button ban2-button--primary">Active Deals</a>', false)
+            ->assertSee('<a href="'.route('portfolio').'" class="ban2-button ban2-button--secondary">Portfolio</a>', false);
 
         foreach (['investors', 'team', 'angel-academy'] as $routeName) {
             $this->get(route($routeName))
@@ -54,7 +57,9 @@ class MembershipVisibilityTest extends TestCase
             ->get(route('home'))
             ->assertOk()
             ->assertSee('id="membership-plans"', false)
-            ->assertSee(route('investor.signup'), false);
+            ->assertSee(route('investor.signup'), false)
+            ->assertDontSee('>Active Deals</a>', false)
+            ->assertDontSee('<a href="'.route('portfolio').'" class="ban2-button ban2-button--secondary">Portfolio</a>', false);
 
         $this->get(route('investor.signup'))->assertOk();
         $this->get(route('plans'))->assertOk();

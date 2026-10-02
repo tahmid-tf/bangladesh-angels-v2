@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('page_title')</title>
     <link rel="icon" type="image/webp" href="{{ asset('icon.webp') }}">
     <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
@@ -103,6 +104,17 @@
                 </svg>
                 <span>Dashboard</span>
             </a>
+            <a href="{{ route('admin.notifications.index') }}" class="py-3 px-6 hover:bg-green-600 transition-colors flex items-center justify-between {{ request()->routeIs('admin.notifications.*') ? 'bg-green-600' : '' }}">
+                <div class="flex items-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+                    </svg>
+                    <span>Notifications</span>
+                </div>
+                <span class="sidebar-unread-badge bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full {{ ($unreadNotificationsCount ?? 0) > 0 ? '' : 'hidden' }}">
+                    {{ ($unreadNotificationsCount ?? 0) > 99 ? '99+' : ($unreadNotificationsCount ?? 0) }}
+                </span>
+            </a>
             <p class="admin-nav-label">Network</p>
             <a href="{{ route('admin.members') }}" class="py-3 px-6 hover:bg-green-600 transition-colors flex items-center space-x-2 {{ request()->routeIs('admin.members*', 'admin.*.members', 'member.*', 'update.account.status') ? 'bg-green-600' : '' }}">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -132,6 +144,13 @@
                     <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h4V3H4zM10 3v14h6a2 2 0 002-2V5a2 2 0 00-2-2h-6z" />
                 </svg>
                 <span>Homepage Programs</span>
+            </a>
+            <a href="{{ route('admin.homepage-portfolios') }}" class="py-3 px-6 hover:bg-green-600 transition-colors flex items-center space-x-2 {{ request()->routeIs('admin.homepage-portfolios*') ? 'bg-green-600' : '' }}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd" />
+                    <path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z" />
+                </svg>
+                <span>Homepage Portfolios</span>
             </a>
             <a href="{{ route('admin.team-about-section.edit') }}" class="py-3 px-6 hover:bg-green-600 transition-colors flex items-center space-x-2 {{ request()->routeIs('admin.team-about-section*') ? 'bg-green-600' : '' }}">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -232,24 +251,122 @@
                 <strong>Hi {{ auth()->user()->name }},</strong>
                 <span class="block md:inline">Welcome back!</span>
             </h1>
-            <div class="relative">
-                <button type="button" onclick="toggleDropdown()" aria-controls="dropdown-menu" aria-expanded="false" class="focus:outline-none flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100">
-                    <span class="hidden md:inline text-sm text-gray-700">{{ auth()->user()->email }}</span>
-                    <img src="{{ auth()->user()->getProfilePhotoUrl() }}" 
-                         alt="User Avatar" 
-                         class="h-10 w-10 rounded-full border-2 border-[#0a5554] object-cover">
-                </button>
-                <div id="dropdown-menu" class="hidden absolute right-0 mt-2 bg-white border rounded-lg shadow-lg w-48 z-50">
-                    <ul class="text-gray-700">
-                        <li class="hover:bg-gray-100 rounded-t-lg"><a href="{{ route('profile.edit') }}" class="block px-4 py-2">Profile</a></li>
-                        <li class="hover:bg-gray-100"><a href="{{ route('dashboard') }}" class="block px-4 py-2">Dashboard</a></li>
-                        <li class="hover:bg-gray-100 rounded-b-lg">
-                            <form method="POST" action="{{ route('logout') }}" class="block px-4 py-2">
-                                @csrf
-                                <button type="submit" class="w-full text-left">Logout</button>
-                            </form>
-                        </li>
-                    </ul>
+            <div class="flex items-center gap-3">
+                <!-- Notifications Dropdown -->
+                <div class="relative" id="notifications-dropdown-container">
+                    <button type="button" 
+                            id="notifications-bell-btn"
+                            onclick="toggleNotificationsDropdown()" 
+                            aria-controls="notifications-dropdown-menu" 
+                            aria-expanded="false" 
+                            class="relative p-2 text-gray-600 hover:text-[#0a5554] hover:bg-emerald-50 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#0a5554]/30 flex items-center justify-center"
+                            title="Member activity notifications">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        
+                        <!-- Unread Count Badge (e.g. 45) -->
+                        <span id="admin-unread-badge" 
+                              class="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-white bg-red-600 rounded-full min-w-[18px] h-[18px] ring-2 ring-white shadow-sm {{ ($unreadNotificationsCount ?? 0) > 0 ? '' : 'hidden' }}">
+                            {{ ($unreadNotificationsCount ?? 0) > 99 ? '99+' : ($unreadNotificationsCount ?? 0) }}
+                        </span>
+                    </button>
+
+                    <!-- Notifications Dropdown Menu -->
+                    <div id="notifications-dropdown-menu" 
+                         class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 overflow-hidden">
+                        <!-- Dropdown Header -->
+                        <div class="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-sm font-bold text-gray-900">Notifications</h3>
+                                <span id="dropdown-unread-pill" class="text-[11px] font-semibold px-2 py-0.5 rounded-full {{ ($unreadNotificationsCount ?? 0) > 0 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800' }}">
+                                    {{ ($unreadNotificationsCount ?? 0) > 0 ? ($unreadNotificationsCount ?? 0) . ' Unread' : 'All read' }}
+                                </span>
+                            </div>
+                            <button type="button" 
+                                    id="header-mark-all-read-btn"
+                                    onclick="markAllNotificationsAsRead(event)"
+                                    class="text-xs font-semibold text-[#0a5554] hover:underline {{ ($unreadNotificationsCount ?? 0) > 0 ? '' : 'hidden' }}">
+                                Mark all as read
+                            </button>
+                        </div>
+
+                        <!-- Dropdown Notifications List -->
+                        <div class="max-h-[380px] overflow-y-auto divide-y divide-gray-100" id="notifications-list-container">
+                            @forelse ($recentNotifications ?? [] as $notification)
+                                @php
+                                    $isUnread = !$notification->isViewed();
+                                @endphp
+                                <a href="{{ route('admin.deals.member-activity', $notification->deal_id) }}" 
+                                   class="notification-item group flex items-start gap-3 p-3.5 hover:bg-gray-50 transition-colors {{ $isUnread ? 'bg-amber-50/30' : '' }}"
+                                   data-notification-id="{{ $notification->id }}"
+                                   data-viewed="{{ $isUnread ? '0' : '1' }}">
+                                    <div class="relative mt-0.5 shrink-0">
+                                        <div class="w-8 h-8 rounded-full bg-[#0a5554]/10 text-[#0a5554] flex items-center justify-center font-bold text-xs ring-1 ring-[#0a5554]/20">
+                                            {{ strtoupper(substr($notification->user?->name ?? 'M', 0, 1)) }}
+                                        </div>
+                                        <span class="unread-dot absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-amber-500 border-2 border-white rounded-full {{ $isUnread ? '' : 'hidden' }}"></span>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-xs text-gray-800 leading-snug">
+                                            <strong class="font-bold text-gray-900">{{ $notification->user?->name ?? 'Member' }}</strong>
+                                            <span class="text-gray-600">{{ $notification->action_message }}</span>
+                                            <!-- Highlighted Company Name -->
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded font-bold text-[#0a5554] bg-[#0a5554]/10 border border-[#0a5554]/20 ml-0.5">
+                                                {{ $notification->deal?->title ?? 'Deal #' . $notification->deal_id }}
+                                            </span>
+                                        </p>
+                                        <div class="flex items-center gap-2 mt-1.5 text-[11px] text-gray-400">
+                                            <span>{{ $notification->created_at?->diffForHumans() }}</span>
+                                            <span>&bull;</span>
+                                            <span class="capitalize text-gray-500 font-medium">{{ $notification->type_label }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="shrink-0 pt-0.5">
+                                        <span class="text-[#0a5554] opacity-0 group-hover:opacity-100 text-xs font-semibold transition-opacity">&rarr;</span>
+                                    </div>
+                                </a>
+                            @empty
+                                <div class="py-8 px-4 text-center">
+                                    <svg class="w-8 h-8 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <p class="text-xs font-medium text-gray-500">No activity notifications yet.</p>
+                                </div>
+                            @endforelse
+                        </div>
+
+                        <!-- Dropdown Footer -->
+                        <div class="p-2.5 bg-gray-50 border-t border-gray-100 text-center">
+                            <a href="{{ route('admin.notifications.index') }}" 
+                               class="inline-flex items-center justify-center gap-1.5 w-full py-1.5 px-3 text-xs font-bold text-[#0a5554] hover:text-[#084646] hover:bg-emerald-50/50 rounded-lg transition-colors">
+                                <span>Show more (View all in table)</span>
+                                <span aria-hidden="true">&rarr;</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profile Dropdown -->
+                <div class="relative">
+                    <button type="button" onclick="toggleDropdown()" aria-controls="dropdown-menu" aria-expanded="false" class="focus:outline-none flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100">
+                        <span class="hidden md:inline text-sm text-gray-700">{{ auth()->user()->email }}</span>
+                        <img src="{{ auth()->user()->getProfilePhotoUrl() }}" 
+                             alt="User Avatar" 
+                             class="h-10 w-10 rounded-full border-2 border-[#0a5554] object-cover">
+                    </button>
+                    <div id="dropdown-menu" class="hidden absolute right-0 mt-2 bg-white border rounded-lg shadow-lg w-48 z-50">
+                        <ul class="text-gray-700">
+                            <li class="hover:bg-gray-100 rounded-t-lg"><a href="{{ route('profile.edit') }}" class="block px-4 py-2">Profile</a></li>
+                            <li class="hover:bg-gray-100"><a href="{{ route('dashboard') }}" class="block px-4 py-2">Dashboard</a></li>
+                            <li class="hover:bg-gray-100 rounded-b-lg">
+                                <form method="POST" action="{{ route('logout') }}" class="block px-4 py-2">
+                                    @csrf
+                                    <button type="submit" class="w-full text-left">Logout</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </header>
@@ -301,21 +418,100 @@
             });
         });
 
-        // Dropdown Toggle
+        // Dropdown Toggle (User profile)
         function toggleDropdown() {
             const dropdown = document.getElementById('dropdown-menu');
             const trigger = document.querySelector('[aria-controls="dropdown-menu"]');
+            const notifDropdown = document.getElementById('notifications-dropdown-menu');
+
+            // Close notification dropdown if open
+            if (notifDropdown && !notifDropdown.classList.contains('hidden')) {
+                notifDropdown.classList.add('hidden');
+                document.getElementById('notifications-bell-btn')?.setAttribute('aria-expanded', 'false');
+            }
+
             dropdown.classList.toggle('hidden');
             trigger.setAttribute('aria-expanded', String(!dropdown.classList.contains('hidden')));
         }
 
+        // Notification Dropdown Toggle
+        function toggleNotificationsDropdown() {
+            const dropdown = document.getElementById('notifications-dropdown-menu');
+            const bellBtn = document.getElementById('notifications-bell-btn');
+            const profileDropdown = document.getElementById('dropdown-menu');
+
+            // Close profile dropdown if open
+            if (profileDropdown && !profileDropdown.classList.contains('hidden')) {
+                profileDropdown.classList.add('hidden');
+                document.querySelector('[aria-controls="dropdown-menu"]')?.setAttribute('aria-expanded', 'false');
+            }
+
+            dropdown.classList.toggle('hidden');
+            bellBtn.setAttribute('aria-expanded', String(!dropdown.classList.contains('hidden')));
+        }
+
+        async function markAllNotificationsAsRead(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            try {
+                const response = await fetch("{{ route('admin.notifications.mark-all-viewed') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+
+                    // Update badges
+                    const topBadge = document.getElementById('admin-unread-badge');
+                    if (topBadge) topBadge.classList.add('hidden');
+
+                    const sidebarBadge = document.querySelector('.sidebar-unread-badge');
+                    if (sidebarBadge) sidebarBadge.classList.add('hidden');
+
+                    const pill = document.getElementById('dropdown-unread-pill');
+                    if (pill) {
+                        pill.textContent = 'All read';
+                        pill.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+                    }
+
+                    const markAllBtn = document.getElementById('header-mark-all-read-btn');
+                    if (markAllBtn) markAllBtn.classList.add('hidden');
+
+                    // Remove unread indicators in dropdown list
+                    document.querySelectorAll('.notification-item').forEach(el => {
+                        el.classList.remove('bg-amber-50/30');
+                        el.setAttribute('data-viewed', '1');
+                        el.querySelectorAll('.unread-dot').forEach(dot => dot.classList.add('hidden'));
+                    });
+                }
+            } catch (err) {
+                console.error('Failed to mark all notifications as read', err);
+            }
+        }
+
         document.addEventListener('click', (event) => {
             const dropdownMenu = document.getElementById('dropdown-menu');
-            const isDropdownClick = event.target.closest('#dropdown-menu') || event.target.closest('.admin-topbar button');
-            
-            if (!isDropdownClick) {
+            const notifDropdown = document.getElementById('notifications-dropdown-menu');
+
+            const isProfileClick = event.target.closest('#dropdown-menu') || event.target.closest('[aria-controls="dropdown-menu"]');
+            if (!isProfileClick && dropdownMenu) {
                 dropdownMenu.classList.add('hidden');
-                document.querySelector('[aria-controls="dropdown-menu"]').setAttribute('aria-expanded', 'false');
+                document.querySelector('[aria-controls="dropdown-menu"]')?.setAttribute('aria-expanded', 'false');
+            }
+
+            const isNotifClick = event.target.closest('#notifications-dropdown-container');
+            if (!isNotifClick && notifDropdown) {
+                notifDropdown.classList.add('hidden');
+                document.getElementById('notifications-bell-btn')?.setAttribute('aria-expanded', 'false');
             }
 
             if (window.innerWidth < 768 && !sidebar.contains(event.target) && !mobileMenuButton.contains(event.target)) {
@@ -330,14 +526,18 @@
                 sidebar.classList.add('-translate-x-full');
             }
             mobileMenuButton.setAttribute('aria-expanded', 'false');
-            document.getElementById('dropdown-menu').classList.add('hidden');
-            document.querySelector('[aria-controls="dropdown-menu"]').setAttribute('aria-expanded', 'false');
+            document.getElementById('dropdown-menu')?.classList.add('hidden');
+            document.querySelector('[aria-controls="dropdown-menu"]')?.setAttribute('aria-expanded', 'false');
+            document.getElementById('notifications-dropdown-menu')?.classList.add('hidden');
+            document.getElementById('notifications-bell-btn')?.setAttribute('aria-expanded', 'false');
         });
 
         window.addEventListener('resize', () => {
             initSidebar();
-            document.getElementById('dropdown-menu').classList.add('hidden');
-            document.querySelector('[aria-controls="dropdown-menu"]').setAttribute('aria-expanded', 'false');
+            document.getElementById('dropdown-menu')?.classList.add('hidden');
+            document.querySelector('[aria-controls="dropdown-menu"]')?.setAttribute('aria-expanded', 'false');
+            document.getElementById('notifications-dropdown-menu')?.classList.add('hidden');
+            document.getElementById('notifications-bell-btn')?.setAttribute('aria-expanded', 'false');
         });
 
         // Dismiss Email Verification Banner

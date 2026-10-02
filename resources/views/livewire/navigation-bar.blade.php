@@ -71,6 +71,7 @@
 
             @guest
                 <a href="{{ route('login') }}" class="ban-site-nav__login">SIGN IN</a>
+                <a href="{{ route('investor.signup') }}" class="ban-site-nav__register">REGISTER</a>
             @endguest
         </div>
 
@@ -90,6 +91,7 @@
                 @endauth
                 @guest
                     <li><a href="{{ route('login') }}" class="ban-mobile-secondary">Login</a></li>
+                    <li><a href="{{ route('investor.signup') }}" class="ban-mobile-primary">Register</a></li>
                 @endguest
                 <li><a href="{{ $homeSection('ban-events') }}">Events</a></li>
                 @if (!auth()->check() || !auth()->user()->hasPaidMembership())

@@ -809,6 +809,141 @@
     border-left-color: rgba(255, 255, 255, 0.28);
 }
 
+.ban2-program-card.has-open-dropdown,
+.ban2-program-card:has(.ban2-program-card__dropdown.is-open) {
+    overflow: visible;
+    z-index: 30;
+}
+
+.ban2-program-card__dropdown {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.ban2-program-card__dropdown-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    margin: 0;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: inherit;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    line-height: inherit;
+}
+
+.ban2-program-card__dropdown-trigger:focus-visible {
+    border-radius: 4px;
+    outline: 2px solid currentColor;
+    outline-offset: 4px;
+}
+
+.ban2-program-card__dropdown-arrow {
+    display: inline-block;
+    flex-shrink: 0;
+    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ban2-program-card__dropdown.is-open .ban2-program-card__dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.ban2-program-card__dropdown-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    z-index: 60;
+    display: none;
+    flex-direction: column;
+    min-width: 210px;
+    max-width: 280px;
+    padding: 6px;
+    background: #ffffff;
+    border: 1px solid rgba(9, 47, 41, 0.12);
+    border-radius: 14px;
+    box-shadow: 0 16px 36px -4px rgba(9, 47, 41, 0.14), 0 6px 12px -2px rgba(9, 47, 41, 0.08);
+}
+
+.ban2-program-card__dropdown.is-open .ban2-program-card__dropdown-menu {
+    display: flex;
+    animation: ban2DropdownFadeIn 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes ban2DropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.ban2-program-card__dropdown-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #092f29;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background-color 150ms ease, color 150ms ease;
+}
+
+.ban2-program-card__dropdown-item:hover,
+.ban2-program-card__dropdown-item:focus-visible {
+    background-color: #f1f8f5;
+    color: #15966f;
+    outline: none;
+}
+
+.ban2-program-card__dropdown-ext {
+    font-size: 0.75rem;
+    opacity: 0.6;
+    transition: transform 150ms ease, opacity 150ms ease;
+}
+
+.ban2-program-card__dropdown-item:hover .ban2-program-card__dropdown-ext {
+    transform: translate(1px, -1px);
+    opacity: 1;
+}
+
+.ban2-program-card--dark .ban2-program-card__dropdown-menu,
+.ban2-program-card--academy .ban2-program-card__dropdown-menu {
+    background: #06231e;
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+.ban2-program-card--dark .ban2-program-card__dropdown-item,
+.ban2-program-card--academy .ban2-program-card__dropdown-item {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.ban2-program-card--dark .ban2-program-card__dropdown-item:hover,
+.ban2-program-card--dark .ban2-program-card__dropdown-item:focus-visible,
+.ban2-program-card--academy .ban2-program-card__dropdown-item:hover,
+.ban2-program-card--academy .ban2-program-card__dropdown-item:focus-visible {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #bcf1d4;
+}
+
+@media (max-width: 640px) {
+    .ban2-program-card__dropdown-menu {
+        min-width: 190px;
+        max-width: calc(100vw - 60px);
+    }
+}
+
 .ban2-membership {
     position: relative;
     overflow: hidden;
@@ -1623,6 +1758,29 @@
 
 .ban2-events .ban-event-card__image {
     min-height: 280px;
+}
+
+@media (max-width: 860px) {
+    .ban2-events .ban-event-card {
+        grid-template-columns: 1fr;
+        min-height: 0;
+        border-radius: 22px;
+    }
+
+    .ban2-events .ban-event-card__image {
+        min-height: 0;
+        height: auto;
+        max-height: 540px;
+        aspect-ratio: auto;
+    }
+
+    .ban2-events .ban-event-card__image img {
+        width: 100%;
+        height: auto;
+        max-height: 540px;
+        object-fit: cover;
+        object-position: center top;
+    }
 }
 
 .ban2-events .ban-event-card__body {
@@ -2826,14 +2984,21 @@
     text-transform: uppercase;
 }
 
+.ban-deal-hero__copy {
+    min-width: 0;
+}
+
 .ban-deal-hero h1 {
     max-width: 690px;
-    margin: 27px 0 0;
+    margin: 24px 0 0;
     color: var(--ban2-ink);
-    font-size: clamp(3.5rem, 6.8vw, 6.35rem);
-    font-weight: 650;
-    letter-spacing: -0.07em;
-    line-height: 0.94;
+    font-size: clamp(2.25rem, 4.2vw, 3.5rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.06;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
 }
 
 .ban-deal-hero__lede {
@@ -5735,7 +5900,9 @@
     }
 
     .ban-deal-hero h1 {
-        font-size: clamp(2.75rem, 14vw, 4.25rem);
+        font-size: clamp(1.85rem, 8.5vw, 2.65rem);
+        line-height: 1.1;
+        letter-spacing: -0.03em;
     }
 
     .ban-deal-identity {

@@ -10,6 +10,7 @@
     $cta = $resource->cta_link ? trim($resource->cta_link) : '';
     $ctaIsExternal = $cta !== '' && preg_match('#^https?://#i', $cta);
     $snippet = \Illuminate\Support\Str::limit(trim(strip_tags((string) $resource->description)), 320);
+    $timeRange = $resource->formattedTimeRange();
 @endphp
 
 <article class="ban-event-card">
@@ -48,10 +49,18 @@
                     Event details
                 </a>
             </div>
-            @if ($resource->date || $resource->location)
+            @if ($resource->date || $timeRange || $resource->location)
                 <ul class="ban-event-card__meta">
-                    @if ($resource->date)
-                        <li>{{ $resource->date->format('M j, Y') }}</li>
+                    @if ($resource->date && $timeRange)
+                        <li>
+                            <span class="whitespace-nowrap">{{ $resource->date->format('M j, Y') }}</span>
+                            <span aria-hidden="true"> · </span>
+                            <span class="whitespace-nowrap">{{ $timeRange }}</span>
+                        </li>
+                    @elseif ($resource->date)
+                        <li><span class="whitespace-nowrap">{{ $resource->date->format('M j, Y') }}</span></li>
+                    @elseif ($timeRange)
+                        <li><span class="whitespace-nowrap">{{ $timeRange }}</span></li>
                     @endif
                     @if ($resource->location)
                         <li class="line-clamp-2">{{ $resource->location }}</li>

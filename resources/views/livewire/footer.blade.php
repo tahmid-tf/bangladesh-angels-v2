@@ -67,7 +67,7 @@
           <li>
             <a href="{{ route('faq') }}" title="Frequently asked questions about BAN">FAQ</a>
           </li>
-          <li><a href="tel:{{ config('business.phone') }}">{{ config('business.phone') }}</a></li>
+          {{-- <li><a href="tel:{{ config('business.phone') }}">{{ config('business.phone') }}</a></li> --}}
           <li><a href="{{ route('contact') }}">Contact &amp; Business Details</a></li>
         </ul>
       </section>
