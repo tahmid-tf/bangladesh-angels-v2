@@ -20,71 +20,7 @@ class NotificationController extends Controller
     {
         $this->authorizeAdmin($request);
 
-        $status = $request->query('status', 'all'); // 'all', 'unread', 'read'
-        $type = $request->query('type');
-        $dealId = $request->query('deal_id');
-        $search = $request->query('q');
-        $perPage = (int) $request->query('per_page', 20);
-        if (! in_array($perPage, [10, 20, 50, 100], true)) {
-            $perPage = 20;
-        }
-
-        $query = Investment::query()
-            ->with(['user', 'deal', 'viewer'])
-            ->latest('created_at');
-
-        if ($status === 'unread') {
-            $query->whereNull('viewed_at');
-        } elseif ($status === 'read') {
-            $query->whereNotNull('viewed_at');
-        }
-
-        if (filled($type)) {
-            $query->where('type', $type);
-        }
-
-        if (filled($dealId)) {
-            $query->where('deal_id', $dealId);
-        }
-
-        if (filled($search)) {
-            $term = trim($search);
-            $query->where(function ($q) use ($term) {
-                $q->whereHas('user', function ($uq) use ($term) {
-                    $uq->where('name', 'like', "%{$term}%")
-                       ->orWhere('email', 'like', "%{$term}%");
-                })->orWhereHas('deal', function ($dq) use ($term) {
-                    $dq->where('title', 'like', "%{$term}%");
-                });
-            });
-        }
-
-        $notifications = $query->paginate($perPage)->withQueryString();
-
-        $stats = [
-            'total' => Investment::count(),
-            'unread' => Investment::whereNull('viewed_at')->count(),
-            'read' => Investment::whereNotNull('viewed_at')->count(),
-            'deals_count' => Investment::distinct('deal_id')->count('deal_id'),
-        ];
-
-        $dealsList = Deal::query()
-            ->whereIn('id', Investment::select('deal_id')->distinct())
-            ->orderBy('title')
-            ->get(['id', 'title']);
-
-        return view('admin.notifications.index', [
-            'notifications' => $notifications,
-            'stats' => $stats,
-            'dealsList' => $dealsList,
-            'filters' => [
-                'status' => $status,
-                'type' => $type,
-                'deal_id' => $dealId,
-                'q' => $search,
-                'per_page' => $perPage,
-            ],
-        ]);
+        return view('admin.notifications.index');
     }
 
     /**
