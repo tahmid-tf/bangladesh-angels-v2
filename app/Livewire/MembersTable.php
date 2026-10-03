@@ -111,6 +111,7 @@ class MembersTable extends Component
             $user->delete();
 
             $this->updateCounts();
+            $this->dispatch('member-deleted');
             session()->flash('success', "Member '{$userName}' successfully removed.");
         } catch (\Exception $e) {
             \Log::error('Error deleting user: '.$e->getMessage());

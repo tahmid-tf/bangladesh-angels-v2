@@ -22,21 +22,26 @@
                 this.deleteUserEmail = '';
                 this.deleteUserAvatar = '';
             }
-        }, 250);
+        }, 200);
     },
     async executeDelete() {
         if (!this.deleteUserId || this.isDeleting) return;
         this.isDeleting = true;
         try {
             await $wire.deleteUser(this.deleteUserId);
-            this.closeDelete();
+            this.confirmingDelete = false;
+            this.isDeleting = false;
+            this.deleteUserId = null;
+            this.deleteUserName = '';
+            this.deleteUserEmail = '';
+            this.deleteUserAvatar = '';
         } catch (e) {
             console.error('Delete member error', e);
-        } finally {
             this.isDeleting = false;
         }
     }
-}">
+}"
+@member-deleted.window="confirmingDelete = false; isDeleting = false; deleteUserId = null;">
     <style>
         [x-cloak] {
             display: none !important;
@@ -626,16 +631,6 @@
                         </div>
                         <p class="text-xs text-gray-500 truncate mt-0.5" x-text="deleteUserEmail"></p>
                     </div>
-                </div>
-
-                <!-- Warning Callout Box -->
-                <div class="mt-3.5 p-3 rounded-xl bg-amber-50/80 border border-amber-200/70 flex items-start gap-2.5">
-                    <svg class="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                    </svg>
-                    <p class="text-xs text-amber-800 leading-relaxed">
-                        <span class="font-semibold">Irreversible action:</span> All member data, uploaded media, and activity will be permanently removed.
-                    </p>
                 </div>
             </div>
 
