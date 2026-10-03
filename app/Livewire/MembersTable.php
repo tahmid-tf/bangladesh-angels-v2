@@ -113,6 +113,13 @@ class MembersTable extends Component
         $this->resetPage();
     }
 
+    public function updatedFilter()
+    {
+        if ($this->showEditModal) {
+            $this->closeEditModal(false);
+        }
+    }
+
     public function updatingPage()
     {
         $this->clearSelection();

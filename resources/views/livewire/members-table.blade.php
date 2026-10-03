@@ -126,94 +126,11 @@
                 this.isProcessing = false;
             }
         }
-    },
-    editModal: {
-        isOpen: @js((bool) $showEditModal),
-        isLoading: false,
-        requestId: 0,
-        userId: @js($editingUserId),
-        userName: '',
-        userEmail: '',
-        userAvatar: '',
-        async open(id, name = '', email = '', avatar = '') {
-            const currentReq = ++this.requestId;
-            this.userId = id;
-            this.userName = name;
-            this.userEmail = email;
-            this.userAvatar = avatar;
-            this.isOpen = true;
-            this.isLoading = true;
-            try {
-                await $wire.openEditModal(parseInt(id));
-                // If user closed the modal while the request was in-flight, notify server and discard
-                if (!this.isOpen) {
-                    $wire.closeEditModal();
-                    return;
-                }
-                // If a newer request was triggered while in-flight, let the newer one proceed
-                if (this.requestId !== currentReq) {
-                    return;
-                }
-            } catch (e) {
-                console.error('Error opening edit modal', e);
-            } finally {
-                if (this.isOpen && this.requestId === currentReq) {
-                    this.isLoading = false;
-                }
-            }
-        },
-        close() {
-            if (!this.isOpen && !this.isLoading) return;
-            // Invalidate any in-flight requests immediately
-            this.requestId++;
-            this.isOpen = false;
-            $wire.closeEditModal();
-            // Retain loading overlay & avatar state until leave transition finishes (250ms)
-            // to completely eliminate any flash of unrendered/partial form content
-            setTimeout(() => {
-                if (!this.isOpen) {
-                    this.isLoading = false;
-                    this.userId = null;
-                    this.userName = '';
-                    this.userEmail = '';
-                    this.userAvatar = '';
-                }
-            }, 250);
-        },
-        closeLocally() {
-            this.requestId++;
-            this.isOpen = false;
-            this.isLoading = false;
-            setTimeout(() => {
-                if (!this.isOpen) {
-                    this.userId = null;
-                    this.userName = '';
-                    this.userEmail = '';
-                    this.userAvatar = '';
-                }
-            }, 250);
-        }
-    },
-    init() {
-        // Safe server-state sync: only close locally if modal was open on client and transitioned to false
-        this.$watch('$wire.showEditModal', (val, oldVal) => {
-            if (oldVal === true && val === false && this.editModal.isOpen) {
-                this.editModal.closeLocally();
-            }
-        });
-        this.$watch('$wire.editingUserId', (val) => {
-            if (val && this.editModal.isOpen) {
-                this.editModal.userId = val;
-            }
-        });
     }
 }"
 @member-deleted.window="confirmingDelete = false; isDeleting = false; deleteUserId = null;"
 @bulk-action-completed.window="bulkModal.isOpen = false; bulkModal.isProcessing = false;"
-@member-mode-updated.window="modeModal.isOpen = false; modeModal.isProcessing = false;"
-@member-edit-saved.window="editModal.closeLocally()"
-@member-edit-closed.window="editModal.closeLocally()"
-@open-edit-member.window="editModal.open($event.detail.id, $event.detail.name, $event.detail.email, $event.detail.avatar)">
+@member-mode-updated.window="modeModal.isOpen = false; modeModal.isProcessing = false;">
     <style>
         [x-cloak] {
             display: none !important;
@@ -312,10 +229,9 @@
             text-decoration: none !important;
         }
 
-        /* SVG Icons inside member action buttons: strictly transparent fill and currentColor stroke */
-        .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn svg,
-        .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn:has(svg) svg,
-        .members-custom-table td :is(a, button).member-action-btn svg,
+        /* Standard SVG action icons (outline icons: pencil, approve checkmark, trash bin) */
+        .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn svg.member-svg-icon,
+        .members-custom-table td :is(a, button).member-action-btn svg.member-svg-icon,
         svg.member-svg-icon {
             width: 12px !important;
             height: 12px !important;
@@ -323,9 +239,51 @@
             min-height: 12px !important;
             fill: none !important;
             stroke: currentColor !important;
-            display: inline-block !important;
+            display: inline-block;
             vertical-align: middle !important;
-            transform: none !important;
+        }
+
+        /* Dedicated Spinner SVGs inside action buttons */
+        .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn svg.member-spinner-icon,
+        .members-custom-table td :is(a, button).member-action-btn svg.member-spinner-icon,
+        svg.member-spinner-icon {
+            width: 12px !important;
+            height: 12px !important;
+            min-width: 12px !important;
+            min-height: 12px !important;
+            vertical-align: middle !important;
+            animation: spin 1s linear infinite !important;
+        }
+
+        .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn svg.member-spinner-icon circle,
+        .members-custom-table td :is(a, button).member-action-btn svg.member-spinner-icon circle,
+        svg.member-spinner-icon circle {
+            stroke: currentColor !important;
+            stroke-width: 4 !important;
+            fill: none !important;
+        }
+
+        .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn svg.member-spinner-icon path,
+        .members-custom-table td :is(a, button).member-action-btn svg.member-spinner-icon path,
+        svg.member-spinner-icon path {
+            fill: currentColor !important;
+            stroke: none !important;
+        }
+
+        /* Livewire loading display rules for action buttons */
+        .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn [wire\:loading],
+        .members-custom-table td :is(a, button).member-action-btn [wire\:loading] {
+            display: none;
+        }
+
+        .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn [wire\:loading\.remove],
+        .members-custom-table td :is(a, button).member-action-btn [wire\:loading\.remove] {
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
 
         /* Member Action Row (strictly single-line flex aligned to right) */
@@ -727,37 +685,37 @@
                 <thead>
                     <tr class="bg-gray-100 text-xs font-semibold text-gray-600 uppercase border-b border-gray-200">
                         @if($filter !== 'featured')
-                            <th class="col-checkbox text-center whitespace-nowrap">
+                            <th wire:key="th-col-checkbox" class="col-checkbox text-center whitespace-nowrap">
                                 <input type="checkbox"
                                     wire:model.live="selectAll"
                                     class="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                                     title="Select all on this page">
                             </th>
                         @endif
-                        <th class="{{ $filter !== 'featured' ? 'pl-3' : 'col-member-first pl-6' }} pr-3 py-3.5 whitespace-nowrap">Member</th>
-                        <th class="hidden md:table-cell px-3 md:px-4 py-3.5 whitespace-nowrap">Designation</th>
-                        <th class="hidden lg:table-cell px-3 md:px-4 py-3.5 whitespace-nowrap">Organization</th>
-                        <th class="hidden md:table-cell px-3 md:px-4 py-3.5 whitespace-nowrap">Phone</th>
-                        <th class="hidden lg:table-cell px-3 md:px-4 py-3.5 whitespace-nowrap">Email verified</th>
-                        <th class="hidden md:table-cell px-3 md:px-4 py-3.5 whitespace-nowrap">
+                        <th wire:key="th-col-member" class="{{ $filter !== 'featured' ? 'pl-3' : 'col-member-first pl-6' }} pr-3 py-3.5 whitespace-nowrap">Member</th>
+                        <th wire:key="th-col-designation" class="hidden md:table-cell px-3 md:px-4 py-3.5 whitespace-nowrap">Designation</th>
+                        <th wire:key="th-col-org" class="hidden lg:table-cell px-3 md:px-4 py-3.5 whitespace-nowrap">Organization</th>
+                        <th wire:key="th-col-phone" class="hidden md:table-cell px-3 md:px-4 py-3.5 whitespace-nowrap">Phone</th>
+                        <th wire:key="th-col-email-verified" class="hidden lg:table-cell px-3 md:px-4 py-3.5 whitespace-nowrap">Email verified</th>
+                        <th wire:key="th-col-date" class="hidden md:table-cell px-3 md:px-4 py-3.5 whitespace-nowrap">
                             @if($filter === 'pending')
                                 Registered
                             @else
                                 Last Renewed
                             @endif
                         </th>
-                        <th class="px-3 md:px-4 py-3.5 whitespace-nowrap">Status</th>
+                        <th wire:key="th-col-status" class="px-3 md:px-4 py-3.5 whitespace-nowrap">Status</th>
                         @if($filter !== 'pending')
-                            <th class="px-3 md:px-4 py-3.5 whitespace-nowrap">Mode</th>
+                            <th wire:key="th-col-mode" class="px-3 md:px-4 py-3.5 whitespace-nowrap">Mode</th>
                         @endif
-                        <th class="col-actions whitespace-nowrap text-right pr-6 py-3.5">Actions</th>
+                        <th wire:key="th-col-actions" class="col-actions whitespace-nowrap text-right pr-6 py-3.5">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     @forelse ($users as $user)
                         <tr class="hover:bg-gray-50/80 transition-colors {{ in_array((string)$user->id, array_map('strval', $selectedUserIds), true) ? 'bg-emerald-50/50' : '' }}" wire:key="member-row-{{ $user->id }}">
                             @if($filter !== 'featured')
-                                <td class="col-checkbox text-center whitespace-nowrap">
+                                <td wire:key="td-checkbox-{{ $user->id }}" class="col-checkbox text-center whitespace-nowrap">
                                     <input type="checkbox"
                                         value="{{ $user->id }}"
                                         wire:model.live="selectedUserIds"
@@ -765,7 +723,7 @@
                                 </td>
                             @endif
                             <!-- Member Profile -->
-                            <td class="{{ $filter !== 'featured' ? 'pl-3' : 'col-member-first pl-6' }} pr-3 py-4">
+                            <td wire:key="td-member-{{ $user->id }}" class="{{ $filter !== 'featured' ? 'pl-3' : 'col-member-first pl-6' }} pr-3 py-4">
                                 <div class="flex items-center gap-3">
                                     <img src="{{ $user->getProfilePhotoUrl() }}" alt="{{ $user->name }}" class="w-9 h-9 rounded-full object-cover shrink-0 ring-1 ring-gray-200">
                                     <div class="min-w-[130px]">
@@ -788,22 +746,22 @@
                             </td>
 
                             <!-- Designation -->
-                            <td class="hidden md:table-cell px-3 md:px-4 py-4 text-xs text-gray-700">
+                            <td wire:key="td-designation-{{ $user->id }}" class="hidden md:table-cell px-3 md:px-4 py-4 text-xs text-gray-700">
                                 {{ $user->designation ?? '-' }}
                             </td>
 
                             <!-- Organization -->
-                            <td class="hidden lg:table-cell px-3 md:px-4 py-4 text-xs font-medium text-gray-800">
+                            <td wire:key="td-org-{{ $user->id }}" class="hidden lg:table-cell px-3 md:px-4 py-4 text-xs font-medium text-gray-800">
                                 {{ $user->company_name ?? '-' }}
                             </td>
 
                             <!-- Phone -->
-                            <td class="hidden md:table-cell px-3 md:px-4 py-4 whitespace-nowrap text-xs text-gray-600">
+                            <td wire:key="td-phone-{{ $user->id }}" class="hidden md:table-cell px-3 md:px-4 py-4 whitespace-nowrap text-xs text-gray-600">
                                 {{ $user->phone ?? '-' }}
                             </td>
 
                             <!-- Email verified -->
-                            <td class="hidden lg:table-cell px-3 md:px-4 py-4 text-xs text-gray-600 whitespace-nowrap">
+                            <td wire:key="td-email-verified-{{ $user->id }}" class="hidden lg:table-cell px-3 md:px-4 py-4 text-xs text-gray-600 whitespace-nowrap">
                                 @if($user->hasVerifiedEmail())
                                     <div class="inline-flex items-center gap-1 text-emerald-700 font-bold text-xs">
                                         <svg class="w-3.5 h-3.5 shrink-0 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
@@ -834,7 +792,7 @@
                             </td>
 
                             <!-- Registered / Last Renewed -->
-                            <td class="hidden md:table-cell px-3 md:px-4 py-4 whitespace-nowrap">
+                            <td wire:key="td-date-{{ $user->id }}" class="hidden md:table-cell px-3 md:px-4 py-4 whitespace-nowrap">
                                 @if($filter === 'pending')
                                     <div class="flex flex-col">
                                         <span class="text-xs font-semibold text-gray-800">
@@ -860,7 +818,7 @@
                             </td>
 
                             <!-- Status Badge / Dropdown -->
-                            <td class="px-3 md:px-4 py-4 whitespace-nowrap">
+                            <td wire:key="td-status-{{ $user->id }}" class="px-3 md:px-4 py-4 whitespace-nowrap">
                                 @if($filter === 'pending' || !$user->is_approved)
                                     <span class="member-status-pill member-status-pill--pending">
                                         <span class="w-1.5 h-1.5 rounded-full bg-amber-500 ring-2 ring-amber-200 animate-pulse shrink-0"></span>
@@ -920,7 +878,7 @@
 
                             <!-- Mode Column (Active / Inactive) -->
                             @if($filter !== 'pending')
-                                <td class="px-3 md:px-4 py-4 whitespace-nowrap">
+                                <td wire:key="td-mode-{{ $user->id }}" class="px-3 md:px-4 py-4 whitespace-nowrap">
                                     @php
                                         $userMode = strtolower((string) ($user->status ?? 'active'));
                                         $isUserActive = ($userMode === 'active');
@@ -953,7 +911,7 @@
                             @endif
 
                             <!-- Actions -->
-                            <td class="col-actions pr-6 py-4 whitespace-nowrap text-right">
+                            <td wire:key="td-actions-{{ $user->id }}" class="col-actions pr-6 py-4 whitespace-nowrap text-right">
                                 <div class="member-actions-row">
                                     @if($filter === 'pending' && !$user->is_approved)
                                         <button type="button"
@@ -972,11 +930,17 @@
 
                                     <button type="button"
                                         wire:key="edit-member-btn-{{ $user->id }}"
-                                        @click="editModal.open({{ $user->id }}, @js($user->name), @js($user->email), @js($user->getProfilePhotoUrl()))" 
+                                        wire:click="openEditModal({{ $user->id }})"
+                                        wire:loading.attr="disabled"
+                                        wire:target="openEditModal({{ $user->id }})"
                                         class="member-action-btn member-action-edit"
                                         title="Edit member details">
-                                        <svg class="member-svg-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg wire:loading.remove wire:target="openEditModal({{ $user->id }})" class="member-svg-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                        <svg wire:loading wire:target="openEditModal({{ $user->id }})" class="animate-spin member-spinner-icon text-teal-600" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                         </svg>
                                         <span>Edit</span>
                                     </button>
@@ -1458,7 +1422,7 @@
     </div>
 
     <!-- Livewire Reactive Member Edit Modal -->
-    <div x-show="editModal.isOpen"
+    <div x-show="$wire.showEditModal"
          x-cloak
          wire:ignore.self
          class="fixed inset-0 overflow-y-auto px-4 py-6 sm:px-6 z-[100] flex items-center justify-center"
@@ -1466,10 +1430,10 @@
          role="dialog"
          aria-modal="true"
          aria-labelledby="modal-edit-title"
-         @keydown.escape.window="editModal.close()">
+         @keydown.escape.window="$wire.showEditModal = false; $wire.closeEditModal()">
         
         <!-- Backdrop with Blur -->
-        <div x-show="editModal.isOpen"
+        <div x-show="$wire.showEditModal"
              x-transition:enter="ease-out duration-200"
              x-transition:enter-start="opacity-0"
              x-transition:enter-end="opacity-100"
@@ -1477,11 +1441,11 @@
              x-transition:leave-start="opacity-100"
              x-transition:leave-end="opacity-0"
              class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
-             @click="editModal.close()">
+             @click="$wire.showEditModal = false; $wire.closeEditModal()">
         </div>
 
         <!-- Modal Dialog Card -->
-        <div x-show="editModal.isOpen"
+        <div x-show="$wire.showEditModal"
              x-transition:enter="ease-out duration-200"
              x-transition:enter-start="opacity-0 translate-y-3 sm:translate-y-0 sm:scale-95"
              x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
@@ -1508,8 +1472,8 @@
                                 Edit Member Profile
                             </h2>
                             <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-600 border border-gray-200" 
-                                  x-show="editModal.userId || {{ $editingUserId ? 'true' : 'false' }}"
-                                  x-text="'ID #' + (editModal.userId || '{{ $editingUserId }}')">
+                                  x-show="$wire.editingUserId"
+                                  x-text="'ID #' + $wire.editingUserId">
                             </span>
                         </div>
                         <p class="text-xs text-gray-500 mt-0.5">
@@ -1532,7 +1496,7 @@
                     @endif
 
                     <button type="button" 
-                            @click="editModal.close()" 
+                            @click="$wire.showEditModal = false; $wire.closeEditModal()" 
                             class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-1.5 transition-colors focus:outline-none cursor-pointer"
                             title="Close dialog">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1544,23 +1508,6 @@
 
             <!-- Scrollable Form Body with Fast Loading State -->
             <div class="relative overflow-y-auto p-5 sm:p-6 space-y-5 flex-1 bg-slate-50/50">
-                <!-- Instant Loading Overlay while Livewire loads fields -->
-                <div x-show="editModal.isLoading"
-                     x-transition:enter="ease-out duration-150"
-                     x-transition:enter-start="opacity-0"
-                     x-transition:enter-end="opacity-100"
-                     x-transition:leave="ease-in duration-100"
-                     x-transition:leave-start="opacity-100"
-                     x-transition:leave-end="opacity-0"
-                     class="absolute inset-0 bg-white/75 backdrop-blur-xs z-30 flex flex-col items-center justify-center gap-2.5">
-                    <div class="w-10 h-10 rounded-xl bg-teal-50 border border-teal-100 text-[#0a5554] flex items-center justify-center shadow-xs">
-                        <svg class="animate-spin w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                    </div>
-                    <span class="text-xs font-semibold text-gray-700">Loading member details...</span>
-                </div>
                 <!-- Validation Errors Alert -->
                 @if ($errors->any())
                     <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-xl shadow-xs">
@@ -1605,7 +1552,7 @@
                                              alt="{{ $this->editingUser->name }}" 
                                              class="w-24 h-24 rounded-full object-cover border-2 border-gray-200 ring-4 ring-gray-50 shadow-sm mx-auto">
                                     @else
-                                        <img :src="editModal.userAvatar || '{{ asset('default_pfp.jpg') }}'" 
+                                        <img src="{{ asset('default_pfp.jpg') }}" 
                                              alt="Default Avatar" 
                                              class="w-24 h-24 rounded-full object-cover border-2 border-gray-200 ring-4 ring-gray-50 shadow-sm mx-auto">
                                     @endif
@@ -1636,11 +1583,6 @@
                                                 {{ $this->editingUser->status ?? 'Active' }}
                                             </span>
                                         </div>
-                                    </div>
-                                @else
-                                    <div x-show="editModal.userName">
-                                        <h4 class="text-sm font-bold text-gray-900 leading-snug" x-text="editModal.userName"></h4>
-                                        <p class="text-xs text-gray-500 truncate mt-0.5" x-text="editModal.userEmail"></p>
                                     </div>
                                 @endif
 
@@ -2040,7 +1982,7 @@
             <!-- Sticky Footer Action Buttons -->
             <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between shrink-0">
                 <button type="button" 
-                        @click="editModal.close()"
+                        @click="$wire.showEditModal = false; $wire.closeEditModal()"
                         class="px-4 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-700 text-xs font-bold hover:bg-gray-100 hover:text-gray-900 transition-colors shadow-xs focus:outline-none cursor-pointer">
                     Cancel
                 </button>

@@ -288,4 +288,137 @@ class MembersTableStatusAndModeTest extends TestCase
             ->assertSet('editingUserId', $activeMember->id)
             ->assertSet('editForm.full_name', 'Active Test Member');
     }
+
+    public function test_edit_button_rendered_with_wire_click_and_proper_keys_across_all_filter_tabs(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'is_approved' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        $activeMember = User::factory()->create([
+            'name' => 'Active Member Alpha',
+            'status' => 'active',
+            'is_approved' => true,
+        ]);
+
+        $inactiveMember = User::factory()->create([
+            'name' => 'Inactive Member Beta',
+            'status' => 'inactive',
+            'is_approved' => true,
+        ]);
+
+        $pendingMember = User::factory()->create([
+            'name' => 'Pending Member Gamma',
+            'status' => 'active',
+            'is_approved' => false,
+        ]);
+
+        $this->actingAs($admin);
+
+        // 1. In 'active' filter
+        $activeTest = Livewire::withQueryParams(['filter' => 'active'])
+            ->test(MembersTable::class)
+            ->assertSeeHtml('wire:click="openEditModal('.$activeMember->id.')"')
+            ->assertSeeHtml('wire:key="edit-member-btn-'.$activeMember->id.'"')
+            ->assertSeeHtml('wire:loading.remove wire:target="openEditModal('.$activeMember->id.')"')
+            ->assertSeeHtml('wire:loading wire:target="openEditModal('.$activeMember->id.')"')
+            ->assertSeeHtml('member-spinner-icon')
+            ->assertSeeHtml('wire:key="th-col-mode"')
+            ->assertSeeHtml('wire:key="td-actions-'.$activeMember->id.'"')
+            ->assertDontSeeHtml('editModal.open')
+            ->assertDontSeeHtml('editModal.close')
+            ->assertDontSeeHtml('editModal.isLoading');
+
+        // 2. In 'inactive' filter
+        $inactiveTest = Livewire::withQueryParams(['filter' => 'inactive'])
+            ->test(MembersTable::class)
+            ->assertSeeHtml('wire:click="openEditModal('.$inactiveMember->id.')"')
+            ->assertSeeHtml('wire:key="edit-member-btn-'.$inactiveMember->id.'"')
+            ->assertSeeHtml('wire:loading.remove wire:target="openEditModal('.$inactiveMember->id.')"')
+            ->assertSeeHtml('wire:loading wire:target="openEditModal('.$inactiveMember->id.')"')
+            ->assertSeeHtml('member-spinner-icon')
+            ->assertSeeHtml('wire:key="th-col-mode"')
+            ->assertSeeHtml('wire:key="td-actions-'.$inactiveMember->id.'"')
+            ->assertDontSeeHtml('editModal.open')
+            ->assertDontSeeHtml('editModal.close')
+            ->assertDontSeeHtml('editModal.isLoading');
+
+        // 3. In 'pending' filter (no mode column, approve and edit buttons present)
+        $pendingTest = Livewire::withQueryParams(['filter' => 'pending'])
+            ->test(MembersTable::class)
+            ->assertSeeHtml('wire:click="openEditModal('.$pendingMember->id.')"')
+            ->assertSeeHtml('wire:key="edit-member-btn-'.$pendingMember->id.'"')
+            ->assertSeeHtml('wire:loading.remove wire:target="openEditModal('.$pendingMember->id.')"')
+            ->assertSeeHtml('wire:loading wire:target="openEditModal('.$pendingMember->id.')"')
+            ->assertSeeHtml('member-spinner-icon')
+            ->assertDontSeeHtml('wire:key="th-col-mode"')
+            ->assertSeeHtml('wire:key="td-actions-'.$pendingMember->id.'"')
+            ->assertSeeHtml('wire:key="approve-member-btn-'.$pendingMember->id.'"')
+            ->assertDontSeeHtml('editModal.open')
+            ->assertDontSeeHtml('editModal.close')
+            ->assertDontSeeHtml('editModal.isLoading');
+    }
+
+    public function test_navigating_between_active_inactive_and_pending_preserves_edit_modal_functionality(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'is_approved' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        $activeMember = User::factory()->create([
+            'name' => 'Active John',
+            'status' => 'active',
+            'is_approved' => true,
+        ]);
+
+        $inactiveMember = User::factory()->create([
+            'name' => 'Inactive Jane',
+            'status' => 'inactive',
+            'is_approved' => true,
+        ]);
+
+        $pendingMember = User::factory()->create([
+            'name' => 'Pending Bob',
+            'status' => 'active',
+            'is_approved' => false,
+        ]);
+
+        $this->actingAs($admin);
+
+        // Start at active -> change to inactive -> change to pending -> open modal on pending member
+        Livewire::withQueryParams(['filter' => 'active'])
+            ->test(MembersTable::class)
+            ->assertSet('filter', 'active')
+            // Switch to inactive
+            ->call('setFilter', 'inactive')
+            ->assertSet('filter', 'inactive')
+            ->call('openEditModal', $inactiveMember->id)
+            ->assertSet('showEditModal', true)
+            ->assertSet('editingUserId', $inactiveMember->id)
+            ->assertSet('editForm.full_name', 'Inactive Jane')
+            // Switch to pending while open (should automatically reset modal and switch filter)
+            ->call('setFilter', 'pending')
+            ->assertSet('filter', 'pending')
+            ->assertSet('showEditModal', false)
+            ->assertSet('editingUserId', null)
+            // Open modal on pending member
+            ->call('openEditModal', $pendingMember->id)
+            ->assertSet('showEditModal', true)
+            ->assertSet('editingUserId', $pendingMember->id)
+            ->assertSet('editForm.full_name', 'Pending Bob')
+            // Close modal
+            ->call('closeEditModal')
+            ->assertSet('showEditModal', false)
+            // Switch back to active
+            ->call('setFilter', 'active')
+            ->assertSet('filter', 'active')
+            ->call('openEditModal', $activeMember->id)
+            ->assertSet('showEditModal', true)
+            ->assertSet('editingUserId', $activeMember->id)
+            ->assertSet('editForm.full_name', 'Active John');
+    }
 }
