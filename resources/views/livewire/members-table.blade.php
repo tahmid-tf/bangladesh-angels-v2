@@ -109,7 +109,7 @@
 
         /* Delete Button (crisp danger red bordered button, never solid green) */
         .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-delete,
-        .members-custom-table a.member-action-delete {
+        .members-custom-table :is(a, button).member-action-delete {
             color: #dc2626 !important;
             background: #ffffff !important;
             background-color: #ffffff !important;
@@ -118,7 +118,7 @@
         }
 
         .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-delete:hover,
-        .members-custom-table a.member-action-delete:hover {
+        .members-custom-table :is(a, button).member-action-delete:hover {
             background: #fef2f2 !important;
             background-color: #fef2f2 !important;
             border-color: #f87171 !important;
@@ -126,9 +126,18 @@
         }
 
         .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-delete svg,
-        .members-custom-table a.member-action-delete svg {
+        .members-custom-table :is(a, button).member-action-delete svg {
             fill: none !important;
             stroke: #dc2626 !important;
+        }
+
+        /* Disabled state during Livewire actions */
+        .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn:disabled,
+        .members-custom-table td :is(a, button).member-action-btn:disabled {
+            opacity: 0.5 !important;
+            cursor: not-allowed !important;
+            pointer-events: none !important;
+            transform: none !important;
         }
 
         /* Status Pills (single-line horizontal badge with dot) */
@@ -171,10 +180,26 @@
     </style>
 
     @session('success')
-        <div class="mx-4 md:mx-6 mt-4 p-3 rounded-lg bg-green-100 border border-green-200 text-green-800 text-sm">{{ $value }}</div>
+        <div x-data="{ show: true }" x-show="show" class="mx-4 md:mx-6 mt-4 p-3.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center justify-between shadow-sm">
+            <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>{{ $value }}</span>
+            </div>
+            <button type="button" @click="show = false" class="text-emerald-500 hover:text-emerald-800 font-bold ml-3 text-sm px-1.5 py-0.5 rounded hover:bg-emerald-100 transition">✕</button>
+        </div>
     @endsession
     @session('error')
-        <div class="mx-4 md:mx-6 mt-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">{{ $value }}</div>
+        <div x-data="{ show: true }" x-show="show" class="mx-4 md:mx-6 mt-4 p-3.5 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm flex items-center justify-between shadow-sm">
+            <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <span>{{ $value }}</span>
+            </div>
+            <button type="button" @click="show = false" class="text-red-500 hover:text-red-800 font-bold ml-3 text-sm px-1.5 py-0.5 rounded hover:bg-red-100 transition">✕</button>
+        </div>
     @endsession
 
     <!-- Filters and Search -->
@@ -437,15 +462,18 @@
                                     @endif
 
                                     @if($user->id != auth()->id())
-                                        <a href="{{ route('member.remove', $user->id) }}" 
-                                           onclick="return confirm('Are you sure you want to delete this member? This action cannot be undone.')"
-                                           class="member-action-btn member-action-delete"
-                                           title="Delete member">
+                                        <button type="button"
+                                            wire:click="deleteUser({{ $user->id }})"
+                                            wire:confirm="Are you sure you want to delete this member? This action cannot be undone."
+                                            wire:loading.attr="disabled"
+                                            wire:target="deleteUser({{ $user->id }})"
+                                            class="member-action-btn member-action-delete"
+                                            title="Delete member">
                                             <svg class="member-svg-icon w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                             </svg>
                                             <span>Delete</span>
-                                        </a>
+                                        </button>
                                     @endif
                                 </div>
                             </td>

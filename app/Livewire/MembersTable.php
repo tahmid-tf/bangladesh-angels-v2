@@ -66,6 +66,11 @@ class MembersTable extends Component
 
     public function approveUser($userId)
     {
+        if (! auth()->user()?->isAdmin()) {
+            session()->flash('error', 'You do not have permission to perform this action.');
+            return;
+        }
+
         $user = User::find($userId);
         if ($user) {
             $user->update([
@@ -75,6 +80,41 @@ class MembersTable extends Component
             ]);
 
             $this->updateCounts();
+            session()->flash('success', "Member '{$user->name}' has been approved.");
+        }
+    }
+
+    public function deleteUser(int $userId): void
+    {
+        if (! auth()->user()?->isAdmin()) {
+            session()->flash('error', 'You do not have permission to perform this action.');
+            return;
+        }
+
+        if (auth()->id() === $userId) {
+            session()->flash('error', 'You cannot delete your own account.');
+            return;
+        }
+
+        $user = User::find($userId);
+        if (! $user) {
+            session()->flash('error', 'User not found.');
+            return;
+        }
+
+        try {
+            if ($user->hasMedia('profile_photo')) {
+                $user->clearMediaCollection('profile_photo');
+            }
+
+            $userName = $user->name;
+            $user->delete();
+
+            $this->updateCounts();
+            session()->flash('success', "Member '{$userName}' successfully removed.");
+        } catch (\Exception $e) {
+            \Log::error('Error deleting user: '.$e->getMessage());
+            session()->flash('error', 'An error occurred while trying to delete the member. Please try again.');
         }
     }
 
@@ -163,12 +203,18 @@ class MembersTable extends Component
 
         $query->with('emailVerifiedByAdmin');
 
-        if ($this->filter === 'pending') {
-            $users = $query->orderBy('created_at', 'desc')->paginate(10);
-        } else {
-            $users = $query->orderBy('name', 'asc')->paginate(10);
+        $paginatedUsers = ($this->filter === 'pending')
+            ? (clone $query)->orderBy('created_at', 'desc')->paginate(10)
+            : (clone $query)->orderBy('name', 'asc')->paginate(10);
+
+        if ($paginatedUsers->isEmpty() && $paginatedUsers->currentPage() > 1) {
+            $this->setPage(max(1, $paginatedUsers->lastPage()));
+            $paginatedUsers = ($this->filter === 'pending')
+                ? (clone $query)->orderBy('created_at', 'desc')->paginate(10)
+                : (clone $query)->orderBy('name', 'asc')->paginate(10);
         }
 
+        $users = $paginatedUsers;
         $featurePickerResults = $this->featuredPickerResults();
 
         return view('livewire.members-table', compact('users', 'featurePickerResults'));

@@ -182,7 +182,7 @@
 
     /* Delete Button */
     .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-delete,
-    .members-custom-table a.member-action-delete {
+    .members-custom-table :is(a, button).member-action-delete {
         color: #dc2626 !important;
         background: #ffffff !important;
         background-color: #ffffff !important;
@@ -191,7 +191,7 @@
     }
 
     .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-delete:hover,
-    .members-custom-table a.member-action-delete:hover {
+    .members-custom-table :is(a, button).member-action-delete:hover {
         background: #fef2f2 !important;
         background-color: #fef2f2 !important;
         border-color: #f87171 !important;
@@ -199,9 +199,18 @@
     }
 
     .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-delete svg,
-    .members-custom-table a.member-action-delete svg {
+    .members-custom-table :is(a, button).member-action-delete svg {
         fill: none !important;
         stroke: #dc2626 !important;
+    }
+
+    /* Disabled state during Livewire actions */
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn:disabled,
+    .members-custom-table td :is(a, button).member-action-btn:disabled {
+        opacity: 0.5 !important;
+        cursor: not-allowed !important;
+        pointer-events: none !important;
+        transform: none !important;
     }
 </style>
 @endpush
