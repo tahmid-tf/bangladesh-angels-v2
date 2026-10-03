@@ -28,6 +28,11 @@ class MembersTable extends Component
     /** Search approved members to add to featured (Featured tab only). */
     public $featuredPickerSearch = '';
 
+    /** Selected user IDs for bulk actions (Pending Approval tab) */
+    public array $selectedUserIds = [];
+
+    public bool $selectAll = false;
+
     protected $queryString = ['search', 'filter'];
 
     public function mount()
@@ -46,12 +51,80 @@ class MembersTable extends Component
 
     public function updatingSearch()
     {
+        $this->clearSelection();
         $this->resetPage();
     }
 
     public function updatingFilter()
     {
+        $this->clearSelection();
         $this->resetPage();
+    }
+
+    public function updatingPage()
+    {
+        $this->clearSelection();
+    }
+
+    public function clearSelection(): void
+    {
+        $this->selectedUserIds = [];
+        $this->selectAll = false;
+    }
+
+    public function updatedSelectAll($value): void
+    {
+        if ($value) {
+            $this->selectedUserIds = $this->getCurrentPagePendingIds();
+        } else {
+            $this->selectedUserIds = [];
+        }
+    }
+
+    public function updatedSelectedUserIds(): void
+    {
+        $pageIds = $this->getCurrentPagePendingIds();
+        $this->selectAll = ! empty($pageIds) && count(array_intersect($pageIds, array_map('strval', $this->selectedUserIds))) === count($pageIds);
+    }
+
+    public function selectAllPending(): void
+    {
+        $query = User::query()->where('is_approved', false);
+
+        if (! empty($this->search)) {
+            $term = "%{$this->search}%";
+            $query->where(function ($query) use ($term) {
+                $query->where('name', 'like', $term)
+                    ->orWhere('email', 'like', $term)
+                    ->orWhere('designation', 'like', $term)
+                    ->orWhere('company_name', 'like', $term);
+            });
+        }
+
+        $this->selectedUserIds = $query->pluck('id')->map(fn ($id) => (string) $id)->all();
+        $this->selectAll = true;
+    }
+
+    protected function getCurrentPagePendingIds(): array
+    {
+        $query = User::query()->where('is_approved', false);
+
+        if (! empty($this->search)) {
+            $term = "%{$this->search}%";
+            $query->where(function ($query) use ($term) {
+                $query->where('name', 'like', $term)
+                    ->orWhere('email', 'like', $term)
+                    ->orWhere('designation', 'like', $term)
+                    ->orWhere('company_name', 'like', $term);
+            });
+        }
+
+        $page = $this->getPage();
+        return $query->orderBy('created_at', 'desc')
+            ->forPage($page, 10)
+            ->pluck('id')
+            ->map(fn ($id) => (string) $id)
+            ->all();
     }
 
     public function searchUsers()
@@ -62,6 +135,7 @@ class MembersTable extends Component
     public function setFilter($filter)
     {
         $this->filter = $filter;
+        $this->clearSelection();
     }
 
     public function approveUser($userId)
@@ -78,6 +152,12 @@ class MembersTable extends Component
                 'approved_by' => auth()->id(),
                 'approved_at' => now(),
             ]);
+
+            try {
+                \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\AccountApproved($user));
+            } catch (\Throwable $e) {
+                \Log::error("Failed sending approval email to user {$user->id}: " . $e->getMessage());
+            }
 
             $this->updateCounts();
             session()->flash('success', "Member '{$user->name}' has been approved.");
@@ -213,6 +293,130 @@ class MembersTable extends Component
         ]);
 
         session()->flash('success', "Email verified for {$user->email}.");
+    }
+
+    public function approveSelected(): void
+    {
+        if (! auth()->user()?->isAdmin()) {
+            session()->flash('error', 'You do not have permission to perform this action.');
+            return;
+        }
+
+        if (empty($this->selectedUserIds)) {
+            session()->flash('error', 'No members selected.');
+            return;
+        }
+
+        $userIds = array_map('intval', $this->selectedUserIds);
+        $users = User::whereIn('id', $userIds)->where('is_approved', false)->get();
+        $count = $users->count();
+
+        if ($count === 0) {
+            $this->clearSelection();
+            session()->flash('info', 'None of the selected members were pending approval.');
+            return;
+        }
+
+        $now = now();
+        $adminId = auth()->id();
+
+        foreach ($users as $user) {
+            $user->update([
+                'is_approved' => true,
+                'approved_by' => $adminId,
+                'approved_at' => $now,
+            ]);
+
+            try {
+                \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\AccountApproved($user));
+            } catch (\Throwable $e) {
+                \Log::error("Failed sending approval email to user {$user->id}: " . $e->getMessage());
+            }
+        }
+
+        $this->clearSelection();
+        $this->updateCounts();
+        $this->dispatch('bulk-action-completed');
+        session()->flash('success', "Successfully approved {$count} " . ($count === 1 ? 'member' : 'members') . ".");
+    }
+
+    public function verifyEmailSelected(): void
+    {
+        if (! auth()->user()?->isAdmin()) {
+            session()->flash('error', 'You do not have permission to perform this action.');
+            return;
+        }
+
+        if (empty($this->selectedUserIds)) {
+            session()->flash('error', 'No members selected.');
+            return;
+        }
+
+        $userIds = array_map('intval', $this->selectedUserIds);
+        $users = User::whereIn('id', $userIds)->whereNull('email_verified_at')->get();
+        $count = $users->count();
+
+        if ($count === 0) {
+            $this->clearSelection();
+            session()->flash('info', 'All selected members already have verified emails.');
+            return;
+        }
+
+        $now = now();
+        $adminId = auth()->id();
+
+        foreach ($users as $user) {
+            $user->update([
+                'email_verified_at' => $now,
+                'email_verified_by' => $adminId,
+            ]);
+        }
+
+        $this->clearSelection();
+        $this->dispatch('bulk-action-completed');
+        session()->flash('success', "Successfully verified emails for {$count} " . ($count === 1 ? 'member' : 'members') . ".");
+    }
+
+    public function deleteSelected(): void
+    {
+        if (! auth()->user()?->isAdmin()) {
+            session()->flash('error', 'You do not have permission to perform this action.');
+            return;
+        }
+
+        if (empty($this->selectedUserIds)) {
+            session()->flash('error', 'No members selected.');
+            return;
+        }
+
+        $userIds = array_map('intval', $this->selectedUserIds);
+        $userIds = array_values(array_filter($userIds, fn ($id) => $id !== auth()->id()));
+
+        $users = User::whereIn('id', $userIds)->get();
+        $count = $users->count();
+
+        if ($count === 0) {
+            $this->clearSelection();
+            session()->flash('error', 'No valid members to delete.');
+            return;
+        }
+
+        try {
+            foreach ($users as $user) {
+                if ($user->hasMedia('profile_photo')) {
+                    $user->clearMediaCollection('profile_photo');
+                }
+                $user->delete();
+            }
+
+            $this->clearSelection();
+            $this->updateCounts();
+            $this->dispatch('bulk-action-completed');
+            session()->flash('success', "Successfully deleted {$count} " . ($count === 1 ? 'member' : 'members') . ".");
+        } catch (\Throwable $e) {
+            \Log::error('Bulk delete error: ' . $e->getMessage());
+            session()->flash('error', 'An error occurred during bulk deletion. Please try again.');
+        }
     }
 
     public function addToFeatured(int $userId): void
