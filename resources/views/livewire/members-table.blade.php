@@ -72,10 +72,65 @@
                 this.isProcessing = false;
             }
         }
+    },
+    modeModal: {
+        isOpen: false,
+        userId: null,
+        userName: '',
+        userEmail: '',
+        userAvatar: '',
+        targetMode: 'active',
+        previousMode: 'inactive',
+        selectElement: null,
+        isProcessing: false,
+        open(id, name, email, avatar, targetMode, selectEl) {
+            this.userId = id;
+            this.userName = name;
+            this.userEmail = email;
+            this.userAvatar = avatar;
+            this.targetMode = targetMode;
+            this.previousMode = targetMode === 'active' ? 'inactive' : 'active';
+            this.selectElement = selectEl;
+            this.isProcessing = false;
+            this.isOpen = true;
+        },
+        close() {
+            if (this.isProcessing) return;
+            if (this.selectElement) {
+                this.selectElement.value = this.previousMode;
+            }
+            this.isOpen = false;
+            setTimeout(() => {
+                if (!this.isOpen) {
+                    this.userId = null;
+                    this.userName = '';
+                    this.userEmail = '';
+                    this.userAvatar = '';
+                    this.selectElement = null;
+                }
+            }, 200);
+        },
+        async execute() {
+            if (!this.userId || this.isProcessing) return;
+            this.isProcessing = true;
+            try {
+                await $wire.setActiveMode(this.userId, this.targetMode);
+                this.isOpen = false;
+                this.isProcessing = false;
+                this.selectElement = null;
+            } catch (e) {
+                console.error('Mode update error', e);
+                if (this.selectElement) {
+                    this.selectElement.value = this.previousMode;
+                }
+                this.isProcessing = false;
+            }
+        }
     }
 }"
 @member-deleted.window="confirmingDelete = false; isDeleting = false; deleteUserId = null;"
-@bulk-action-completed.window="bulkModal.isOpen = false; bulkModal.isProcessing = false;">
+@bulk-action-completed.window="bulkModal.isOpen = false; bulkModal.isProcessing = false;"
+@member-mode-updated.window="modeModal.isOpen = false; modeModal.isProcessing = false;">
     <style>
         [x-cloak] {
             display: none !important;
@@ -789,15 +844,14 @@
                                         $modeDotColor = $isUserActive ? 'bg-emerald-500' : 'bg-gray-400';
                                         $modeModifierClass = $isUserActive ? 'member-mode-select--active' : 'member-mode-select--inactive';
                                     @endphp
-                                    <div x-data="{ updating: false }" class="inline-flex items-center gap-1.5" wire:key="mode-cell-{{ $user->id }}-{{ $userMode }}">
+                                    <div class="inline-flex items-center gap-1.5" wire:key="mode-cell-{{ $user->id }}-{{ $userMode }}">
                                         <div class="relative inline-flex items-center">
                                             <!-- Status dot -->
                                             <span class="pointer-events-none absolute left-2.5 w-1.5 h-1.5 rounded-full {{ $modeDotColor }} shrink-0 z-10"></span>
 
                                             <!-- Interactive Mode Select -->
                                             <select 
-                                                x-bind:disabled="updating"
-                                                @change="updating = true; $wire.setActiveMode({{ $user->id }}, $event.target.value).finally(() => { updating = false })"
+                                                @change="modeModal.open({{ $user->id }}, @js($user->name), @js($user->email), @js($user->getProfilePhotoUrl()), $event.target.value, $event.target)"
                                                 class="member-status-select member-mode-select {{ $modeModifierClass }}"
                                                 title="Change Member Mode">
                                                 <option value="active" @selected($isUserActive) class="bg-white text-gray-800 font-medium">Active</option>
@@ -811,14 +865,6 @@
                                                 </svg>
                                             </span>
                                         </div>
-
-                                        <!-- Saving Spinner -->
-                                        <span x-show="updating" x-cloak class="shrink-0 text-emerald-600">
-                                            <svg class="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
-                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                        </span>
                                     </div>
                                 </td>
                             @endif
@@ -1179,6 +1225,146 @@
                         <template x-if="!bulkModal.isProcessing">
                             <span x-text="bulkModal.action === 'approve' ? ('Yes, Approve (' + bulkModal.count + ')') : (bulkModal.action === 'verify_email' ? ('Yes, Verify Email (' + bulkModal.count + ')') : ('Yes, Delete (' + bulkModal.count + ')'))"></span>
                         </template>
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Beautiful Modern Mode Confirmation Modal -->
+    <div x-show="modeModal.isOpen"
+         x-cloak
+         wire:ignore.self
+         class="fixed inset-0 overflow-y-auto px-4 py-6 sm:px-0 z-[100] flex items-center justify-center"
+         style="display: none;"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="modal-mode-title"
+         @keydown.escape.window="modeModal.close()">
+        
+        <!-- Backdrop with Blur -->
+        <div x-show="modeModal.isOpen"
+             x-transition:enter="ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+             @click="modeModal.close()">
+        </div>
+
+        <!-- Modal Dialog Card -->
+        <div x-show="modeModal.isOpen"
+             x-transition:enter="ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+             x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+             x-transition:leave="ease-in duration-200"
+             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+             x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+             class="relative bg-white rounded-2xl overflow-hidden shadow-2xl border border-gray-100 sm:max-w-md w-full z-10 my-8 mx-auto transform transition-all text-left"
+             @click.stop>
+            
+            <!-- Top Gradient Accent Bar -->
+            <div class="h-1.5 w-full"
+                 :class="{
+                     'bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500': modeModal.targetMode === 'active',
+                     'bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500': modeModal.targetMode === 'inactive'
+                 }">
+            </div>
+
+            <!-- Close Button (X) -->
+            <button type="button" 
+                    @click="modeModal.close()" 
+                    :disabled="modeModal.isProcessing"
+                    class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-1.5 transition-colors focus:outline-none disabled:opacity-40 cursor-pointer"
+                    title="Close dialog">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+
+            <div class="p-6 sm:p-7">
+                <!-- Icon & Header -->
+                <div class="flex items-start gap-4">
+                    <!-- Icon Badge -->
+                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm"
+                         :class="{
+                             'bg-emerald-50 border border-emerald-100 text-emerald-600': modeModal.targetMode === 'active',
+                             'bg-amber-50 border border-amber-100 text-amber-600': modeModal.targetMode === 'inactive'
+                         }">
+                        <!-- Active Icon (Check Badge) -->
+                        <svg x-show="modeModal.targetMode === 'active'" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <!-- Inactive Icon (Pause / Minus Badge) -->
+                        <svg x-show="modeModal.targetMode === 'inactive'" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.25 9v6m-4.5 0V9M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+
+                    <div class="pt-0.5">
+                        <h3 class="text-base sm:text-lg font-bold text-gray-900 leading-snug" id="modal-mode-title"
+                            x-text="modeModal.targetMode === 'active' ? 'Activate Member Account' : 'Deactivate Member Account'">
+                        </h3>
+                        <p class="text-xs text-gray-500 mt-1"
+                           x-text="modeModal.targetMode === 'active' ? 'Are you sure you want to change this member\'s mode to Active?' : 'Are you sure you want to change this member\'s mode to Inactive?'">
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Member Preview Card -->
+                <div class="mt-4 p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center gap-3">
+                    <img :src="modeModal.userAvatar" 
+                         :alt="modeModal.userName" 
+                         class="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-sm shrink-0 bg-gray-200">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="text-xs font-bold text-gray-900 truncate" x-text="modeModal.userName"></span>
+                            <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600" x-text="'ID #' + modeModal.userId"></span>
+                        </div>
+                        <p class="text-xs text-gray-500 truncate mt-0.5" x-text="modeModal.userEmail"></p>
+                    </div>
+                </div>
+
+                <!-- Mode Summary Note -->
+                <div class="mt-4 p-3 rounded-xl border text-xs leading-relaxed"
+                     :class="{
+                         'bg-emerald-50/70 border-emerald-200/80 text-emerald-900': modeModal.targetMode === 'active',
+                         'bg-amber-50/70 border-amber-200/80 text-amber-900': modeModal.targetMode === 'inactive'
+                     }">
+                    <p x-show="modeModal.targetMode === 'active'">
+                        This member will be marked as <strong class="font-bold text-emerald-800">Active</strong> and will appear under the Active members list.
+                    </p>
+                    <p x-show="modeModal.targetMode === 'inactive'">
+                        This member will be marked as <strong class="font-bold text-amber-800">Inactive</strong> and will appear under the Inactive members list.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Footer Action Buttons -->
+            <div class="px-6 py-4 bg-gray-50/80 border-t border-gray-100 flex items-center justify-end gap-3">
+                <button type="button" 
+                        @click="modeModal.close()" 
+                        :disabled="modeModal.isProcessing"
+                        class="px-4 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-700 text-xs font-bold hover:bg-gray-100 hover:text-gray-900 transition-colors shadow-sm focus:outline-none disabled:opacity-50 cursor-pointer">
+                    Cancel
+                </button>
+                <button type="button" 
+                        @click="modeModal.execute()" 
+                        :disabled="modeModal.isProcessing"
+                        class="px-4 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-sm hover:shadow focus:outline-none flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                        :class="{
+                            'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800': modeModal.targetMode === 'active',
+                            'bg-amber-600 hover:bg-amber-700 active:bg-amber-800': modeModal.targetMode === 'inactive'
+                        }">
+                    <svg x-show="modeModal.isProcessing" class="animate-spin w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" style="display: none;">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span x-text="modeModal.isProcessing 
+                        ? (modeModal.targetMode === 'active' ? 'Activating member...' : 'Deactivating member...') 
+                        : (modeModal.targetMode === 'active' ? 'Yes, Activate Member' : 'Yes, Deactivate Member')">
                     </span>
                 </button>
             </div>

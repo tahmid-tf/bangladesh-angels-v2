@@ -303,6 +303,7 @@ class MembersTable extends Component
         ]);
 
         $this->updateCounts();
+        $this->dispatch('member-mode-updated');
         $modeName = ucfirst($mode);
         session()->flash('success', "Member '{$user->name}' mode changed to {$modeName}.");
     }
