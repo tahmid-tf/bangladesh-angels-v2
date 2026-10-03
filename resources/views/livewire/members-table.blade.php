@@ -130,12 +130,13 @@
     editModal: {
         isOpen: @js((bool) $showEditModal),
         isLoading: false,
+        requestId: 0,
         userId: @js($editingUserId),
         userName: '',
         userEmail: '',
         userAvatar: '',
         async open(id, name = '', email = '', avatar = '') {
-            if (this.isLoading && this.userId == id) return;
+            const currentReq = ++this.requestId;
             this.userId = id;
             this.userName = name;
             this.userEmail = email;
@@ -144,28 +145,47 @@
             this.isLoading = true;
             try {
                 await $wire.openEditModal(parseInt(id));
+                // If user closed the modal while the request was in-flight, discard!
+                if (!this.isOpen || this.requestId !== currentReq) {
+                    $wire.closeEditModal();
+                    return;
+                }
             } catch (e) {
                 console.error('Error opening edit modal', e);
             } finally {
-                this.isLoading = false;
+                if (this.isOpen && this.requestId === currentReq) {
+                    this.isLoading = false;
+                }
             }
         },
         close() {
+            // Invalidate any in-flight requests immediately
+            this.requestId++;
             this.isOpen = false;
-            this.isLoading = false;
-            this.userId = null;
             $wire.closeEditModal();
+            // Retain loading overlay & avatar state until leave transition finishes (250ms)
+            // to completely eliminate any flash of unrendered/partial form content
+            setTimeout(() => {
+                if (!this.isOpen) {
+                    this.isLoading = false;
+                    this.userId = null;
+                    this.userName = '';
+                    this.userEmail = '';
+                    this.userAvatar = '';
+                }
+            }, 250);
         }
     },
     init() {
+        // Only react when the server closes the modal (e.g. after successful save or delete)
+        // Never allow a delayed server payload to re-open a modal that the user closed!
         this.$watch('$wire.showEditModal', (val) => {
-            this.editModal.isOpen = Boolean(val);
             if (!val) {
-                this.editModal.isLoading = false;
+                this.editModal.close();
             }
         });
         this.$watch('$wire.editingUserId', (val) => {
-            if (val) {
+            if (val && this.editModal.isOpen) {
                 this.editModal.userId = val;
             }
         });
