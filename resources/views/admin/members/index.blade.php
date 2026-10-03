@@ -87,20 +87,81 @@
     }
 
     /* Scoped overrides for members custom table action buttons & badges */
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table,
+    table.members-custom-table {
+        width: 100% !important;
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
+    }
+
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table th,
+    .members-custom-table th {
+        padding: 0.75rem 0.65rem !important;
+        background: #f8fafc !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        color: #64748b !important;
+        font-size: 0.67rem !important;
+        font-weight: 750 !important;
+        letter-spacing: 0.04em !important;
+        text-transform: uppercase !important;
+        white-space: nowrap !important;
+    }
+
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td,
+    .members-custom-table td {
+        padding: 0.75rem 0.65rem !important;
+        border-top: 1px solid #f1f5f9 !important;
+        color: #334155 !important;
+        vertical-align: middle !important;
+    }
+
+    /* Checkbox column width and alignment */
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table th.col-checkbox,
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td.col-checkbox,
+    .members-custom-table th.col-checkbox,
+    .members-custom-table td.col-checkbox {
+        width: 44px !important;
+        min-width: 44px !important;
+        max-width: 44px !important;
+        padding-left: 1.15rem !important;
+        padding-right: 0.5rem !important;
+        text-align: center !important;
+    }
+
+    /* First column (Member) when no checkbox present */
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table th.col-member-first,
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td.col-member-first,
+    .members-custom-table th.col-member-first,
+    .members-custom-table td.col-member-first {
+        padding-left: 1.25rem !important;
+    }
+
+    /* Actions column: align right with generous right padding to prevent bleeding or overflowing edge */
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table th.col-actions,
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td.col-actions,
+    .members-custom-table th.col-actions,
+    .members-custom-table td.col-actions {
+        text-align: right !important;
+        padding-right: 1.5rem !important;
+        padding-left: 0.75rem !important;
+        white-space: nowrap !important;
+        width: 1% !important;
+    }
+
     .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn,
     .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn:has(svg),
     .members-custom-table td :is(a, button).member-action-btn {
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
-        gap: 5px !important;
+        gap: 4px !important;
         width: auto !important;
         min-width: 0 !important;
         height: auto !important;
-        min-height: 29px !important;
-        padding: 5px 12px !important;
-        border-radius: 7px !important;
-        font-size: 0.75rem !important; /* 12px */
+        min-height: 27px !important;
+        padding: 4px 9px !important;
+        border-radius: 6px !important;
+        font-size: 0.72rem !important; /* ~11.5px */
         font-weight: 700 !important;
         line-height: 1 !important;
         place-items: unset !important;
@@ -123,15 +184,25 @@
     .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn:has(svg) svg,
     .members-custom-table td :is(a, button).member-action-btn svg,
     svg.member-svg-icon {
-        width: 13px !important;
-        height: 13px !important;
-        min-width: 13px !important;
-        min-height: 13px !important;
+        width: 12px !important;
+        height: 12px !important;
+        min-width: 12px !important;
+        min-height: 12px !important;
         fill: none !important;
         stroke: currentColor !important;
         display: inline-block !important;
         vertical-align: middle !important;
         transform: none !important;
+    }
+
+    /* Member Action Row (strictly single-line flex aligned to right) */
+    .member-actions-row {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        gap: 5px !important;
+        flex-wrap: nowrap !important;
+        white-space: nowrap !important;
     }
 
     /* Approve Button */
