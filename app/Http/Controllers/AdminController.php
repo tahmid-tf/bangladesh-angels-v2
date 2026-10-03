@@ -152,8 +152,8 @@ class AdminController extends Controller
         $approvalScope = $filters['approval_scope'] ?? 'all';
 
         $baseQuery = User::query()
-            ->when($accountScope === 'active', fn ($query) => $query->where('account_status', '!=', 'free'))
-            ->when($accountScope === 'inactive', fn ($query) => $query->where('account_status', 'free'))
+            ->when($accountScope === 'active', fn ($query) => $query->where('status', 'active'))
+            ->when($accountScope === 'inactive', fn ($query) => $query->where('status', 'inactive'))
             ->when($approvalScope === 'approved', fn ($query) => $query->where('is_approved', true))
             ->when($approvalScope === 'pending', fn ($query) => $query->where('is_approved', false))
             ->orderBy('id');
@@ -272,39 +272,29 @@ class AdminController extends Controller
 
     public function viewActiveMembers()
     {
-        if (auth()->user()->isAdmin()) {
-            // Retrieve users with pagination
-            $allUsers = User::with('media')->where('account_status', '!=', 'free')->where('is_approved', true)->get(); // All approved active Users
-            $users = User::with('media')->where('account_status', '!=', 'free')->where('is_approved', true)->paginate(50); // 50 users per page
-
-            return view('admin.members.active_index', compact('users', 'allUsers'));
-        } else {
-            return redirect()->route('home');
+        if (auth()->user()?->isAdmin()) {
+            return redirect()->route('admin.members', ['filter' => 'active']);
         }
+
+        return redirect()->route('home');
     }
 
     public function viewInactiveMembers()
     {
-        if (auth()->user()->isAdmin()) {
-            $allUsers = User::with('media')->where('account_status', 'free')->where('is_approved', true)->get(); // Retrieve all users
-            $users = User::with('media')->where('account_status', 'free')->where('is_approved', true)->paginate(50); // Retrieve all users
-
-            return view('admin.members.inactive_index', compact('users', 'allUsers'));
-        } else {
-            return redirect()->route('home');
+        if (auth()->user()?->isAdmin()) {
+            return redirect()->route('admin.members', ['filter' => 'inactive']);
         }
+
+        return redirect()->route('home');
     }
 
     public function viewPendingApprovalMembers()
     {
-        if (auth()->user()->isAdmin()) {
-            $allUsers = User::with('media')->where('is_approved', false)->get(); // Retrieve all pending approval users
-            $users = User::with('media')->where('is_approved', false)->paginate(50);
-
-            return view('admin.members.pending_approval_index', compact('users', 'allUsers'));
-        } else {
-            return redirect()->route('home');
+        if (auth()->user()?->isAdmin()) {
+            return redirect()->route('admin.members', ['filter' => 'pending']);
         }
+
+        return redirect()->route('home');
     }
 
     public function approveUser(User $user)
@@ -926,6 +916,7 @@ class AdminController extends Controller
             'phone' => $request->phone,
             'gender' => $request->gender,
             'account_status' => $request->account_status,
+            'status' => $request->filled('status') ? strtolower($request->status) : ($user->status ?? 'active'),
             'public_profile' => $request->public_profile,
             'level' => $request->account_level,
             'company_name' => $request->company_name,

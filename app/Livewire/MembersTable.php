@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -11,8 +12,10 @@ class MembersTable extends Component
 {
     use WithPagination;
 
+    #[Url(as: 'q', except: '')]
     public $search = '';
 
+    #[Url(as: 'filter', except: 'all')]
     public $filter = 'all';
 
     public $allCount;
@@ -33,18 +36,26 @@ class MembersTable extends Component
 
     public bool $selectAll = false;
 
-    protected $queryString = ['search', 'filter'];
-
     public function mount()
     {
+        $filterParam = request()->query('filter');
+        if ($filterParam && in_array($filterParam, ['all', 'active', 'inactive', 'pending', 'featured'], true)) {
+            $this->filter = $filterParam;
+        }
+
+        $searchParam = request()->query('q') ?? request()->query('search');
+        if ($searchParam) {
+            $this->search = trim($searchParam);
+        }
+
         $this->updateCounts();
     }
 
     public function updateCounts()
     {
         $this->allCount = User::where('is_approved', true)->count();
-        $this->activeCount = User::where('account_status', '!=', 'free')->where('is_approved', true)->count();
-        $this->inactiveCount = User::where('account_status', 'free')->where('is_approved', true)->count();
+        $this->activeCount = User::where('status', 'active')->where('is_approved', true)->count();
+        $this->inactiveCount = User::where('status', 'inactive')->where('is_approved', true)->count();
         $this->pendingCount = User::where('is_approved', false)->count();
         $this->featuredCount = User::where('featured', true)->where('is_approved', true)->count();
     }
@@ -105,10 +116,10 @@ class MembersTable extends Component
 
         switch ($this->filter) {
             case 'active':
-                $query->where('account_status', '!=', 'free')->where('is_approved', true);
+                $query->where('status', 'active')->where('is_approved', true);
                 break;
             case 'inactive':
-                $query->where('account_status', 'free')->where('is_approved', true);
+                $query->where('status', 'inactive')->where('is_approved', true);
                 break;
             case 'pending':
                 $query->where('is_approved', false);
@@ -162,8 +173,9 @@ class MembersTable extends Component
 
     public function setFilter($filter)
     {
-        $this->filter = $filter;
+        $this->filter = in_array($filter, ['all', 'active', 'inactive', 'pending', 'featured'], true) ? $filter : 'all';
         $this->clearSelection();
+        $this->resetPage();
     }
 
     public function approveUser($userId)
@@ -281,27 +293,18 @@ class MembersTable extends Component
             return;
         }
 
-        $isCurrentlyActive = ($user->account_status !== 'free' && $user->account_status !== 'disabled');
-
-        if ($mode === 'active') {
-            if ($isCurrentlyActive) {
-                return;
-            }
-            $user->update([
-                'account_status' => 'core',
-            ]);
-            $this->updateCounts();
-            session()->flash('success', "Member '{$user->name}' mode changed to Active.");
-        } else {
-            if (! $isCurrentlyActive) {
-                return;
-            }
-            $user->update([
-                'account_status' => 'free',
-            ]);
-            $this->updateCounts();
-            session()->flash('success', "Member '{$user->name}' mode changed to Inactive.");
+        $currentMode = strtolower((string) ($user->status ?? 'active'));
+        if ($currentMode === $mode) {
+            return;
         }
+
+        $user->update([
+            'status' => $mode,
+        ]);
+
+        $this->updateCounts();
+        $modeName = ucfirst($mode);
+        session()->flash('success', "Member '{$user->name}' mode changed to {$modeName}.");
     }
 
     public function verifyEmail(int $userId): void

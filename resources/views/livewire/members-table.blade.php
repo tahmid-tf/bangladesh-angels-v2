@@ -784,11 +784,12 @@
                             @if($filter !== 'pending')
                                 <td class="px-3 md:px-4 py-4 whitespace-nowrap">
                                     @php
-                                        $isUserActive = ($user->account_status !== 'free' && $user->account_status !== 'disabled');
+                                        $userMode = strtolower((string) ($user->status ?? 'active'));
+                                        $isUserActive = ($userMode === 'active');
                                         $modeDotColor = $isUserActive ? 'bg-emerald-500' : 'bg-gray-400';
                                         $modeModifierClass = $isUserActive ? 'member-mode-select--active' : 'member-mode-select--inactive';
                                     @endphp
-                                    <div x-data="{ updating: false }" class="inline-flex items-center gap-1.5" wire:key="mode-cell-{{ $user->id }}-{{ $isUserActive ? 'active' : 'inactive' }}">
+                                    <div x-data="{ updating: false }" class="inline-flex items-center gap-1.5" wire:key="mode-cell-{{ $user->id }}-{{ $userMode }}">
                                         <div class="relative inline-flex items-center">
                                             <!-- Status dot -->
                                             <span class="pointer-events-none absolute left-2.5 w-1.5 h-1.5 rounded-full {{ $modeDotColor }} shrink-0 z-10"></span>

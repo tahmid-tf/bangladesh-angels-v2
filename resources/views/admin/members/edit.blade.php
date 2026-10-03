@@ -464,6 +464,15 @@
                 </div>
 
                 <div>
+                    <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Account Mode</label>
+                    <select id="status" name="status" 
+                            class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                        <option value="active" {{ old('status', $user->status ?? 'active') == 'active' ? 'selected' : '' }}>Active</option>
+                        <option value="inactive" {{ old('status', $user->status ?? 'active') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                    </select>
+                </div>
+
+                <div>
                     <label for="public_profile" class="block text-sm font-medium text-gray-700 mb-1">Profile Visibility</label>
                     <select id="public_profile" name="public_profile" 
                             class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500">
