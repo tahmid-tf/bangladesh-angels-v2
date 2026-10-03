@@ -119,6 +119,41 @@ class MembersTable extends Component
         }
     }
 
+    public function updateAccountStatus(int $userId, string $status): void
+    {
+        if (! auth()->user()?->isAdmin()) {
+            session()->flash('error', 'You do not have permission to perform this action.');
+            return;
+        }
+
+        $validStatuses = ['free', 'core', 'advanced', 'institutional'];
+        $status = strtolower(trim($status));
+
+        if (! in_array($status, $validStatuses, true)) {
+            session()->flash('error', 'Invalid account tier selected.');
+            return;
+        }
+
+        $user = User::find($userId);
+        if (! $user) {
+            session()->flash('error', 'User not found.');
+            return;
+        }
+
+        if (strtolower((string) $user->account_status) === $status) {
+            return;
+        }
+
+        $user->update([
+            'account_status' => $status,
+        ]);
+
+        $this->updateCounts();
+
+        $tierName = ucfirst($status);
+        session()->flash('success', "Member '{$user->name}' tier changed to {$tierName}.");
+    }
+
     public function verifyEmail(int $userId): void
     {
         if (! auth()->user()?->isAdmin()) {

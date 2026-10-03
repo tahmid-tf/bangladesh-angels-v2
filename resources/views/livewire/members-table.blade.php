@@ -224,6 +224,71 @@
             color: #991b1b !important;
             border: 1px solid #fecaca !important;
         }
+
+        /* Member Status Select Dropdown in table */
+        .admin-page:not(.admin-page--dashboard) table.members-custom-table td select.member-status-select,
+        .members-custom-table td select.member-status-select,
+        select.member-status-select {
+            display: inline-flex !important;
+            align-items: center !important;
+            min-height: 27px !important;
+            height: 27px !important;
+            padding-top: 2px !important;
+            padding-bottom: 2px !important;
+            padding-left: 20px !important;
+            padding-right: 22px !important;
+            border-radius: 9999px !important;
+            font-size: 0.72rem !important; /* ~11.5px */
+            font-weight: 700 !important;
+            line-height: 1.2 !important;
+            cursor: pointer !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+            background-image: none !important;
+            appearance: none !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            transition: all 150ms ease !important;
+        }
+
+        .member-status-select--free {
+            background-color: #f3f4f6 !important;
+            color: #374151 !important;
+            border: 1px solid #d1d5db !important;
+        }
+        .member-status-select--free:hover {
+            background-color: #e5e7eb !important;
+            border-color: #9ca3af !important;
+        }
+
+        .member-status-select--core {
+            background-color: #ecfdf5 !important;
+            color: #065f46 !important;
+            border: 1px solid #a7f3d0 !important;
+        }
+        .member-status-select--core:hover {
+            background-color: #d1fae5 !important;
+            border-color: #6ee7b7 !important;
+        }
+
+        .member-status-select--advanced {
+            background-color: #f0fdfa !important;
+            color: #0f766e !important;
+            border: 1px solid #99f6e4 !important;
+        }
+        .member-status-select--advanced:hover {
+            background-color: #ccfbf1 !important;
+            border-color: #5eead4 !important;
+        }
+
+        .member-status-select--institutional {
+            background-color: #faf5ff !important;
+            color: #6b21a8 !important;
+            border: 1px solid #e9d5ff !important;
+        }
+        .member-status-select--institutional:hover {
+            background-color: #f3e8ff !important;
+            border-color: #d8b4fe !important;
+        }
     </style>
 
     @session('success')
@@ -446,7 +511,7 @@
                                 @endif
                             </td>
 
-                            <!-- Status Badge -->
+                            <!-- Status Badge / Dropdown -->
                             <td class="pl-2 pr-4 md:px-6 py-4 whitespace-nowrap">
                                 @if($filter === 'pending' || !$user->is_approved)
                                     <span class="member-status-pill member-status-pill--pending">
@@ -454,22 +519,55 @@
                                         <span>Pending Approval</span>
                                     </span>
                                 @else
-                                    @if($user->account_status === 'free')
-                                        <span class="member-status-pill member-status-pill--free">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0"></span>
-                                            <span>Free</span>
+                                    @php
+                                        $currentStatus = strtolower((string) ($user->account_status ?? 'free'));
+                                        $dotColor = match($currentStatus) {
+                                            'core' => 'bg-emerald-500',
+                                            'advanced' => 'bg-teal-500',
+                                            'institutional' => 'bg-purple-500',
+                                            default => 'bg-gray-400',
+                                        };
+                                        $statusModifierClass = match($currentStatus) {
+                                            'core' => 'member-status-select--core',
+                                            'advanced' => 'member-status-select--advanced',
+                                            'institutional' => 'member-status-select--institutional',
+                                            default => 'member-status-select--free',
+                                        };
+                                    @endphp
+                                    <div class="inline-flex items-center gap-1.5" wire:key="status-cell-{{ $user->id }}-{{ $currentStatus }}">
+                                        <div class="relative inline-flex items-center">
+                                            <!-- Status dot -->
+                                            <span class="pointer-events-none absolute left-2.5 w-1.5 h-1.5 rounded-full {{ $dotColor }} shrink-0 z-10"></span>
+
+                                            <!-- Interactive Tier Select -->
+                                            <select 
+                                                wire:change="updateAccountStatus({{ $user->id }}, $event.target.value)"
+                                                wire:loading.attr="disabled"
+                                                wire:target="updateAccountStatus({{ $user->id }}"
+                                                class="member-status-select {{ $statusModifierClass }}"
+                                                title="Change Account Tier">
+                                                <option value="free" @selected($currentStatus === 'free') class="bg-white text-gray-800 font-medium">Free</option>
+                                                <option value="core" @selected($currentStatus === 'core') class="bg-white text-gray-800 font-medium">Core</option>
+                                                <option value="advanced" @selected($currentStatus === 'advanced') class="bg-white text-gray-800 font-medium">Advanced</option>
+                                                <option value="institutional" @selected($currentStatus === 'institutional') class="bg-white text-gray-800 font-medium">Institutional</option>
+                                            </select>
+
+                                            <!-- Dropdown Chevron Caret -->
+                                            <span class="pointer-events-none absolute right-2 text-current opacity-60">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </span>
+                                        </div>
+
+                                        <!-- Saving Spinner -->
+                                        <span wire:loading wire:target="updateAccountStatus({{ $user->id }}" class="shrink-0 text-emerald-600">
+                                            <svg class="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
                                         </span>
-                                    @elseif($user->account_status !== 'inactive')
-                                        <span class="member-status-pill member-status-pill--active">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
-                                            <span>{{ ucfirst($user->account_status) }}</span>
-                                        </span>
-                                    @else
-                                        <span class="member-status-pill member-status-pill--inactive">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></span>
-                                            <span>Inactive</span>
-                                        </span>
-                                    @endif
+                                    </div>
                                 @endif
                             </td>
 

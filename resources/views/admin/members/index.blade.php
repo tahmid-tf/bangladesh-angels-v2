@@ -216,6 +216,71 @@
         pointer-events: none !important;
         transform: none !important;
     }
+
+    /* Member Status Select Dropdown in table */
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td select.member-status-select,
+    .members-custom-table td select.member-status-select,
+    select.member-status-select {
+        display: inline-flex !important;
+        align-items: center !important;
+        min-height: 27px !important;
+        height: 27px !important;
+        padding-top: 2px !important;
+        padding-bottom: 2px !important;
+        padding-left: 20px !important;
+        padding-right: 22px !important;
+        border-radius: 9999px !important;
+        font-size: 0.72rem !important; /* ~11.5px */
+        font-weight: 700 !important;
+        line-height: 1.2 !important;
+        cursor: pointer !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+        background-image: none !important;
+        appearance: none !important;
+        -webkit-appearance: none !important;
+        -moz-appearance: none !important;
+        transition: all 150ms ease !important;
+    }
+
+    .member-status-select--free {
+        background-color: #f3f4f6 !important;
+        color: #374151 !important;
+        border: 1px solid #d1d5db !important;
+    }
+    .member-status-select--free:hover {
+        background-color: #e5e7eb !important;
+        border-color: #9ca3af !important;
+    }
+
+    .member-status-select--core {
+        background-color: #ecfdf5 !important;
+        color: #065f46 !important;
+        border: 1px solid #a7f3d0 !important;
+    }
+    .member-status-select--core:hover {
+        background-color: #d1fae5 !important;
+        border-color: #6ee7b7 !important;
+    }
+
+    .member-status-select--advanced {
+        background-color: #f0fdfa !important;
+        color: #0f766e !important;
+        border: 1px solid #99f6e4 !important;
+    }
+    .member-status-select--advanced:hover {
+        background-color: #ccfbf1 !important;
+        border-color: #5eead4 !important;
+    }
+
+    .member-status-select--institutional {
+        background-color: #faf5ff !important;
+        color: #6b21a8 !important;
+        border: 1px solid #e9d5ff !important;
+    }
+    .member-status-select--institutional:hover {
+        background-color: #f3e8ff !important;
+        border-color: #d8b4fe !important;
+    }
 </style>
 @endpush
 
