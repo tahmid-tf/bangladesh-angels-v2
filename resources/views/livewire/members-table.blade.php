@@ -1,5 +1,47 @@
-<div>
+<div x-data="{
+    confirmingDelete: false,
+    deleteUserId: null,
+    deleteUserName: '',
+    deleteUserEmail: '',
+    deleteUserAvatar: '',
+    isDeleting: false,
+    openDelete(id, name, email, avatar) {
+        this.deleteUserId = id;
+        this.deleteUserName = name;
+        this.deleteUserEmail = email;
+        this.deleteUserAvatar = avatar;
+        this.confirmingDelete = true;
+    },
+    closeDelete() {
+        if (this.isDeleting) return;
+        this.confirmingDelete = false;
+        setTimeout(() => {
+            if (!this.confirmingDelete) {
+                this.deleteUserId = null;
+                this.deleteUserName = '';
+                this.deleteUserEmail = '';
+                this.deleteUserAvatar = '';
+            }
+        }, 250);
+    },
+    async executeDelete() {
+        if (!this.deleteUserId || this.isDeleting) return;
+        this.isDeleting = true;
+        try {
+            await $wire.deleteUser(this.deleteUserId);
+            this.closeDelete();
+        } catch (e) {
+            console.error('Delete member error', e);
+        } finally {
+            this.isDeleting = false;
+        }
+    }
+}">
     <style>
+        [x-cloak] {
+            display: none !important;
+        }
+
         /* Scoped overrides to prevent admin-dashboard.css aggressive table rules from breaking member actions & badges */
         .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn,
         .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn:has(svg),
@@ -463,10 +505,11 @@
 
                                     @if($user->id != auth()->id())
                                         <button type="button"
-                                            wire:click="deleteUser({{ $user->id }})"
-                                            wire:confirm="Are you sure you want to delete this member? This action cannot be undone."
-                                            wire:loading.attr="disabled"
-                                            wire:target="deleteUser({{ $user->id }})"
+                                            data-user-id="{{ $user->id }}"
+                                            data-user-name="{{ $user->name }}"
+                                            data-user-email="{{ $user->email }}"
+                                            data-user-avatar="{{ $user->getProfilePhotoUrl() }}"
+                                            @click="openDelete($el.dataset.userId, $el.dataset.userName, $el.dataset.userEmail, $el.dataset.userAvatar)"
                                             class="member-action-btn member-action-delete"
                                             title="Delete member">
                                             <svg class="member-svg-icon w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -499,6 +542,121 @@
             <!-- Pagination -->
             <div class="mt-6 px-4 md:px-6">
                 {{ $users->links() }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Beautiful Modern Delete Confirmation Modal -->
+    <div x-show="confirmingDelete"
+         x-cloak
+         wire:ignore.self
+         class="fixed inset-0 overflow-y-auto px-4 py-6 sm:px-0 z-[100] flex items-center justify-center"
+         style="display: none;"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="modal-delete-title"
+         @keydown.escape.window="closeDelete()">
+        
+        <!-- Backdrop with Blur -->
+        <div x-show="confirmingDelete"
+             x-transition:enter="ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+             @click="closeDelete()">
+        </div>
+
+        <!-- Modal Dialog Card -->
+        <div x-show="confirmingDelete"
+             x-transition:enter="ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+             x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+             x-transition:leave="ease-in duration-200"
+             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+             x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+             class="relative bg-white rounded-2xl overflow-hidden shadow-2xl border border-gray-100 sm:max-w-md w-full z-10 my-8 mx-auto transform transition-all text-left"
+             @click.stop>
+            
+            <!-- Top Gradient Accent Bar -->
+            <div class="h-1.5 w-full bg-gradient-to-r from-red-500 via-rose-500 to-amber-500"></div>
+
+            <!-- Close Button (X) -->
+            <button type="button" 
+                    @click="closeDelete()" 
+                    :disabled="isDeleting"
+                    class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-1.5 transition-colors focus:outline-none disabled:opacity-40 cursor-pointer"
+                    title="Close dialog">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+
+            <div class="p-6 sm:p-7">
+                <!-- Icon & Header -->
+                <div class="flex items-start gap-4">
+                    <!-- Danger Icon Badge -->
+                    <div class="w-12 h-12 rounded-2xl bg-red-50 border border-red-100 text-red-600 flex items-center justify-center shrink-0 shadow-sm">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                        </svg>
+                    </div>
+
+                    <div class="pt-0.5">
+                        <h3 class="text-base sm:text-lg font-bold text-gray-900 leading-snug" id="modal-delete-title">
+                            Delete Member Account
+                        </h3>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Are you sure you want to delete this member?
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Member Preview Card -->
+                <div class="mt-4 p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center gap-3">
+                    <img :src="deleteUserAvatar" 
+                         :alt="deleteUserName" 
+                         class="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-sm shrink-0 bg-gray-200">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="text-xs font-bold text-gray-900 truncate" x-text="deleteUserName"></span>
+                            <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600" x-text="'ID #' + deleteUserId"></span>
+                        </div>
+                        <p class="text-xs text-gray-500 truncate mt-0.5" x-text="deleteUserEmail"></p>
+                    </div>
+                </div>
+
+                <!-- Warning Callout Box -->
+                <div class="mt-3.5 p-3 rounded-xl bg-amber-50/80 border border-amber-200/70 flex items-start gap-2.5">
+                    <svg class="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <p class="text-xs text-amber-800 leading-relaxed">
+                        <span class="font-semibold">Irreversible action:</span> All member data, uploaded media, and activity will be permanently removed.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Footer Action Buttons -->
+            <div class="px-6 py-4 bg-gray-50/80 border-t border-gray-100 flex items-center justify-end gap-3">
+                <button type="button" 
+                        @click="closeDelete()" 
+                        :disabled="isDeleting"
+                        class="px-4 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-700 text-xs font-bold hover:bg-gray-100 hover:text-gray-900 transition-colors shadow-sm focus:outline-none disabled:opacity-50 cursor-pointer">
+                    Cancel
+                </button>
+                <button type="button" 
+                        @click="executeDelete()" 
+                        :disabled="isDeleting"
+                        class="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-xs font-bold transition-all shadow-sm hover:shadow focus:outline-none flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer">
+                    <svg x-show="isDeleting" class="animate-spin w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" style="display: none;">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span x-text="isDeleting ? 'Deleting member...' : 'Yes, Delete Member'"></span>
+                </button>
             </div>
         </div>
     </div>

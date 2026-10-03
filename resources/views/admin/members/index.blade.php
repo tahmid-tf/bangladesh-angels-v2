@@ -82,6 +82,10 @@
 
 @push('head_styles')
 <style>
+    [x-cloak] {
+        display: none !important;
+    }
+
     /* Scoped overrides for members custom table action buttons & badges */
     .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn,
     .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn:has(svg),
