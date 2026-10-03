@@ -1482,32 +1482,32 @@
                     </div>
                 @endif
 
-                <form id="edit-member-livewire-form" wire:submit="saveMemberEdit" class="space-y-6">
-                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                        <!-- Left Column: Photo & Security & Visibility (4 cols) -->
-                        <div class="lg:col-span-4 space-y-5">
+                <form id="edit-member-livewire-form" wire:submit="saveMemberEdit" class="space-y-4">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                        <!-- Left Column: Photo & Security (4 cols) -->
+                        <div class="lg:col-span-4 space-y-3.5">
                             <!-- Profile Photo Card -->
-                            <div class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-sm text-center">
-                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">Profile Photo</label>
+                            <div class="bg-white p-4 rounded-xl border border-gray-200/80 shadow-xs text-center">
+                                <label class="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-2.5">Profile Photo</label>
                                 
-                                <div class="relative inline-block mx-auto mb-3">
+                                <div class="relative inline-block mx-auto mb-2">
                                     @if ($editProfilePhoto)
                                         <img src="{{ $editProfilePhoto->temporaryUrl() }}" 
                                              alt="New Profile Preview" 
-                                             class="w-28 h-28 rounded-full object-cover border-4 border-emerald-500 shadow-md mx-auto">
+                                             class="w-20 h-20 rounded-full object-cover border-2 border-emerald-500 shadow-sm mx-auto">
                                     @elseif ($this->editingUser)
                                         <img src="{{ $this->editingUser->getProfilePhotoUrl() }}" 
                                              alt="{{ $this->editingUser->name }}" 
-                                             class="w-28 h-28 rounded-full object-cover border-4 border-gray-100 shadow mx-auto">
+                                             class="w-20 h-20 rounded-full object-cover border-2 border-gray-100 shadow-xs mx-auto">
                                     @else
                                         <img src="{{ asset('default_pfp.jpg') }}" 
                                              alt="Default Avatar" 
-                                             class="w-28 h-28 rounded-full object-cover border-4 border-gray-100 shadow mx-auto">
+                                             class="w-20 h-20 rounded-full object-cover border-2 border-gray-100 shadow-xs mx-auto">
                                     @endif
 
                                     <!-- Camera badge upload icon -->
-                                    <label for="edit_member_photo_input" class="absolute bottom-1 right-1 bg-[#0a5554] hover:bg-teal-700 text-white p-2 rounded-full cursor-pointer shadow-md transition-colors" title="Change photo">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <label for="edit_member_photo_input" class="absolute -bottom-1 -right-1 bg-[#0a5554] hover:bg-teal-700 text-white p-1.5 rounded-full cursor-pointer shadow transition-colors" title="Change photo">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
                                         </svg>
@@ -1516,8 +1516,8 @@
 
                                 <input type="file" id="edit_member_photo_input" wire:model="editProfilePhoto" accept="image/*" class="hidden">
 
-                                <div wire:loading wire:target="editProfilePhoto" class="text-xs text-teal-600 font-semibold mb-2 flex items-center justify-center gap-1.5">
-                                    <svg class="animate-spin w-3.5 h-3.5 text-teal-600" fill="none" viewBox="0 0 24 24">
+                                <div wire:loading wire:target="editProfilePhoto" class="text-[11px] text-teal-600 font-semibold mb-1.5 flex items-center justify-center gap-1">
+                                    <svg class="animate-spin w-3 h-3 text-teal-600" fill="none" viewBox="0 0 24 24">
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
@@ -1525,285 +1525,240 @@
                                 </div>
 
                                 @if ($editProfilePhoto)
-                                    <div class="mb-2">
-                                        <button type="button" wire:click="$set('editProfilePhoto', null)" class="text-xs text-red-600 hover:text-red-800 underline font-medium cursor-pointer">
-                                            Remove selected photo
+                                    <div class="mb-1">
+                                        <button type="button" wire:click="$set('editProfilePhoto', null)" class="text-[11px] text-red-600 hover:text-red-800 underline font-medium cursor-pointer">
+                                            Remove new photo
                                         </button>
                                     </div>
                                 @endif
 
-                                <p class="text-xs text-gray-500">Click camera badge to upload</p>
-                                <p class="text-[11px] text-gray-400 mt-0.5">JPEG, PNG, GIF (Max 3MB)</p>
+                                <p class="text-[11px] text-gray-500">Click camera badge to change</p>
+                                <p class="text-[10px] text-gray-400">JPEG, PNG, GIF (Max 3MB)</p>
                                 @error('editProfilePhoto')
-                                    <p class="text-xs text-red-600 mt-1 font-semibold">{{ $message }}</p>
+                                    <p class="text-[11px] text-red-600 mt-1 font-semibold">{{ $message }}</p>
                                 @enderror
                             </div>
 
                             <!-- Account Security Card -->
-                            <div class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-sm space-y-3">
+                            <div class="bg-white p-4 rounded-xl border border-gray-200/80 shadow-xs space-y-2.5">
                                 <div>
-                                    <h4 class="text-xs font-bold text-gray-900 uppercase tracking-wider">Account Security</h4>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">Leave blank to keep existing password.</p>
+                                    <h4 class="text-[11px] font-bold text-gray-700 uppercase tracking-wider">Account Security</h4>
+                                    <p class="text-[10px] text-gray-400">Leave blank to keep current password.</p>
                                 </div>
 
                                 <div>
-                                    <label class="block text-xs font-semibold text-gray-700 mb-1">New Password</label>
+                                    <label class="block text-[11px] font-semibold text-gray-600 mb-1">New Password</label>
                                     <input type="password" 
                                            wire:model="editForm.password" 
                                            autocomplete="new-password"
                                            placeholder="••••••••"
                                            minlength="8"
-                                           class="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs text-gray-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-sm transition">
+                                           class="w-full h-[34px] rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-800 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 shadow-xs transition">
                                     @error('editForm.password')
-                                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                                        <p class="text-[11px] text-red-600 mt-0.5">{{ $message }}</p>
                                     @enderror
                                 </div>
 
                                 <div>
-                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Confirm New Password</label>
+                                    <label class="block text-[11px] font-semibold text-gray-600 mb-1">Confirm Password</label>
                                     <input type="password" 
                                            wire:model="editForm.password_confirmation" 
                                            autocomplete="new-password"
                                            placeholder="••••••••"
                                            minlength="8"
-                                           class="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs text-gray-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-sm transition">
+                                           class="w-full h-[34px] rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-800 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 shadow-xs transition">
                                 </div>
-                            </div>
-
-                            <!-- Profile Visibility Card -->
-                            <div class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-sm space-y-2">
-                                <label class="block text-xs font-bold text-gray-900 uppercase tracking-wider">Profile Visibility</label>
-                                <select wire:model="editForm.public_profile"
-                                        class="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs text-gray-800 font-medium focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-sm transition">
-                                    <option value="false">Private Profile</option>
-                                    <option value="true">Public Profile</option>
-                                </select>
-                                <p class="text-[11px] text-gray-500">Controls whether this member is visible in the public directory.</p>
                             </div>
                         </div>
 
-                        <!-- Right Column: Personal, Professional, Tier, Financial Info (8 cols) -->
-                        <div class="lg:col-span-8 space-y-5">
-                            <!-- Card: Personal Information -->
-                            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-gray-200/80 shadow-sm space-y-4">
-                                <div class="border-b border-gray-100 pb-2.5">
-                                    <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
-                                        <span class="w-2 h-2 rounded-full bg-teal-500"></span>
-                                        Personal Information
+                        <!-- Right Column: Form Sections (8 cols) -->
+                        <div class="lg:col-span-8 space-y-3.5">
+                            <!-- Card 1: Member Information -->
+                            <div class="bg-white p-4 sm:p-4.5 rounded-xl border border-gray-200/80 shadow-xs space-y-3">
+                                <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
+                                        Personal & Professional Details
                                     </h3>
                                 </div>
 
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <!-- Full Name -->
                                     <div>
-                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Full Name <span class="text-red-500">*</span></label>
+                                        <label class="block text-[11px] font-semibold text-gray-600 mb-1">Full Name <span class="text-red-500">*</span></label>
                                         <input type="text" 
                                                wire:model="editForm.full_name" 
                                                required
-                                               class="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-xs text-gray-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-sm transition">
+                                               class="w-full h-[34px] rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-800 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 shadow-xs transition">
                                         @error('editForm.full_name')
-                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                                            <p class="text-[11px] text-red-600 mt-0.5">{{ $message }}</p>
                                         @enderror
                                     </div>
 
                                     <!-- Email -->
                                     <div>
-                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Email Address <span class="text-red-500">*</span></label>
+                                        <label class="block text-[11px] font-semibold text-gray-600 mb-1">Email Address <span class="text-red-500">*</span></label>
                                         <input type="email" 
                                                wire:model="editForm.email" 
                                                required
-                                               class="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-xs text-gray-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-sm transition">
+                                               class="w-full h-[34px] rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-800 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 shadow-xs transition">
                                         @error('editForm.email')
-                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                                            <p class="text-[11px] text-red-600 mt-0.5">{{ $message }}</p>
                                         @enderror
                                     </div>
 
                                     <!-- Phone -->
                                     <div>
-                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Phone / WhatsApp <span class="text-red-500">*</span></label>
+                                        <label class="block text-[11px] font-semibold text-gray-600 mb-1">Phone / WhatsApp <span class="text-red-500">*</span></label>
                                         <input type="tel" 
                                                wire:model="editForm.phone" 
                                                required
-                                               class="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-xs text-gray-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-sm transition">
+                                               class="w-full h-[34px] rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-800 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 shadow-xs transition">
                                         @error('editForm.phone')
-                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                                            <p class="text-[11px] text-red-600 mt-0.5">{{ $message }}</p>
                                         @enderror
                                     </div>
 
                                     <!-- Gender -->
                                     <div>
-                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Gender <span class="text-red-500">*</span></label>
+                                        <label class="block text-[11px] font-semibold text-gray-600 mb-1">Gender <span class="text-red-500">*</span></label>
                                         <select wire:model="editForm.gender" 
                                                 required
-                                                class="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-xs text-gray-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-sm transition">
+                                                class="w-full h-[34px] rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-800 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 shadow-xs transition">
                                             <option value="male">Male</option>
                                             <option value="female">Female</option>
                                             <option value="other">Other</option>
                                         </select>
                                         @error('editForm.gender')
-                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                                            <p class="text-[11px] text-red-600 mt-0.5">{{ $message }}</p>
                                         @enderror
                                     </div>
-                                </div>
 
-                                <!-- Email Verification Sub-card -->
-                                <div class="mt-2 rounded-xl border border-gray-200 bg-gray-50/80 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                                    @if ($this->editingUser && $this->editingUser->hasVerifiedEmail())
-                                        <div class="flex items-center gap-2">
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                                <svg class="w-3 h-3 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                                </svg>
-                                                Email verified
-                                            </span>
-                                            <span class="text-[11px] text-gray-600">
-                                                {{ $this->editingUser->email_verified_at?->format('M j, Y g:i A') }}
-                                            </span>
-                                        </div>
-                                        <span class="text-[11px] text-gray-400">
-                                            @if ($this->editingUser->email_verified_by && $this->editingUser->emailVerifiedByAdmin)
-                                                Verified by: {{ $this->editingUser->emailVerifiedByAdmin->name }}
-                                            @else
-                                                Verified via self-service email
-                                            @endif
-                                        </span>
-                                    @else
-                                        <div class="flex items-center gap-2">
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                                                Email not verified
-                                            </span>
-                                            <span class="text-[11px] text-gray-500">Unverified email address</span>
-                                        </div>
-                                        <button type="button" 
-                                                wire:click="verifyEmailForEditModal"
-                                                class="px-3 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors cursor-pointer w-fit">
-                                            Verify email manually
-                                        </button>
-                                    @endif
-                                </div>
-                            </div>
-
-                            <!-- Card: Location & Sector -->
-                            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-gray-200/80 shadow-sm space-y-4">
-                                <div class="border-b border-gray-100 pb-2.5">
-                                    <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
-                                        <span class="w-2 h-2 rounded-full bg-cyan-500"></span>
-                                        Location & Preference
-                                    </h3>
-                                </div>
-
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <!-- Country -->
                                     <div>
-                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Country <span class="text-red-500">*</span></label>
+                                        <label class="block text-[11px] font-semibold text-gray-600 mb-1">Country <span class="text-red-500">*</span></label>
                                         <select wire:model="editForm.primary_country" 
                                                 required
-                                                class="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-xs text-gray-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-sm transition">
+                                                class="w-full h-[34px] rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-800 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 shadow-xs transition">
                                             <option value="">Select Country</option>
                                             @foreach($this->getCountries() as $country)
                                                 <option value="{{ $country }}">{{ $country }}</option>
                                             @endforeach
                                         </select>
                                         @error('editForm.primary_country')
-                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                                            <p class="text-[11px] text-red-600 mt-0.5">{{ $message }}</p>
                                         @enderror
                                     </div>
 
                                     <!-- Preference Sector -->
                                     <div>
-                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Preference Sector</label>
+                                        <label class="block text-[11px] font-semibold text-gray-600 mb-1">Preference Sector</label>
                                         <input type="text" 
                                                wire:model="editForm.preference_sector" 
-                                               placeholder="e.g. Fintech, Edtech, Health"
-                                               class="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-xs text-gray-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-sm transition">
+                                               placeholder="e.g. Fintech, Edtech"
+                                               class="w-full h-[34px] rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-800 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 shadow-xs transition">
                                         @error('editForm.preference_sector')
-                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                                            <p class="text-[11px] text-red-600 mt-0.5">{{ $message }}</p>
                                         @enderror
                                     </div>
-                                </div>
-                            </div>
 
-                            <!-- Card: Professional Info -->
-                            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-gray-200/80 shadow-sm space-y-4">
-                                <div class="border-b border-gray-100 pb-2.5">
-                                    <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
-                                        <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
-                                        Professional Information
-                                    </h3>
-                                </div>
-
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <!-- Organization -->
                                     <div>
-                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Organization / Company</label>
+                                        <label class="block text-[11px] font-semibold text-gray-600 mb-1">Organization / Company</label>
                                         <input type="text" 
                                                wire:model="editForm.organization" 
                                                placeholder="Company name"
-                                               class="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-xs text-gray-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-sm transition">
-                                        @error('editForm.organization')
-                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                        @enderror
+                                               class="w-full h-[34px] rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-800 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 shadow-xs transition">
                                     </div>
 
                                     <!-- Designation -->
                                     <div>
-                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Designation / Title</label>
+                                        <label class="block text-[11px] font-semibold text-gray-600 mb-1">Designation / Title</label>
                                         <input type="text" 
                                                wire:model="editForm.designation" 
-                                               placeholder="e.g. Managing Director, CEO"
-                                               class="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-xs text-gray-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-sm transition">
-                                        @error('editForm.designation')
-                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                        @enderror
+                                               placeholder="e.g. Managing Director"
+                                               class="w-full h-[34px] rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-800 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 shadow-xs transition">
                                     </div>
+                                </div>
+
+                                <!-- Compact Email Verification Strip -->
+                                <div class="rounded-lg border border-gray-200 bg-gray-50/80 px-3 py-2 flex items-center justify-between gap-2 text-xs">
+                                    @if ($this->editingUser && $this->editingUser->hasVerifiedEmail())
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                                <svg class="w-3 h-3 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                                </svg>
+                                                Email verified
+                                            </span>
+                                            <span class="text-[11px] text-gray-500">
+                                                {{ $this->editingUser->email_verified_at?->format('M j, Y g:i A') }}
+                                            </span>
+                                        </div>
+                                        <span class="text-[10px] text-gray-400">
+                                            {{ ($this->editingUser->email_verified_by && $this->editingUser->emailVerifiedByAdmin) ? 'by ' . $this->editingUser->emailVerifiedByAdmin->name : 'Self-service' }}
+                                        </span>
+                                    @else
+                                        <div class="flex items-center gap-2">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                                                Unverified
+                                            </span>
+                                            <span class="text-[11px] text-gray-500">Email not verified</span>
+                                        </div>
+                                        <button type="button" 
+                                                wire:click="verifyEmailForEditModal"
+                                                class="px-2.5 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded text-[11px] font-semibold transition-colors cursor-pointer">
+                                            Verify email manually
+                                        </button>
+                                    @endif
                                 </div>
                             </div>
 
-                            <!-- Card: Account Status, Tier & Role -->
-                            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-gray-200/80 shadow-sm space-y-4">
-                                <div class="border-b border-gray-100 pb-2.5">
-                                    <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
-                                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <!-- Card 2: Account Tier, Mode & Role (Optimized, tight grid!) -->
+                            <div class="bg-white p-4 sm:p-4.5 rounded-xl border border-gray-200/80 shadow-xs space-y-3">
+                                <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                         Account Tier, Mode & Role
                                     </h3>
                                 </div>
 
-                                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                <div class="grid grid-cols-2 {{ auth()->user()?->role === 'superadmin' ? 'sm:grid-cols-5' : 'sm:grid-cols-4' }} gap-3">
                                     <!-- Account Tier -->
                                     <div>
-                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Account Tier <span class="text-red-500">*</span></label>
+                                        <label class="block text-[11px] font-semibold text-gray-600 mb-1">Account Tier <span class="text-red-500">*</span></label>
                                         <select wire:model="editForm.account_status" 
                                                 required
-                                                class="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs text-gray-800 font-semibold focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-sm transition">
+                                                class="w-full h-[34px] rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-800 font-semibold focus:ring-1 focus:ring-teal-500 focus:border-teal-500 shadow-xs transition">
                                             <option value="free">Free Tier</option>
                                             <option value="core">Core Tier</option>
                                             <option value="advanced">Advanced Tier</option>
-                                            <option value="institutional">Institutional Tier</option>
+                                            <option value="institutional">Institutional</option>
                                         </select>
                                         @error('editForm.account_status')
-                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                                            <p class="text-[11px] text-red-600 mt-0.5">{{ $message }}</p>
                                         @enderror
                                     </div>
 
                                     <!-- Account Mode -->
                                     <div>
-                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Account Mode <span class="text-red-500">*</span></label>
+                                        <label class="block text-[11px] font-semibold text-gray-600 mb-1">Account Mode <span class="text-red-500">*</span></label>
                                         <select wire:model="editForm.status" 
                                                 required
-                                                class="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs text-gray-800 font-semibold focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-sm transition">
+                                                class="w-full h-[34px] rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-800 font-semibold focus:ring-1 focus:ring-teal-500 focus:border-teal-500 shadow-xs transition">
                                             <option value="active">Active</option>
                                             <option value="inactive">Inactive</option>
                                         </select>
                                         @error('editForm.status')
-                                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                                            <p class="text-[11px] text-red-600 mt-0.5">{{ $message }}</p>
                                         @enderror
                                     </div>
 
                                     <!-- Account Level -->
                                     <div>
-                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Account Level</label>
+                                        <label class="block text-[11px] font-semibold text-gray-600 mb-1">Account Level</label>
                                         <select wire:model="editForm.account_level" 
-                                                class="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs text-gray-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-sm transition">
+                                                class="w-full h-[34px] rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-800 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 shadow-xs transition">
                                             <option value="">None / Regular</option>
                                             <option value="emerald">Emerald</option>
                                             <option value="ruby">Ruby</option>
@@ -1811,12 +1766,22 @@
                                         </select>
                                     </div>
 
+                                    <!-- Profile Visibility -->
+                                    <div>
+                                        <label class="block text-[11px] font-semibold text-gray-600 mb-1">Visibility</label>
+                                        <select wire:model="editForm.public_profile"
+                                                class="w-full h-[34px] rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-800 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 shadow-xs transition">
+                                            <option value="false">Private</option>
+                                            <option value="true">Public</option>
+                                        </select>
+                                    </div>
+
                                     @if (auth()->user()?->role === 'superadmin')
-                                        <!-- Superadmin Role -->
+                                        <!-- Account Role -->
                                         <div>
-                                            <label class="block text-xs font-semibold text-gray-700 mb-1">Account Role</label>
+                                            <label class="block text-[11px] font-semibold text-gray-600 mb-1">Account Role</label>
                                             <select wire:model="editForm.role" 
-                                                    class="w-full rounded-xl border border-gray-300 px-3 py-2 text-xs text-gray-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-sm transition">
+                                                    class="w-full h-[34px] rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-800 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 shadow-xs transition">
                                                 <option value="investor">Investor</option>
                                                 <option value="admin">Admin</option>
                                                 <option value="superadmin">Super Admin</option>
@@ -1826,69 +1791,69 @@
                                 </div>
                             </div>
 
-                            <!-- Card: Contact & Financial Information -->
-                            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-gray-200/80 shadow-sm space-y-4">
-                                <div class="border-b border-gray-100 pb-2.5">
-                                    <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
-                                        <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                            <!-- Card 3: Contact & Financial Details (Optimized, tight 4-col grid!) -->
+                            <div class="bg-white p-4 sm:p-4.5 rounded-xl border border-gray-200/80 shadow-xs space-y-3">
+                                <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                                         Contact & Financial Details
                                     </h3>
                                 </div>
 
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                     <div>
-                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Primary Contact</label>
+                                        <label class="block text-[11px] font-semibold text-gray-600 mb-1">Primary Contact</label>
                                         <input type="text" 
                                                wire:model="editForm.primary_contact" 
-                                               placeholder="e.g. Email or Phone"
-                                               class="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-xs text-gray-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-sm transition">
+                                               placeholder="Email / Phone"
+                                               class="w-full h-[34px] rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-800 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 shadow-xs transition">
                                     </div>
 
                                     <div>
-                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Secondary Contact</label>
+                                        <label class="block text-[11px] font-semibold text-gray-600 mb-1">Secondary Contact</label>
                                         <input type="text" 
                                                wire:model="editForm.secondary_contact" 
-                                               placeholder="e.g. Assistant or Alternate"
-                                               class="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-xs text-gray-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-sm transition">
+                                               placeholder="Alternate contact"
+                                               class="w-full h-[34px] rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-800 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 shadow-xs transition">
                                     </div>
 
                                     <div>
-                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Total Invested (USD)</label>
+                                        <label class="block text-[11px] font-semibold text-gray-600 mb-1">Total Invested ($)</label>
                                         <input type="number" 
                                                step="0.01" 
                                                min="0"
                                                wire:model="editForm.total_invested" 
                                                placeholder="0.00"
-                                               class="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-xs text-gray-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-sm transition">
+                                               class="w-full h-[34px] rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-800 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 shadow-xs transition">
                                     </div>
 
                                     <div>
-                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Revenue Generated (USD)</label>
+                                        <label class="block text-[11px] font-semibold text-gray-600 mb-1">Revenue Gen ($)</label>
                                         <input type="number" 
                                                step="0.01" 
                                                min="0"
                                                wire:model="editForm.revenue_generated" 
                                                placeholder="0.00"
-                                               class="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-xs text-gray-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-sm transition">
+                                               class="w-full h-[34px] rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-800 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 shadow-xs transition">
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Card: Referral & Notes -->
-                            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-gray-200/80 shadow-sm space-y-4">
-                                <div class="border-b border-gray-100 pb-2.5">
-                                    <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
-                                        <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                            <!-- Card 4: Referral & Admin Notes (Optimized, sleek!) -->
+                            <div class="bg-white p-4 sm:p-4.5 rounded-xl border border-gray-200/80 shadow-xs space-y-3">
+                                <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
                                         Referral & Admin Notes
                                     </h3>
                                 </div>
 
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div>
-                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Referral Status <span class="text-red-500">*</span></label>
+                                        <label class="block text-[11px] font-semibold text-gray-600 mb-1">Referral Status <span class="text-red-500">*</span></label>
                                         <select wire:model.live="editForm.was_referred" 
                                                 required
-                                                class="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-xs text-gray-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-sm transition">
+                                                class="w-full h-[34px] rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-800 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 shadow-xs transition">
                                             <option value="0">Not Referred</option>
                                             <option value="1">Referred</option>
                                         </select>
@@ -1896,24 +1861,24 @@
 
                                     @if ((int) $editForm['was_referred'] === 1)
                                         <div>
-                                            <label class="block text-xs font-semibold text-gray-700 mb-1">Referred By <span class="text-red-500">*</span></label>
+                                            <label class="block text-[11px] font-semibold text-gray-600 mb-1">Referred By <span class="text-red-500">*</span></label>
                                             <input type="text" 
                                                    wire:model="editForm.referred_by" 
                                                    placeholder="Referrer name or email"
-                                                   class="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-xs text-gray-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-sm transition">
+                                                   class="w-full h-[34px] rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-800 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 shadow-xs transition">
                                             @error('editForm.referred_by')
-                                                <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                                                <p class="text-[11px] text-red-600 mt-0.5">{{ $message }}</p>
                                             @enderror
                                         </div>
                                     @endif
                                 </div>
 
                                 <div>
-                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Internal Notes</label>
+                                    <label class="block text-[11px] font-semibold text-gray-600 mb-1">Internal Notes</label>
                                     <textarea wire:model="editForm.notes" 
                                               rows="2" 
-                                              placeholder="Any notes about this member (visible to admins only)..."
-                                              class="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-xs text-gray-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 shadow-sm transition"></textarea>
+                                              placeholder="Admin notes about this member (internal only)..."
+                                              class="w-full rounded-lg border border-gray-200 bg-white p-2.5 text-xs text-gray-800 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 shadow-xs transition resize-none"></textarea>
                                 </div>
                             </div>
                         </div>
