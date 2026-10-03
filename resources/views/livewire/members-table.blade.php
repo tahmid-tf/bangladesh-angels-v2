@@ -534,16 +534,15 @@
                                             default => 'member-status-select--free',
                                         };
                                     @endphp
-                                    <div class="inline-flex items-center gap-1.5" wire:key="status-cell-{{ $user->id }}-{{ $currentStatus }}">
+                                    <div x-data="{ updating: false }" class="inline-flex items-center gap-1.5" wire:key="status-cell-{{ $user->id }}-{{ $currentStatus }}">
                                         <div class="relative inline-flex items-center">
                                             <!-- Status dot -->
                                             <span class="pointer-events-none absolute left-2.5 w-1.5 h-1.5 rounded-full {{ $dotColor }} shrink-0 z-10"></span>
 
                                             <!-- Interactive Tier Select -->
                                             <select 
-                                                wire:change="updateAccountStatus({{ $user->id }}, $event.target.value)"
-                                                wire:loading.attr="disabled"
-                                                wire:target="updateAccountStatus({{ $user->id }}"
+                                                x-bind:disabled="updating"
+                                                @change="updating = true; $wire.updateAccountStatus({{ $user->id }}, $event.target.value).finally(() => { updating = false })"
                                                 class="member-status-select {{ $statusModifierClass }}"
                                                 title="Change Account Tier">
                                                 <option value="free" @selected($currentStatus === 'free') class="bg-white text-gray-800 font-medium">Free</option>
@@ -561,7 +560,7 @@
                                         </div>
 
                                         <!-- Saving Spinner -->
-                                        <span wire:loading wire:target="updateAccountStatus({{ $user->id }}" class="shrink-0 text-emerald-600">
+                                        <span x-show="updating" x-cloak class="shrink-0 text-emerald-600">
                                             <svg class="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
                                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
