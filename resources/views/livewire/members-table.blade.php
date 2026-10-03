@@ -153,6 +153,7 @@
         close() {
             this.isOpen = false;
             this.isLoading = false;
+            this.userId = null;
             $wire.closeEditModal();
         }
     },
@@ -920,6 +921,7 @@
                                         <button type="button"
                                             wire:click="approveUser({{ $user->id }})"
                                             wire:loading.attr="disabled"
+                                            wire:target="approveUser({{ $user->id }})"
                                             class="member-action-btn member-action-approve"
                                             title="Approve member">
                                             <svg class="member-svg-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -935,7 +937,6 @@
                                         data-user-email="{{ $user->email }}"
                                         data-user-avatar="{{ $user->getProfilePhotoUrl() }}"
                                         @click="editModal.open($el.dataset.userId, $el.dataset.userName, $el.dataset.userEmail, $el.dataset.userAvatar)" 
-                                        wire:loading.attr="disabled"
                                         class="member-action-btn member-action-edit"
                                         title="Edit member details">
                                         <svg class="member-svg-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -948,6 +949,7 @@
                                         <button type="button"
                                             wire:click="removeFromFeatured({{ $user->id }})"
                                             wire:loading.attr="disabled"
+                                            wire:target="removeFromFeatured({{ $user->id }})"
                                             class="member-action-btn member-action-edit text-amber-700"
                                             title="Remove from featured">
                                             <span>Remove</span>

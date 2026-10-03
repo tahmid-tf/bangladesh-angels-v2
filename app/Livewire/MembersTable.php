@@ -682,13 +682,17 @@ class MembersTable extends Component
         $this->showEditModal = true;
     }
 
-    public function closeEditModal(): void
+    public function closeEditModal(bool $skipRender = true): void
     {
         $this->showEditModal = false;
         $this->editingUserId = null;
         $this->cachedEditingUser = null;
         $this->editProfilePhoto = null;
         $this->resetValidation();
+
+        if ($skipRender) {
+            $this->skipRender();
+        }
     }
 
     public function verifyEmailForEditModal(): void
@@ -733,7 +737,7 @@ class MembersTable extends Component
         $userEmail = $user->email;
         $userAvatar = $user->getProfilePhotoUrl();
 
-        $this->closeEditModal();
+        $this->closeEditModal(false);
         $this->dispatch('open-delete-prompt', id: $userId, name: $userName, email: $userEmail, avatar: $userAvatar);
     }
 
@@ -849,7 +853,7 @@ class MembersTable extends Component
         }
 
         $userName = $user->name;
-        $this->closeEditModal();
+        $this->closeEditModal(false);
         $this->updateCounts();
 
         session()->flash('success', "Member '{$userName}' details updated successfully.");
