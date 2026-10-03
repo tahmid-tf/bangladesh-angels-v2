@@ -281,6 +281,27 @@
         background-color: #f3e8ff !important;
         border-color: #d8b4fe !important;
     }
+
+    /* Member Mode Select Dropdown (Active / Inactive) */
+    .member-mode-select--active {
+        background-color: #ecfdf5 !important;
+        color: #065f46 !important;
+        border: 1px solid #a7f3d0 !important;
+    }
+    .member-mode-select--active:hover {
+        background-color: #d1fae5 !important;
+        border-color: #6ee7b7 !important;
+    }
+
+    .member-mode-select--inactive {
+        background-color: #f3f4f6 !important;
+        color: #374151 !important;
+        border: 1px solid #d1d5db !important;
+    }
+    .member-mode-select--inactive:hover {
+        background-color: #e5e7eb !important;
+        border-color: #9ca3af !important;
+    }
 </style>
 @endpush
 

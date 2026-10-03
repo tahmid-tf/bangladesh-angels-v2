@@ -289,6 +289,27 @@
             background-color: #f3e8ff !important;
             border-color: #d8b4fe !important;
         }
+
+        /* Member Mode Select Dropdown (Active / Inactive) */
+        .member-mode-select--active {
+            background-color: #ecfdf5 !important;
+            color: #065f46 !important;
+            border: 1px solid #a7f3d0 !important;
+        }
+        .member-mode-select--active:hover {
+            background-color: #d1fae5 !important;
+            border-color: #6ee7b7 !important;
+        }
+
+        .member-mode-select--inactive {
+            background-color: #f3f4f6 !important;
+            color: #374151 !important;
+            border: 1px solid #d1d5db !important;
+        }
+        .member-mode-select--inactive:hover {
+            background-color: #e5e7eb !important;
+            border-color: #9ca3af !important;
+        }
     </style>
 
     @session('success')
@@ -410,6 +431,7 @@
                             @endif
                         </th>
                         <th class="pl-2 pr-4 md:px-6 py-3.5 whitespace-nowrap">Status</th>
+                        <th class="pl-2 pr-4 md:px-6 py-3.5 whitespace-nowrap">Mode</th>
                         <th class="px-4 md:px-6 py-3.5 whitespace-nowrap">Actions</th>
                     </tr>
                 </thead>
@@ -570,6 +592,50 @@
                                 @endif
                             </td>
 
+                            <!-- Mode Column (Active / Inactive) -->
+                            <td class="pl-2 pr-4 md:px-6 py-4 whitespace-nowrap">
+                                @if($filter === 'pending' || !$user->is_approved)
+                                    <span class="text-xs text-gray-400 font-medium">-</span>
+                                @else
+                                    @php
+                                        $isUserActive = ($user->account_status !== 'free' && $user->account_status !== 'disabled');
+                                        $modeDotColor = $isUserActive ? 'bg-emerald-500' : 'bg-gray-400';
+                                        $modeModifierClass = $isUserActive ? 'member-mode-select--active' : 'member-mode-select--inactive';
+                                    @endphp
+                                    <div x-data="{ updating: false }" class="inline-flex items-center gap-1.5" wire:key="mode-cell-{{ $user->id }}-{{ $isUserActive ? 'active' : 'inactive' }}">
+                                        <div class="relative inline-flex items-center">
+                                            <!-- Status dot -->
+                                            <span class="pointer-events-none absolute left-2.5 w-1.5 h-1.5 rounded-full {{ $modeDotColor }} shrink-0 z-10"></span>
+
+                                            <!-- Interactive Mode Select -->
+                                            <select 
+                                                x-bind:disabled="updating"
+                                                @change="updating = true; $wire.setActiveMode({{ $user->id }}, $event.target.value).finally(() => { updating = false })"
+                                                class="member-status-select member-mode-select {{ $modeModifierClass }}"
+                                                title="Change Member Mode">
+                                                <option value="active" @selected($isUserActive) class="bg-white text-gray-800 font-medium">Active</option>
+                                                <option value="inactive" @selected(!$isUserActive) class="bg-white text-gray-800 font-medium">Inactive</option>
+                                            </select>
+
+                                            <!-- Dropdown Chevron Caret -->
+                                            <span class="pointer-events-none absolute right-2 text-current opacity-60">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </span>
+                                        </div>
+
+                                        <!-- Saving Spinner -->
+                                        <span x-show="updating" x-cloak class="shrink-0 text-emerald-600">
+                                            <svg class="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                        </span>
+                                    </div>
+                                @endif
+                            </td>
+
                             <!-- Actions -->
                             <td class="px-4 md:px-6 py-4 whitespace-nowrap">
                                 <div class="member-actions-row">
@@ -625,14 +691,14 @@
                         </tr>
                         @if($filter === 'featured')
                             <tr class="border-t bg-gray-50/80">
-                                <td colspan="8" class="px-4 md:px-6 py-4">
+                                <td colspan="9" class="px-4 md:px-6 py-4">
                                     <livewire:featured-testimonial-editor :user-id="$user->id" :wire:key="'featured-testimonial-'.$user->id" />
                                 </td>
                             </tr>
                         @endif
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-8 text-gray-500">
+                            <td colspan="9" class="text-center py-8 text-gray-500">
                                 <p class="font-semibold text-gray-700">No members found.</p>
                                 <p class="text-xs text-gray-400 mt-1">No members match your current filter settings.</p>
                             </td>

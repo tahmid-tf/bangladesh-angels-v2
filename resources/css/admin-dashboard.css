@@ -1085,7 +1085,7 @@ a.admin-metric:hover {
     background-color: #eef3f0 !important;
 }
 
-.admin-page:not(.admin-page--dashboard) :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not(.toggle-checkbox):not(.member-status-select) {
+.admin-page:not(.admin-page--dashboard) :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not(.toggle-checkbox):not(.member-status-select):not(.member-mode-select) {
     min-height: 43px;
     border: 1px solid #cfdcd6 !important;
     border-radius: 11px !important;
@@ -1102,7 +1102,7 @@ a.admin-metric:hover {
     resize: vertical;
 }
 
-.admin-page:not(.admin-page--dashboard) :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not(.toggle-checkbox):not(.member-status-select):focus {
+.admin-page:not(.admin-page--dashboard) :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not(.toggle-checkbox):not(.member-status-select):not(.member-mode-select):focus {
     border-color: #2b9b76 !important;
     outline: none !important;
     background-color: white !important;

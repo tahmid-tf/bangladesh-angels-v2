@@ -154,6 +154,48 @@ class MembersTable extends Component
         session()->flash('success', "Member '{$user->name}' tier changed to {$tierName}.");
     }
 
+    public function setActiveMode(int $userId, string $mode): void
+    {
+        if (! auth()->user()?->isAdmin()) {
+            session()->flash('error', 'You do not have permission to perform this action.');
+            return;
+        }
+
+        $mode = strtolower(trim($mode));
+        if (! in_array($mode, ['active', 'inactive'], true)) {
+            session()->flash('error', 'Invalid mode selected.');
+            return;
+        }
+
+        $user = User::find($userId);
+        if (! $user) {
+            session()->flash('error', 'User not found.');
+            return;
+        }
+
+        $isCurrentlyActive = ($user->account_status !== 'free' && $user->account_status !== 'disabled');
+
+        if ($mode === 'active') {
+            if ($isCurrentlyActive) {
+                return;
+            }
+            $user->update([
+                'account_status' => 'core',
+            ]);
+            $this->updateCounts();
+            session()->flash('success', "Member '{$user->name}' mode changed to Active.");
+        } else {
+            if (! $isCurrentlyActive) {
+                return;
+            }
+            $user->update([
+                'account_status' => 'free',
+            ]);
+            $this->updateCounts();
+            session()->flash('success', "Member '{$user->name}' mode changed to Inactive.");
+        }
+    }
+
     public function verifyEmail(int $userId): void
     {
         if (! auth()->user()?->isAdmin()) {
