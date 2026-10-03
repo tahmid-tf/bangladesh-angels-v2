@@ -575,18 +575,26 @@ class MembersTable extends Component
             ->get();
     }
 
+    protected ?User $cachedEditingUser = null;
+
+    protected static ?array $cachedCountries = null;
+
     public function getEditingUserProperty(): ?User
     {
         if (! $this->editingUserId) {
             return null;
         }
 
-        return User::with('emailVerifiedByAdmin')->find($this->editingUserId);
+        if ($this->cachedEditingUser && $this->cachedEditingUser->id === $this->editingUserId) {
+            return $this->cachedEditingUser;
+        }
+
+        return $this->cachedEditingUser = User::with(['emailVerifiedByAdmin', 'media'])->find($this->editingUserId);
     }
 
     public function getCountries(): array
     {
-        return [
+        return self::$cachedCountries ??= [
             'Afghanistan', 'Åland Islands', 'Albania', 'Algeria', 'American Samoa', 'Andorra', 'Angola', 'Anguilla',
             'Antarctica', 'Antigua and Barbuda', 'Argentina', 'Armenia', 'Aruba', 'Australia', 'Austria', 'Azerbaijan',
             'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bermuda',
@@ -635,12 +643,13 @@ class MembersTable extends Component
             return;
         }
 
-        $user = User::find($userId);
+        $user = User::with(['emailVerifiedByAdmin', 'media'])->find($userId);
         if (! $user) {
             session()->flash('error', 'Member not found.');
             return;
         }
 
+        $this->cachedEditingUser = $user;
         $this->resetValidation();
         $this->editProfilePhoto = null;
         $this->editingUserId = $user->id;
@@ -677,6 +686,7 @@ class MembersTable extends Component
     {
         $this->showEditModal = false;
         $this->editingUserId = null;
+        $this->cachedEditingUser = null;
         $this->editProfilePhoto = null;
         $this->resetValidation();
     }
@@ -696,6 +706,8 @@ class MembersTable extends Component
             'email_verified_at' => now(),
             'email_verified_by' => auth()->id(),
         ]);
+
+        $this->cachedEditingUser = null;
 
         session()->flash('success', "Email verified successfully for {$user->name}.");
     }

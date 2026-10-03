@@ -126,11 +126,55 @@
                 this.isProcessing = false;
             }
         }
+    },
+    editModal: {
+        isOpen: @js((bool) $showEditModal),
+        isLoading: false,
+        userId: @js($editingUserId),
+        userName: '',
+        userEmail: '',
+        userAvatar: '',
+        async open(id, name = '', email = '', avatar = '') {
+            if (this.isLoading && this.userId == id) return;
+            this.userId = id;
+            this.userName = name;
+            this.userEmail = email;
+            this.userAvatar = avatar;
+            this.isOpen = true;
+            this.isLoading = true;
+            try {
+                await $wire.openEditModal(parseInt(id));
+            } catch (e) {
+                console.error('Error opening edit modal', e);
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        close() {
+            this.isOpen = false;
+            this.isLoading = false;
+            $wire.closeEditModal();
+        }
+    },
+    init() {
+        this.$watch('$wire.showEditModal', (val) => {
+            this.editModal.isOpen = Boolean(val);
+            if (!val) {
+                this.editModal.isLoading = false;
+            }
+        });
+        this.$watch('$wire.editingUserId', (val) => {
+            if (val) {
+                this.editModal.userId = val;
+            }
+        });
     }
 }"
 @member-deleted.window="confirmingDelete = false; isDeleting = false; deleteUserId = null;"
 @bulk-action-completed.window="bulkModal.isOpen = false; bulkModal.isProcessing = false;"
-@member-mode-updated.window="modeModal.isOpen = false; modeModal.isProcessing = false;">
+@member-mode-updated.window="modeModal.isOpen = false; modeModal.isProcessing = false;"
+@member-edit-saved.window="editModal.isOpen = false; editModal.isLoading = false;"
+@member-edit-closed.window="editModal.isOpen = false; editModal.isLoading = false;">
     <style>
         [x-cloak] {
             display: none !important;
@@ -886,7 +930,11 @@
                                     @endif
 
                                     <button type="button"
-                                        wire:click="openEditModal({{ $user->id }})" 
+                                        data-user-id="{{ $user->id }}"
+                                        data-user-name="{{ $user->name }}"
+                                        data-user-email="{{ $user->email }}"
+                                        data-user-avatar="{{ $user->getProfilePhotoUrl() }}"
+                                        @click="editModal.open($el.dataset.userId, $el.dataset.userName, $el.dataset.userEmail, $el.dataset.userAvatar)" 
                                         wire:loading.attr="disabled"
                                         class="member-action-btn member-action-edit"
                                         title="Edit member details">
@@ -1374,7 +1422,7 @@
     </div>
 
     <!-- Livewire Reactive Member Edit Modal -->
-    <div x-show="$wire.showEditModal"
+    <div x-show="editModal.isOpen"
          x-cloak
          wire:ignore.self
          class="fixed inset-0 overflow-y-auto px-4 py-6 sm:px-6 z-[100] flex items-center justify-center"
@@ -1382,30 +1430,30 @@
          role="dialog"
          aria-modal="true"
          aria-labelledby="modal-edit-title"
-         @keydown.escape.window="$wire.closeEditModal()">
+         @keydown.escape.window="editModal.close()">
         
         <!-- Backdrop with Blur -->
-        <div x-show="$wire.showEditModal"
-             x-transition:enter="ease-out duration-300"
+        <div x-show="editModal.isOpen"
+             x-transition:enter="ease-out duration-200"
              x-transition:enter-start="opacity-0"
              x-transition:enter-end="opacity-100"
-             x-transition:leave="ease-in duration-200"
+             x-transition:leave="ease-in duration-150"
              x-transition:leave-start="opacity-100"
              x-transition:leave-end="opacity-0"
              class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
-             @click="$wire.closeEditModal()">
+             @click="editModal.close()">
         </div>
 
         <!-- Modal Dialog Card -->
-        <div x-show="$wire.showEditModal"
-             x-transition:enter="ease-out duration-300"
-             x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+        <div x-show="editModal.isOpen"
+             x-transition:enter="ease-out duration-200"
+             x-transition:enter-start="opacity-0 translate-y-3 sm:translate-y-0 sm:scale-95"
              x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-             x-transition:leave="ease-in duration-200"
+             x-transition:leave="ease-in duration-150"
              x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-             x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-              class="relative bg-white rounded-2xl overflow-hidden shadow-2xl border border-gray-100 max-w-5xl w-full z-10 my-4 mx-auto transform transition-all text-left flex flex-col max-h-[92vh]"
-              @click.stop>
+             x-transition:leave-end="opacity-0 translate-y-3 sm:translate-y-0 sm:scale-95"
+             class="relative bg-white rounded-2xl overflow-hidden shadow-2xl border border-gray-100 max-w-5xl w-full z-10 my-4 mx-auto transform transition-all text-left flex flex-col max-h-[92vh]"
+             @click.stop>
             
             <!-- Top Gradient Accent Bar -->
             <div class="h-1.5 w-full bg-gradient-to-r from-[#0a5554] via-teal-600 to-emerald-500"></div>
@@ -1423,11 +1471,10 @@
                             <h2 class="text-base sm:text-lg font-bold text-gray-900 leading-tight" id="modal-edit-title">
                                 Edit Member Profile
                             </h2>
-                            @if($editingUserId)
-                                <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-600 border border-gray-200">
-                                    ID #{{ $editingUserId }}
-                                </span>
-                            @endif
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-600 border border-gray-200" 
+                                  x-show="editModal.userId || {{ $editingUserId ? 'true' : 'false' }}"
+                                  x-text="'ID #' + (editModal.userId || '{{ $editingUserId }}')">
+                            </span>
                         </div>
                         <p class="text-xs text-gray-500 mt-0.5">
                             Update member credentials, tier, mode, and details with live instant updates
@@ -1449,7 +1496,7 @@
                     @endif
 
                     <button type="button" 
-                            wire:click="closeEditModal" 
+                            @click="editModal.close()" 
                             class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-1.5 transition-colors focus:outline-none cursor-pointer"
                             title="Close dialog">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1459,8 +1506,25 @@
                 </div>
             </div>
 
-            <!-- Scrollable Form Body -->
-            <div class="overflow-y-auto p-5 sm:p-6 space-y-5 flex-1 bg-slate-50/50">
+            <!-- Scrollable Form Body with Fast Loading State -->
+            <div class="relative overflow-y-auto p-5 sm:p-6 space-y-5 flex-1 bg-slate-50/50">
+                <!-- Instant Loading Overlay while Livewire loads fields -->
+                <div x-show="editModal.isLoading"
+                     x-transition:enter="ease-out duration-150"
+                     x-transition:enter-start="opacity-0"
+                     x-transition:enter-end="opacity-100"
+                     x-transition:leave="ease-in duration-100"
+                     x-transition:leave-start="opacity-100"
+                     x-transition:leave-end="opacity-0"
+                     class="absolute inset-0 bg-white/75 backdrop-blur-xs z-30 flex flex-col items-center justify-center gap-2.5">
+                    <div class="w-10 h-10 rounded-xl bg-teal-50 border border-teal-100 text-[#0a5554] flex items-center justify-center shadow-xs">
+                        <svg class="animate-spin w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                    <span class="text-xs font-semibold text-gray-700">Loading member details...</span>
+                </div>
                 <!-- Validation Errors Alert -->
                 @if ($errors->any())
                     <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-xl shadow-xs">
@@ -1505,7 +1569,7 @@
                                              alt="{{ $this->editingUser->name }}" 
                                              class="w-24 h-24 rounded-full object-cover border-2 border-gray-200 ring-4 ring-gray-50 shadow-sm mx-auto">
                                     @else
-                                        <img src="{{ asset('default_pfp.jpg') }}" 
+                                        <img :src="editModal.userAvatar || '{{ asset('default_pfp.jpg') }}'" 
                                              alt="Default Avatar" 
                                              class="w-24 h-24 rounded-full object-cover border-2 border-gray-200 ring-4 ring-gray-50 shadow-sm mx-auto">
                                     @endif
@@ -1536,6 +1600,11 @@
                                                 {{ $this->editingUser->status ?? 'Active' }}
                                             </span>
                                         </div>
+                                    </div>
+                                @else
+                                    <div x-show="editModal.userName">
+                                        <h4 class="text-sm font-bold text-gray-900 leading-snug" x-text="editModal.userName"></h4>
+                                        <p class="text-xs text-gray-500 truncate mt-0.5" x-text="editModal.userEmail"></p>
                                     </div>
                                 @endif
 
@@ -1935,7 +2004,7 @@
             <!-- Sticky Footer Action Buttons -->
             <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between shrink-0">
                 <button type="button" 
-                        wire:click="closeEditModal"
+                        @click="editModal.close()"
                         class="px-4 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-700 text-xs font-bold hover:bg-gray-100 hover:text-gray-900 transition-colors shadow-xs focus:outline-none cursor-pointer">
                     Cancel
                 </button>
