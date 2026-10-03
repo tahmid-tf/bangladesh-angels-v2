@@ -75,7 +75,7 @@ class MembersTable extends Component
     public function updatedSelectAll($value): void
     {
         if ($value) {
-            $this->selectedUserIds = $this->getCurrentPagePendingIds();
+            $this->selectedUserIds = $this->getCurrentPageIds();
         } else {
             $this->selectedUserIds = [];
         }
@@ -83,31 +83,43 @@ class MembersTable extends Component
 
     public function updatedSelectedUserIds(): void
     {
-        $pageIds = $this->getCurrentPagePendingIds();
+        $pageIds = $this->getCurrentPageIds();
         $this->selectAll = ! empty($pageIds) && count(array_intersect($pageIds, array_map('strval', $this->selectedUserIds))) === count($pageIds);
     }
 
-    public function selectAllPending(): void
+    public function selectAllFiltered(): void
     {
-        $query = User::query()->where('is_approved', false);
-
-        if (! empty($this->search)) {
-            $term = "%{$this->search}%";
-            $query->where(function ($query) use ($term) {
-                $query->where('name', 'like', $term)
-                    ->orWhere('email', 'like', $term)
-                    ->orWhere('designation', 'like', $term)
-                    ->orWhere('company_name', 'like', $term);
-            });
-        }
-
+        $query = $this->getBaseQuery();
         $this->selectedUserIds = $query->pluck('id')->map(fn ($id) => (string) $id)->all();
         $this->selectAll = true;
     }
 
-    protected function getCurrentPagePendingIds(): array
+    public function selectAllPending(): void
     {
-        $query = User::query()->where('is_approved', false);
+        $this->selectAllFiltered();
+    }
+
+    protected function getBaseQuery()
+    {
+        $query = User::query();
+
+        switch ($this->filter) {
+            case 'active':
+                $query->where('account_status', '!=', 'free')->where('is_approved', true);
+                break;
+            case 'inactive':
+                $query->where('account_status', 'free')->where('is_approved', true);
+                break;
+            case 'pending':
+                $query->where('is_approved', false);
+                break;
+            case 'featured':
+                $query->where('featured', true)->where('is_approved', true);
+                break;
+            default:
+                $query->where('is_approved', true);
+                break;
+        }
 
         if (! empty($this->search)) {
             $term = "%{$this->search}%";
@@ -119,12 +131,28 @@ class MembersTable extends Component
             });
         }
 
+        return $query;
+    }
+
+    protected function getCurrentPageIds(): array
+    {
+        $query = $this->getBaseQuery();
         $page = $this->getPage();
-        return $query->orderBy('created_at', 'desc')
+
+        $orderedQuery = ($this->filter === 'pending')
+            ? $query->orderBy('created_at', 'desc')
+            : $query->orderBy('name', 'asc');
+
+        return $orderedQuery
             ->forPage($page, 10)
             ->pluck('id')
             ->map(fn ($id) => (string) $id)
             ->all();
+    }
+
+    protected function getCurrentPagePendingIds(): array
+    {
+        return $this->getCurrentPageIds();
     }
 
     public function searchUsers()
@@ -453,37 +481,7 @@ class MembersTable extends Component
 
     public function render()
     {
-        $query = User::query();
-
-        switch ($this->filter) {
-            case 'active':
-                $query->where('account_status', '!=', 'free')->where('is_approved', true);
-                break;
-            case 'inactive':
-                $query->where('account_status', 'free')->where('is_approved', true);
-                break;
-            case 'pending':
-                $query->where('is_approved', false);
-                break;
-            case 'featured':
-                $query->where('featured', true)->where('is_approved', true);
-                break;
-            default:
-                $query->where('is_approved', true);
-                break;
-        }
-
-        if (! empty($this->search)) {
-            $term = "%{$this->search}%";
-            $query->where(function ($query) use ($term) {
-                $query->where('name', 'like', $term)
-                    ->orWhere('email', 'like', $term)
-                    ->orWhere('designation', 'like', $term)
-                    ->orWhere('company_name', 'like', $term);
-            });
-        }
-
-        $query->with('emailVerifiedByAdmin');
+        $query = $this->getBaseQuery()->with('emailVerifiedByAdmin');
 
         $paginatedUsers = ($this->filter === 'pending')
             ? (clone $query)->orderBy('created_at', 'desc')->paginate(10)

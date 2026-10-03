@@ -508,8 +508,22 @@
         @endif
     </div>
 
-    <!-- Bulk Action Toolbar (Pending Approval) -->
-    @if($filter === 'pending' && count($selectedUserIds) > 0)
+    <!-- Bulk Action Toolbar -->
+    @if($filter !== 'featured' && count($selectedUserIds) > 0)
+        @php
+            $currentTabCount = match($filter) {
+                'active' => $activeCount,
+                'inactive' => $inactiveCount,
+                'pending' => $pendingCount,
+                default => $allCount,
+            };
+            $currentTabLabel = match($filter) {
+                'active' => 'active members',
+                'inactive' => 'inactive members',
+                'pending' => 'pending members',
+                default => 'members',
+            };
+        @endphp
         <div class="sticky top-4 z-30 mt-4 p-3.5 sm:p-4 bg-slate-900/95 backdrop-blur-md text-white rounded-xl shadow-xl border border-slate-700/80 flex flex-wrap items-center justify-between gap-3 transition-all animate-fade-in">
             <div class="flex items-center gap-3 flex-wrap">
                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold text-xs border border-emerald-500/30">
@@ -517,11 +531,11 @@
                     <span>{{ count($selectedUserIds) }} {{ count($selectedUserIds) === 1 ? 'member' : 'members' }} selected</span>
                 </span>
 
-                @if(count($selectedUserIds) < $pendingCount)
+                @if(count($selectedUserIds) < $currentTabCount)
                     <button type="button"
-                        wire:click="selectAllPending"
+                        wire:click="selectAllFiltered"
                         class="text-xs text-emerald-400 hover:text-emerald-300 font-semibold underline underline-offset-2 cursor-pointer transition">
-                        Select all {{ $pendingCount }} pending members
+                        Select all {{ $currentTabCount }} {{ $currentTabLabel }}
                     </button>
                 @endif
 
@@ -533,15 +547,17 @@
             </div>
 
             <div class="flex items-center gap-2 flex-wrap">
-                <!-- Bulk Approve Button -->
-                <button type="button"
-                    @click="bulkModal.open('approve', {{ count($selectedUserIds) }})"
-                    class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-xs font-bold transition shadow-sm cursor-pointer">
-                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>Approve ({{ count($selectedUserIds) }})</span>
-                </button>
+                <!-- Bulk Approve Button (Pending Tab Only) -->
+                @if($filter === 'pending')
+                    <button type="button"
+                        @click="bulkModal.open('approve', {{ count($selectedUserIds) }})"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-xs font-bold transition shadow-sm cursor-pointer">
+                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>Approve ({{ count($selectedUserIds) }})</span>
+                    </button>
+                @endif
 
                 <!-- Bulk Email Verify Button -->
                 <button type="button"
@@ -572,7 +588,7 @@
             <table class="w-full text-left text-sm members-custom-table">
                 <thead>
                     <tr class="bg-gray-100 text-xs font-semibold text-gray-600 uppercase border-b border-gray-200">
-                        @if($filter === 'pending')
+                        @if($filter !== 'featured')
                             <th class="col-checkbox text-center whitespace-nowrap">
                                 <input type="checkbox"
                                     wire:model.live="selectAll"
@@ -580,7 +596,7 @@
                                     title="Select all on this page">
                             </th>
                         @endif
-                        <th class="{{ $filter === 'pending' ? 'pl-3' : 'col-member-first pl-6' }} pr-3 py-3.5 whitespace-nowrap">Member</th>
+                        <th class="{{ $filter !== 'featured' ? 'pl-3' : 'col-member-first pl-6' }} pr-3 py-3.5 whitespace-nowrap">Member</th>
                         <th class="hidden md:table-cell px-3 md:px-4 py-3.5 whitespace-nowrap">Designation</th>
                         <th class="hidden lg:table-cell px-3 md:px-4 py-3.5 whitespace-nowrap">Organization</th>
                         <th class="hidden md:table-cell px-3 md:px-4 py-3.5 whitespace-nowrap">Phone</th>
@@ -602,7 +618,7 @@
                 <tbody class="divide-y divide-gray-100">
                     @forelse ($users as $user)
                         <tr class="hover:bg-gray-50/80 transition-colors {{ in_array((string)$user->id, array_map('strval', $selectedUserIds), true) ? 'bg-emerald-50/50' : '' }}" wire:key="member-row-{{ $user->id }}">
-                            @if($filter === 'pending')
+                            @if($filter !== 'featured')
                                 <td class="col-checkbox text-center whitespace-nowrap">
                                     <input type="checkbox"
                                         value="{{ $user->id }}"
@@ -611,7 +627,7 @@
                                 </td>
                             @endif
                             <!-- Member Profile -->
-                            <td class="{{ $filter === 'pending' ? 'pl-3' : 'col-member-first pl-6' }} pr-3 py-4">
+                            <td class="{{ $filter !== 'featured' ? 'pl-3' : 'col-member-first pl-6' }} pr-3 py-4">
                                 <div class="flex items-center gap-3">
                                     <img src="{{ $user->getProfilePhotoUrl() }}" alt="{{ $user->name }}" class="w-9 h-9 rounded-full object-cover shrink-0 ring-1 ring-gray-200">
                                     <div class="min-w-[130px]">
@@ -868,7 +884,7 @@
                         @endif
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center py-8 text-gray-500">
+                            <td colspan="{{ in_array($filter, ['all', 'active', 'inactive']) ? 10 : 9 }}" class="text-center py-8 text-gray-500">
                                 <p class="font-semibold text-gray-700">No members found.</p>
                                 <p class="text-xs text-gray-400 mt-1">No members match your current filter settings.</p>
                             </td>
