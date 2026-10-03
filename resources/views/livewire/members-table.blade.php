@@ -145,9 +145,13 @@
             this.isLoading = true;
             try {
                 await $wire.openEditModal(parseInt(id));
-                // If user closed the modal while the request was in-flight, discard!
-                if (!this.isOpen || this.requestId !== currentReq) {
+                // If user closed the modal while the request was in-flight, notify server and discard
+                if (!this.isOpen) {
                     $wire.closeEditModal();
+                    return;
+                }
+                // If a newer request was triggered while in-flight, let the newer one proceed
+                if (this.requestId !== currentReq) {
                     return;
                 }
             } catch (e) {
@@ -159,6 +163,7 @@
             }
         },
         close() {
+            if (!this.isOpen && !this.isLoading) return;
             // Invalidate any in-flight requests immediately
             this.requestId++;
             this.isOpen = false;
@@ -174,14 +179,26 @@
                     this.userAvatar = '';
                 }
             }, 250);
+        },
+        closeLocally() {
+            this.requestId++;
+            this.isOpen = false;
+            this.isLoading = false;
+            setTimeout(() => {
+                if (!this.isOpen) {
+                    this.userId = null;
+                    this.userName = '';
+                    this.userEmail = '';
+                    this.userAvatar = '';
+                }
+            }, 250);
         }
     },
     init() {
-        // Only react when the server closes the modal (e.g. after successful save or delete)
-        // Never allow a delayed server payload to re-open a modal that the user closed!
-        this.$watch('$wire.showEditModal', (val) => {
-            if (!val) {
-                this.editModal.close();
+        // Safe server-state sync: only close locally if modal was open on client and transitioned to false
+        this.$watch('$wire.showEditModal', (val, oldVal) => {
+            if (oldVal === true && val === false && this.editModal.isOpen) {
+                this.editModal.closeLocally();
             }
         });
         this.$watch('$wire.editingUserId', (val) => {
@@ -194,8 +211,9 @@
 @member-deleted.window="confirmingDelete = false; isDeleting = false; deleteUserId = null;"
 @bulk-action-completed.window="bulkModal.isOpen = false; bulkModal.isProcessing = false;"
 @member-mode-updated.window="modeModal.isOpen = false; modeModal.isProcessing = false;"
-@member-edit-saved.window="editModal.isOpen = false; editModal.isLoading = false;"
-@member-edit-closed.window="editModal.isOpen = false; editModal.isLoading = false;">
+@member-edit-saved.window="editModal.closeLocally()"
+@member-edit-closed.window="editModal.closeLocally()"
+@open-edit-member.window="editModal.open($event.detail.id, $event.detail.name, $event.detail.email, $event.detail.avatar)">
     <style>
         [x-cloak] {
             display: none !important;
@@ -555,19 +573,19 @@
     <div class="p-4 md:p-6 bg-white shadow mt-4">
         <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div class="flex flex-wrap gap-2">
-                <a wire:click="setFilter('all')" class="px-4 py-2 cursor-pointer transition-colors {{ $filter === 'all' ? 'bg-green-100 text-green-700 font-semibold rounded-lg' : 'text-gray-500 hover:text-green-700' }}">
+                <a wire:key="filter-tab-all" wire:click="setFilter('all')" class="px-4 py-2 cursor-pointer transition-colors {{ $filter === 'all' ? 'bg-green-100 text-green-700 font-semibold rounded-lg' : 'text-gray-500 hover:text-green-700' }}">
                     All <span class="ml-1 px-2 py-0.5 rounded-full text-xs {{ $filter === 'all' ? 'bg-green-200 text-green-800 font-bold' : 'bg-gray-200 text-gray-700' }}">{{ $allCount }}</span>
                 </a>
-                <a wire:click="setFilter('active')" class="px-4 py-2 cursor-pointer transition-colors {{ $filter === 'active' ? 'bg-green-100 text-green-700 font-semibold rounded-lg' : 'text-gray-500 hover:text-green-700' }}">
+                <a wire:key="filter-tab-active" wire:click="setFilter('active')" class="px-4 py-2 cursor-pointer transition-colors {{ $filter === 'active' ? 'bg-green-100 text-green-700 font-semibold rounded-lg' : 'text-gray-500 hover:text-green-700' }}">
                     Active <span class="ml-1 px-2 py-0.5 rounded-full text-xs {{ $filter === 'active' ? 'bg-green-200 text-green-800 font-bold' : 'bg-gray-200 text-gray-700' }}">{{ $activeCount }}</span>
                 </a>
-                <a wire:click="setFilter('inactive')" class="px-4 py-2 cursor-pointer transition-colors {{ $filter === 'inactive' ? 'bg-green-100 text-green-700 font-semibold rounded-lg' : 'text-gray-500 hover:text-green-700' }}">
+                <a wire:key="filter-tab-inactive" wire:click="setFilter('inactive')" class="px-4 py-2 cursor-pointer transition-colors {{ $filter === 'inactive' ? 'bg-green-100 text-green-700 font-semibold rounded-lg' : 'text-gray-500 hover:text-green-700' }}">
                     Inactive <span class="ml-1 px-2 py-0.5 rounded-full text-xs {{ $filter === 'inactive' ? 'bg-green-200 text-green-800 font-bold' : 'bg-gray-200 text-gray-700' }}">{{ $inactiveCount }}</span>
                 </a>
-                <a wire:click="setFilter('pending')" class="px-4 py-2 cursor-pointer transition-colors {{ $filter === 'pending' ? 'bg-green-100 text-green-700 font-semibold rounded-lg' : 'text-gray-500 hover:text-green-700' }}">
+                <a wire:key="filter-tab-pending" wire:click="setFilter('pending')" class="px-4 py-2 cursor-pointer transition-colors {{ $filter === 'pending' ? 'bg-green-100 text-green-700 font-semibold rounded-lg' : 'text-gray-500 hover:text-green-700' }}">
                     Pending Approval <span class="ml-1 px-2 py-0.5 rounded-full text-xs {{ $filter === 'pending' ? 'bg-green-200 text-green-800 font-bold' : 'bg-gray-200 text-gray-700' }}">{{ $pendingCount }}</span>
                 </a>
-                <a wire:click="setFilter('featured')" class="px-4 py-2 cursor-pointer transition-colors {{ $filter === 'featured' ? 'bg-green-100 text-green-700 font-semibold rounded-lg' : 'text-gray-500 hover:text-green-700' }}">
+                <a wire:key="filter-tab-featured" wire:click="setFilter('featured')" class="px-4 py-2 cursor-pointer transition-colors {{ $filter === 'featured' ? 'bg-green-100 text-green-700 font-semibold rounded-lg' : 'text-gray-500 hover:text-green-700' }}">
                     Featured Members <span class="ml-1 px-2 py-0.5 rounded-full text-xs {{ $filter === 'featured' ? 'bg-green-200 text-green-800 font-bold' : 'bg-gray-200 text-gray-700' }}">{{ $featuredCount }}</span>
                 </a>
             </div>
@@ -939,6 +957,7 @@
                                 <div class="member-actions-row">
                                     @if($filter === 'pending' && !$user->is_approved)
                                         <button type="button"
+                                            wire:key="approve-member-btn-{{ $user->id }}"
                                             wire:click="approveUser({{ $user->id }})"
                                             wire:loading.attr="disabled"
                                             wire:target="approveUser({{ $user->id }})"
@@ -952,11 +971,8 @@
                                     @endif
 
                                     <button type="button"
-                                        data-user-id="{{ $user->id }}"
-                                        data-user-name="{{ $user->name }}"
-                                        data-user-email="{{ $user->email }}"
-                                        data-user-avatar="{{ $user->getProfilePhotoUrl() }}"
-                                        @click="editModal.open($el.dataset.userId, $el.dataset.userName, $el.dataset.userEmail, $el.dataset.userAvatar)" 
+                                        wire:key="edit-member-btn-{{ $user->id }}"
+                                        @click="editModal.open({{ $user->id }}, @js($user->name), @js($user->email), @js($user->getProfilePhotoUrl()))" 
                                         class="member-action-btn member-action-edit"
                                         title="Edit member details">
                                         <svg class="member-svg-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -967,6 +983,7 @@
 
                                     @if($filter === 'featured')
                                         <button type="button"
+                                            wire:key="remove-featured-btn-{{ $user->id }}"
                                             wire:click="removeFromFeatured({{ $user->id }})"
                                             wire:loading.attr="disabled"
                                             wire:target="removeFromFeatured({{ $user->id }})"
@@ -978,11 +995,8 @@
 
                                     @if($user->id != auth()->id())
                                         <button type="button"
-                                            data-user-id="{{ $user->id }}"
-                                            data-user-name="{{ $user->name }}"
-                                            data-user-email="{{ $user->email }}"
-                                            data-user-avatar="{{ $user->getProfilePhotoUrl() }}"
-                                            @click="openDelete($el.dataset.userId, $el.dataset.userName, $el.dataset.userEmail, $el.dataset.userAvatar)"
+                                            wire:key="delete-member-btn-{{ $user->id }}"
+                                            @click="openDelete({{ $user->id }}, @js($user->name), @js($user->email), @js($user->getProfilePhotoUrl()))"
                                             class="member-action-btn member-action-delete"
                                             title="Delete member">
                                             <svg class="member-svg-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -217,6 +217,9 @@ class MembersTable extends Component
         $this->filter = in_array($filter, ['all', 'active', 'inactive', 'pending', 'featured'], true) ? $filter : 'all';
         $this->clearSelection();
         $this->resetPage();
+        if ($this->showEditModal) {
+            $this->closeEditModal(false);
+        }
     }
 
     public function approveUser($userId)
@@ -690,6 +693,8 @@ class MembersTable extends Component
         $this->editProfilePhoto = null;
         $this->resetValidation();
 
+        $this->dispatch('member-edit-closed');
+
         if ($skipRender) {
             $this->skipRender();
         }
@@ -856,6 +861,7 @@ class MembersTable extends Component
         $this->closeEditModal(false);
         $this->updateCounts();
 
+        $this->dispatch('member-edit-saved');
         session()->flash('success', "Member '{$userName}' details updated successfully.");
     }
 }

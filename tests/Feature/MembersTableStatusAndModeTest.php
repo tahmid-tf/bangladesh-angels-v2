@@ -244,4 +244,48 @@ class MembersTableStatusAndModeTest extends TestCase
         $this->assertNotNull($unverifiedMember->email_verified_at);
         $this->assertEquals($admin->id, $unverifiedMember->email_verified_by);
     }
+
+    public function test_switching_between_filter_tabs_keeps_edit_modal_functional(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'is_approved' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        $activeMember = User::factory()->create([
+            'name' => 'Active Test Member',
+            'status' => 'active',
+            'is_approved' => true,
+        ]);
+
+        $inactiveMember = User::factory()->create([
+            'name' => 'Inactive Test Member',
+            'status' => 'inactive',
+            'is_approved' => true,
+        ]);
+
+        $this->actingAs($admin);
+
+        // Start on active tab -> transition to inactive tab -> edit modal must open for inactive member
+        Livewire::withQueryParams(['filter' => 'active'])
+            ->test(MembersTable::class)
+            ->assertSet('filter', 'active')
+            ->call('setFilter', 'inactive')
+            ->assertSet('filter', 'inactive')
+            ->assertSet('showEditModal', false)
+            ->call('openEditModal', $inactiveMember->id)
+            ->assertSet('showEditModal', true)
+            ->assertSet('editingUserId', $inactiveMember->id)
+            ->assertSet('editForm.full_name', 'Inactive Test Member')
+            ->call('closeEditModal')
+            ->assertDispatched('member-edit-closed')
+            ->assertSet('showEditModal', false)
+            ->call('setFilter', 'active')
+            ->assertSet('filter', 'active')
+            ->call('openEditModal', $activeMember->id)
+            ->assertSet('showEditModal', true)
+            ->assertSet('editingUserId', $activeMember->id)
+            ->assertSet('editForm.full_name', 'Active Test Member');
+    }
 }
