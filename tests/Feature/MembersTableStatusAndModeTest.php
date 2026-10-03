@@ -140,4 +140,108 @@ class MembersTableStatusAndModeTest extends TestCase
         $this->get(route('admin.pending.members'))
             ->assertRedirect(route('admin.members', ['filter' => 'pending']));
     }
+
+    public function test_admin_can_open_livewire_edit_modal_and_update_member_reactively(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'is_approved' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        $member = User::factory()->create([
+            'name' => 'Original Name',
+            'email' => 'original@example.com',
+            'phone' => '+8801700000000',
+            'company_name' => 'Old Company',
+            'designation' => 'Old Role',
+            'account_status' => 'free',
+            'status' => 'active',
+            'is_approved' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        $this->actingAs($admin);
+
+        // Test Livewire component
+        $component = Livewire::test(MembersTable::class)
+            ->call('openEditModal', $member->id)
+            ->assertSet('showEditModal', true)
+            ->assertSet('editingUserId', $member->id)
+            ->assertSet('editForm.full_name', 'Original Name')
+            ->assertSet('editForm.email', 'original@example.com')
+            // Update form properties
+            ->set('editForm.full_name', 'Updated Super Investor')
+            ->set('editForm.organization', 'Acme Ventures')
+            ->set('editForm.designation', 'Managing Partner')
+            ->set('editForm.account_status', 'advanced')
+            ->set('editForm.status', 'inactive')
+            ->set('editForm.phone', '+8801999999999')
+            ->call('saveMemberEdit')
+            ->assertHasNoErrors()
+            ->assertSet('showEditModal', false)
+            ->assertSee('Updated Super Investor')
+            ->assertSee('Acme Ventures')
+            ->assertSee('Managing Partner');
+
+        $member->refresh();
+        $this->assertEquals('Updated Super Investor', $member->name);
+        $this->assertEquals('Acme Ventures', $member->company_name);
+        $this->assertEquals('Managing Partner', $member->designation);
+        $this->assertEquals('advanced', $member->account_status);
+        $this->assertEquals('inactive', $member->status);
+        $this->assertEquals('+8801999999999', $member->phone);
+    }
+
+    public function test_member_edit_route_redirects_to_livewire_table_with_edit_param(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'is_approved' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        $member = User::factory()->create([
+            'name' => 'Direct Edit Member',
+            'is_approved' => true,
+        ]);
+
+        $this->actingAs($admin);
+
+        $this->get(route('member.edit', $member->id))
+            ->assertRedirect(route('admin.members', ['edit' => $member->id]));
+
+        // Visiting with query param automatically opens edit modal
+        Livewire::withQueryParams(['edit' => (string) $member->id])
+            ->test(MembersTable::class)
+            ->assertSet('showEditModal', true)
+            ->assertSet('editingUserId', $member->id)
+            ->assertSet('editForm.full_name', 'Direct Edit Member');
+    }
+
+    public function test_admin_can_verify_email_directly_from_edit_modal(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'is_approved' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        $unverifiedMember = User::factory()->create([
+            'name' => 'Unverified Person',
+            'is_approved' => true,
+            'email_verified_at' => null,
+            'email_verified_by' => null,
+        ]);
+
+        $this->actingAs($admin);
+
+        Livewire::test(MembersTable::class)
+            ->call('openEditModal', $unverifiedMember->id)
+            ->call('verifyEmailForEditModal');
+
+        $unverifiedMember->refresh();
+        $this->assertNotNull($unverifiedMember->email_verified_at);
+        $this->assertEquals($admin->id, $unverifiedMember->email_verified_by);
+    }
 }

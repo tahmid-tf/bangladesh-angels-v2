@@ -828,9 +828,7 @@ class AdminController extends Controller
 
     public function editMember(User $user)
     {
-        $user->load('emailVerifiedByAdmin');
-
-        return view('admin.members.edit', compact('user'));
+        return redirect()->route('admin.members', ['edit' => $user->id]);
     }
 
     public function removeMember(User $user)
