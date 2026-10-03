@@ -1,4 +1,139 @@
 <div>
+    <style>
+        /* Scoped overrides to prevent admin-dashboard.css aggressive table rules from breaking member actions & badges */
+        .members-custom-table td a.member-action-btn:has(svg),
+        .members-custom-table td button.member-action-btn:has(svg) {
+            display: inline-flex !important;
+            width: auto !important;
+            height: auto !important;
+            background: inherit !important;
+            border-radius: 7px !important;
+            transform: none !important;
+        }
+
+        .members-custom-table td a.member-action-btn:has(svg) svg,
+        .members-custom-table td button.member-action-btn:has(svg) svg {
+            width: 13px !important;
+            height: 13px !important;
+            fill: none !important;
+            stroke: currentColor !important;
+        }
+
+        /* Member Action Row (strictly single-line flex) */
+        .member-actions-row {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+            flex-wrap: nowrap !important;
+            white-space: nowrap !important;
+        }
+
+        .member-action-btn {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 4px !important;
+            padding: 5px 11px !important;
+            border-radius: 7px !important;
+            font-size: 0.75rem !important; /* 12px */
+            font-weight: 700 !important;
+            min-height: 29px !important;
+            line-height: 1 !important;
+            text-decoration: none !important;
+            white-space: nowrap !important;
+            transition: all 150ms ease !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+            cursor: pointer !important;
+        }
+
+        .member-action-btn:hover {
+            transform: translateY(-1px) !important;
+            text-decoration: none !important;
+        }
+
+        /* Approve Button (brand teal, not oversized) */
+        .members-custom-table :is(a, button).member-action-approve {
+            min-height: 29px !important;
+            border-radius: 7px !important;
+            background: #0a5554 !important;
+            border: 1px solid #084646 !important;
+            color: #ffffff !important;
+            box-shadow: 0 1px 2px rgba(10, 85, 84, 0.2) !important;
+            font-weight: 700 !important;
+        }
+
+        .members-custom-table :is(a, button).member-action-approve:hover {
+            background: #073f3e !important;
+            border-color: #052928 !important;
+            color: #ffffff !important;
+            transform: translateY(-1px) !important;
+        }
+
+        /* Edit Button (clean neutral gray) */
+        .members-custom-table a.member-action-edit {
+            color: #374151 !important;
+            background: #ffffff !important;
+            border: 1px solid #d1d5db !important;
+        }
+
+        .members-custom-table a.member-action-edit:hover {
+            background: #f3f4f6 !important;
+            border-color: #9ca3af !important;
+            color: #111827 !important;
+        }
+
+        /* Delete Button (crisp danger red, never green) */
+        .members-custom-table a.member-action-delete {
+            color: #dc2626 !important;
+            background: #ffffff !important;
+            border: 1px solid #fecaca !important;
+        }
+
+        .members-custom-table a.member-action-delete:hover {
+            background: #fef2f2 !important;
+            border-color: #f87171 !important;
+            color: #b91c1c !important;
+        }
+
+        /* Status Pills (single-line horizontal badge with dot) */
+        .member-status-pill {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+            padding: 4px 10px !important;
+            border-radius: 9999px !important;
+            font-size: 0.72rem !important; /* ~11.5px */
+            font-weight: 700 !important;
+            line-height: 1.25 !important;
+            white-space: nowrap !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+        }
+
+        .member-status-pill--pending {
+            background: #fef3c7 !important;
+            color: #92400e !important;
+            border: 1px solid #fcd34d !important;
+        }
+
+        .member-status-pill--active {
+            background: #ecfdf5 !important;
+            color: #065f46 !important;
+            border: 1px solid #a7f3d0 !important;
+        }
+
+        .member-status-pill--free {
+            background: #f3f4f6 !important;
+            color: #4b5563 !important;
+            border: 1px solid #e5e7eb !important;
+        }
+
+        .member-status-pill--inactive {
+            background: #fef2f2 !important;
+            color: #991b1b !important;
+            border: 1px solid #fecaca !important;
+        }
+    </style>
+
     @session('success')
         <div class="mx-4 md:mx-6 mt-4 p-3 rounded-lg bg-green-100 border border-green-200 text-green-800 text-sm">{{ $value }}</div>
     @endsession
@@ -10,20 +145,20 @@
     <div class="p-4 md:p-6 bg-white shadow mt-4">
         <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div class="flex flex-wrap gap-2">
-                <a wire:click="setFilter('all')" class="px-4 py-2 cursor-pointer {{ $filter === 'all' ? 'bg-green-100 text-green-700 font-semibold rounded-lg' : 'text-gray-500 hover:text-green-700' }}">
-                    All <span class="ml-1 px-2 py-0.5 rounded-full text-xs {{ $filter === 'all' ? 'bg-green-200 text-green-800' : 'bg-gray-200 text-gray-700' }}">{{ $allCount }}</span>
+                <a wire:click="setFilter('all')" class="px-4 py-2 cursor-pointer transition-colors {{ $filter === 'all' ? 'bg-green-100 text-green-700 font-semibold rounded-lg' : 'text-gray-500 hover:text-green-700' }}">
+                    All <span class="ml-1 px-2 py-0.5 rounded-full text-xs {{ $filter === 'all' ? 'bg-green-200 text-green-800 font-bold' : 'bg-gray-200 text-gray-700' }}">{{ $allCount }}</span>
                 </a>
-                <a wire:click="setFilter('active')" class="px-4 py-2 cursor-pointer {{ $filter === 'active' ? 'bg-green-100 text-green-700 font-semibold rounded-lg' : 'text-gray-500 hover:text-green-700' }}">
-                    Active <span class="ml-1 px-2 py-0.5 rounded-full text-xs {{ $filter === 'active' ? 'bg-green-200 text-green-800' : 'bg-gray-200 text-gray-700' }}">{{ $activeCount }}</span>
+                <a wire:click="setFilter('active')" class="px-4 py-2 cursor-pointer transition-colors {{ $filter === 'active' ? 'bg-green-100 text-green-700 font-semibold rounded-lg' : 'text-gray-500 hover:text-green-700' }}">
+                    Active <span class="ml-1 px-2 py-0.5 rounded-full text-xs {{ $filter === 'active' ? 'bg-green-200 text-green-800 font-bold' : 'bg-gray-200 text-gray-700' }}">{{ $activeCount }}</span>
                 </a>
-                <a wire:click="setFilter('inactive')" class="px-4 py-2 cursor-pointer {{ $filter === 'inactive' ? 'bg-green-100 text-green-700 font-semibold rounded-lg' : 'text-gray-500 hover:text-green-700' }}">
-                    Inactive <span class="ml-1 px-2 py-0.5 rounded-full text-xs {{ $filter === 'inactive' ? 'bg-green-200 text-green-800' : 'bg-gray-200 text-gray-700' }}">{{ $inactiveCount }}</span>
+                <a wire:click="setFilter('inactive')" class="px-4 py-2 cursor-pointer transition-colors {{ $filter === 'inactive' ? 'bg-green-100 text-green-700 font-semibold rounded-lg' : 'text-gray-500 hover:text-green-700' }}">
+                    Inactive <span class="ml-1 px-2 py-0.5 rounded-full text-xs {{ $filter === 'inactive' ? 'bg-green-200 text-green-800 font-bold' : 'bg-gray-200 text-gray-700' }}">{{ $inactiveCount }}</span>
                 </a>
-                <a wire:click="setFilter('pending')" class="px-4 py-2 cursor-pointer {{ $filter === 'pending' ? 'bg-green-100 text-green-700 font-semibold rounded-lg' : 'text-gray-500 hover:text-green-700' }}">
-                    Pending Approval <span class="ml-1 px-2 py-0.5 rounded-full text-xs {{ $filter === 'pending' ? 'bg-green-200 text-green-800' : 'bg-gray-200 text-gray-700' }}">{{ $pendingCount }}</span>
+                <a wire:click="setFilter('pending')" class="px-4 py-2 cursor-pointer transition-colors {{ $filter === 'pending' ? 'bg-green-100 text-green-700 font-semibold rounded-lg' : 'text-gray-500 hover:text-green-700' }}">
+                    Pending Approval <span class="ml-1 px-2 py-0.5 rounded-full text-xs {{ $filter === 'pending' ? 'bg-green-200 text-green-800 font-bold' : 'bg-gray-200 text-gray-700' }}">{{ $pendingCount }}</span>
                 </a>
-                <a wire:click="setFilter('featured')" class="px-4 py-2 cursor-pointer {{ $filter === 'featured' ? 'bg-green-100 text-green-700 font-semibold rounded-lg' : 'text-gray-500 hover:text-green-700' }}">
-                    Featured Members <span class="ml-1 px-2 py-0.5 rounded-full text-xs {{ $filter === 'featured' ? 'bg-green-200 text-green-800' : 'bg-gray-200 text-gray-700' }}">{{ $featuredCount }}</span>
+                <a wire:click="setFilter('featured')" class="px-4 py-2 cursor-pointer transition-colors {{ $filter === 'featured' ? 'bg-green-100 text-green-700 font-semibold rounded-lg' : 'text-gray-500 hover:text-green-700' }}">
+                    Featured Members <span class="ml-1 px-2 py-0.5 rounded-full text-xs {{ $filter === 'featured' ? 'bg-green-200 text-green-800 font-bold' : 'bg-gray-200 text-gray-700' }}">{{ $featuredCount }}</span>
                 </a>
             </div>
 
@@ -38,11 +173,11 @@
                     wire:model.defer="search"
                     wire:keydown.enter="searchUsers"
                     placeholder="Search members..."
-                    class="border-gray-300 rounded-lg shadow-sm px-4 py-2 md:w-64 focus:ring-green-500 focus:border-green-500">
+                    class="border-gray-300 rounded-lg shadow-sm px-4 py-2 md:w-64 focus:ring-green-500 focus:border-green-500 text-sm">
             
                 <!-- Search Button -->
                 <button wire:click="searchUsers"
-                    class="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 focus:ring focus:ring-green-300 transition duration-200">
+                    class="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 focus:ring focus:ring-green-300 transition duration-200 text-sm">
                     Search
                 </button>
             </div>
@@ -86,40 +221,41 @@
     <!-- Members Table -->
     <div class="p-4 md:p-6 bg-white shadow mt-4 overflow-x-auto">
         <div class="min-w-[320px] md:w-full">
-            <table class="w-full border-collapse text-left text-sm">
+            <table class="w-full border-collapse text-left text-sm members-custom-table">
                 <thead>
-                    <tr class="bg-gray-100">
-                        <th class="pl-4 pr-2 md:px-6 py-4 font-medium text-gray-600">Member</th>
-                        <th class="hidden md:table-cell px-6 py-4 font-medium text-gray-600">Designation</th>
-                        <th class="hidden lg:table-cell px-6 py-4 font-medium text-gray-600">Organization</th>
-                        <th class="hidden md:table-cell px-6 py-4 font-medium text-gray-600">Phone</th>
-                        <th class="hidden lg:table-cell px-6 py-4 font-medium text-gray-600 whitespace-nowrap">Email verified</th>
-                        <th class="hidden md:table-cell px-6 py-4 font-medium text-gray-600">
+                    <tr class="bg-gray-100 text-xs font-semibold text-gray-600 uppercase border-b border-gray-200">
+                        <th class="pl-4 pr-2 md:px-6 py-3.5 whitespace-nowrap">Member</th>
+                        <th class="hidden md:table-cell px-6 py-3.5 whitespace-nowrap">Designation</th>
+                        <th class="hidden lg:table-cell px-6 py-3.5 whitespace-nowrap">Organization</th>
+                        <th class="hidden md:table-cell px-6 py-3.5 whitespace-nowrap">Phone</th>
+                        <th class="hidden lg:table-cell px-6 py-3.5 whitespace-nowrap">Email verified</th>
+                        <th class="hidden md:table-cell px-6 py-3.5 whitespace-nowrap">
                             @if($filter === 'pending')
                                 Registered
                             @else
                                 Last Renewed
                             @endif
                         </th>
-                        <th class="pl-2 pr-4 md:px-6 py-4 font-medium text-gray-600">Status</th>
-                        <th class="px-4 md:px-6 py-4 font-medium text-gray-600">Actions</th>
+                        <th class="pl-2 pr-4 md:px-6 py-3.5 whitespace-nowrap">Status</th>
+                        <th class="px-4 md:px-6 py-3.5 whitespace-nowrap">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="divide-y divide-gray-100">
                     @forelse ($users as $user)
-                        <tr class="border-t hover:bg-gray-50">
+                        <tr class="hover:bg-gray-50/80 transition-colors" wire:key="member-row-{{ $user->id }}">
+                            <!-- Member Profile -->
                             <td class="pl-4 pr-2 md:px-6 py-4">
-                                <div class="flex items-center gap-2 md:gap-4">
-                                    <img src="{{ $user->getProfilePhotoUrl() }}" alt="Profile" class="w-8 h-8 md:w-10 md:h-10 rounded-full">
-                                    <div class="min-w-[120px]">
-                                        <p class="font-medium inline-flex items-center gap-2 flex-wrap">
+                                <div class="flex items-center gap-3">
+                                    <img src="{{ $user->getProfilePhotoUrl() }}" alt="{{ $user->name }}" class="w-9 h-9 rounded-full object-cover shrink-0 ring-1 ring-gray-200">
+                                    <div class="min-w-[130px]">
+                                        <p class="font-bold text-gray-900 text-xs inline-flex items-center gap-1.5 flex-wrap">
                                             {{ $user->name }}
                                             @if($user->id === auth()->id())
-                                                <span class="text-xs font-normal px-2 py-0.5 rounded-full bg-gray-200 text-gray-700">You</span>
+                                                <span class="text-[10px] font-normal px-1.5 py-0.2 rounded-full bg-gray-100 text-gray-600 border border-gray-200">You</span>
                                             @endif
                                         </p>
-                                        <p class="text-xs text-gray-500">{{ $user->email }}</p>
-                                        <p class="text-xs text-gray-500 mt-1">
+                                        <p class="text-xs text-gray-500 truncate mt-0.5">{{ $user->email }}</p>
+                                        <p class="text-[11px] text-gray-400 mt-0.5">
                                             @if($filter === 'pending')
                                                 Location: {{ $user->primary_country ?? '-' }}
                                             @else
@@ -129,47 +265,66 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="hidden md:table-cell px-6 py-4">{{ $user->designation ?? '-' }}</td>
-                            <td class="hidden lg:table-cell px-6 py-4">{{ $user->company_name ?? '-' }}</td>
-                            <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap">{{ $user->phone ?? '-' }}</td>
-                            <td class="hidden lg:table-cell px-6 py-4 text-xs text-gray-600 max-w-[14rem]">
+
+                            <!-- Designation -->
+                            <td class="hidden md:table-cell px-6 py-4 text-xs text-gray-700">
+                                {{ $user->designation ?? '-' }}
+                            </td>
+
+                            <!-- Organization -->
+                            <td class="hidden lg:table-cell px-6 py-4 text-xs font-medium text-gray-800">
+                                {{ $user->company_name ?? '-' }}
+                            </td>
+
+                            <!-- Phone -->
+                            <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap text-xs text-gray-600">
+                                {{ $user->phone ?? '-' }}
+                            </td>
+
+                            <!-- Email verified -->
+                            <td class="hidden lg:table-cell px-6 py-4 text-xs text-gray-600 whitespace-nowrap">
                                 @if($user->hasVerifiedEmail())
-                                    <span class="inline-flex items-center text-green-700 font-medium">
-                                        <svg class="w-3.5 h-3.5 mr-1 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                                        Yes
-                                    </span>
-                                    <div class="mt-1 text-gray-500 leading-snug">
-                                        {{ $user->email_verified_at->format('M j, Y g:i A') }}
+                                    <div class="inline-flex items-center gap-1 text-emerald-700 font-bold text-xs">
+                                        <svg class="w-3.5 h-3.5 shrink-0 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <span>Yes</span>
+                                    </div>
+                                    <div class="mt-0.5 text-gray-500 leading-tight">
+                                        <p class="whitespace-nowrap text-[11px] font-medium text-gray-700">{{ $user->email_verified_at->format('M j, Y · g:i A') }}</p>
                                         @if($user->email_verified_by && $user->emailVerifiedByAdmin)
-                                            <span class="block">by {{ $user->emailVerifiedByAdmin->name }}</span>
+                                            <p class="text-[11px] text-gray-400 truncate">by {{ $user->emailVerifiedByAdmin->name }}</p>
                                         @else
-                                            <span class="block text-gray-400">Self-service link</span>
+                                            <p class="text-[11px] text-gray-400">Self-service link</p>
                                         @endif
                                     </div>
                                 @else
-                                    <span class="text-amber-800 font-medium">Unverified</span>
-                                    <div class="mt-2">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 whitespace-nowrap border border-amber-200">Unverified</span>
+                                    <div class="mt-1.5">
                                         <button type="button"
                                             wire:click="verifyEmail({{ $user->id }})"
                                             wire:loading.attr="disabled"
-                                            class="text-xs bg-teal-600 hover:bg-teal-700 text-white py-1 px-2 rounded">
+                                            class="member-action-btn member-action-approve"
+                                            style="min-height: 24px !important; padding: 2px 8px !important; font-size: 11px !important;">
                                             Verify
                                         </button>
                                     </div>
                                 @endif
                             </td>
+
+                            <!-- Registered / Last Renewed -->
                             <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap">
                                 @if($filter === 'pending')
-                                    <div class="flex flex-col gap-1">
-                                        <span class="text-xs text-gray-500">
-                                            {{ $user->created_at->format('M d, Y') }}
+                                    <div class="flex flex-col">
+                                        <span class="text-xs font-semibold text-gray-800">
+                                            {{ $user->created_at->format('M j, Y') }}
                                         </span>
-                                        <span class="text-xs text-gray-500">
+                                        <span class="text-[11px] text-gray-400 mt-0.5">
                                             {{ $user->created_at->diffForHumans() }}
                                         </span>
                                         @if($user->approved_at)
-                                        <span class="text-xs text-green-600 mt-1 inline-flex items-center">
-                                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <span class="text-[11px] text-emerald-600 mt-1 inline-flex items-center font-medium">
+                                            <svg class="w-3 h-3 mr-1 shrink-0" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                                             </svg>
                                             Approved {{ $user->approved_at->diffForHumans() }}
@@ -177,48 +332,84 @@
                                         @endif
                                     </div>
                                 @else
-                                    {{ $user->last_renewed_at ? \Carbon\Carbon::parse($user->last_renewed_at)->format('jS F, Y') : '-' }}
+                                    <span class="text-xs text-gray-700">
+                                        {{ $user->last_renewed_at ? \Carbon\Carbon::parse($user->last_renewed_at)->format('M j, Y') : '-' }}
+                                    </span>
                                 @endif
                             </td>
-                            <td class="pl-2 pr-4 md:px-6 py-4">
-                                @if($filter === 'pending')
-                                <span class="px-2 py-1 rounded-full text-xs md:text-sm bg-yellow-100 text-yellow-800">
-                                    Pending Approval
-                                </span>
+
+                            <!-- Status Badge -->
+                            <td class="pl-2 pr-4 md:px-6 py-4 whitespace-nowrap">
+                                @if($filter === 'pending' || !$user->is_approved)
+                                    <span class="member-status-pill member-status-pill--pending">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 ring-2 ring-amber-200 animate-pulse shrink-0"></span>
+                                        <span>Pending Approval</span>
+                                    </span>
                                 @else
-                                <span class="px-2 py-1 rounded-full text-xs md:text-sm 
-                                    {{ $user->account_status !== 'free' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                    {{ ucfirst($user->account_status) }}
-                                </span>
+                                    @if($user->account_status === 'free')
+                                        <span class="member-status-pill member-status-pill--free">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0"></span>
+                                            <span>Free</span>
+                                        </span>
+                                    @elseif($user->account_status !== 'inactive')
+                                        <span class="member-status-pill member-status-pill--active">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                                            <span>{{ ucfirst($user->account_status) }}</span>
+                                        </span>
+                                    @else
+                                        <span class="member-status-pill member-status-pill--inactive">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></span>
+                                            <span>Inactive</span>
+                                        </span>
+                                    @endif
                                 @endif
                             </td>
+
+                            <!-- Actions -->
                             <td class="px-4 md:px-6 py-4 whitespace-nowrap">
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <a href="{{ route('member.edit', $user->id) }}" class="text-gray-600 hover:text-green-700 p-1">
-                                        Edit
+                                <div class="member-actions-row">
+                                    @if($filter === 'pending' && !$user->is_approved)
+                                        <button type="button"
+                                            wire:click="approveUser({{ $user->id }})"
+                                            wire:loading.attr="disabled"
+                                            class="member-action-btn member-action-approve"
+                                            title="Approve member">
+                                            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            <span>Approve</span>
+                                        </button>
+                                    @endif
+
+                                    <a href="{{ route('member.edit', $user->id) }}" 
+                                       class="member-action-btn member-action-edit"
+                                       title="Edit member details">
+                                        <svg class="w-3.5 h-3.5 shrink-0 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                        <span>Edit</span>
                                     </a>
+
                                     @if($filter === 'featured')
                                         <button type="button"
                                             wire:click="removeFromFeatured({{ $user->id }})"
                                             wire:loading.attr="disabled"
-                                            class="text-amber-700 hover:text-amber-900 py-1 px-1 text-sm">
-                                            Remove from featured
+                                            class="member-action-btn member-action-edit text-amber-700"
+                                            title="Remove from featured">
+                                            <span>Remove</span>
                                         </button>
                                     @endif
-                                    @if($filter === 'pending' && !$user->is_approved)
-                                    <button 
-                                        wire:click="approveUser({{ $user->id }})"
-                                        wire:loading.attr="disabled"
-                                        class="bg-green-600 hover:bg-green-700 text-white py-1 px-3 rounded text-xs">
-                                        Approve
-                                    </button>
-                                    @endif
+
                                     @if($user->id != auth()->id())
-                                    <a href="{{ route('member.remove', $user->id) }}" 
-                                       onclick="return confirm('Are you sure you want to delete this member? This action cannot be undone.')"
-                                       class="text-red-600 hover:text-red-800 p-1">
-                                        Delete
-                                    </a>
+                                        <a href="{{ route('member.remove', $user->id) }}" 
+                                           onclick="return confirm('Are you sure you want to delete this member? This action cannot be undone.')"
+                                           class="member-action-btn member-action-delete"
+                                           title="Delete member">
+                                            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                            <span>Delete</span>
+                                        </a>
                                     @endif
                                 </div>
                             </td>
@@ -232,7 +423,10 @@
                         @endif
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-4">No members found.</td>
+                            <td colspan="8" class="text-center py-8 text-gray-500">
+                                <p class="font-semibold text-gray-700">No members found.</p>
+                                <p class="text-xs text-gray-400 mt-1">No members match your current filter settings.</p>
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>
