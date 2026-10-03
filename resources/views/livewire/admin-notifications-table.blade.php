@@ -89,7 +89,7 @@
 
                 <!-- Filter by Deal -->
                 <select wire:model.live="dealId" 
-                        class="text-xs border-gray-300 rounded-lg shadow-sm focus:border-[#0a5554] focus:ring-[#0a5554] py-1.5 px-2.5 bg-white text-gray-700 cursor-pointer">
+                        class="text-xs border-gray-300 rounded-lg shadow-sm focus:border-[#0a5554] focus:ring-[#0a5554] py-2 px-3 bg-white text-gray-700 cursor-pointer min-h-[38px]">
                     <option value="">All Companies / Deals</option>
                     @foreach ($dealsList as $d)
                         <option value="{{ $d->id }}">{{ $d->title }}</option>
@@ -98,7 +98,7 @@
 
                 <!-- Filter by Activity Type -->
                 <select wire:model.live="type" 
-                        class="text-xs border-gray-300 rounded-lg shadow-sm focus:border-[#0a5554] focus:ring-[#0a5554] py-1.5 px-2.5 bg-white text-gray-700 cursor-pointer">
+                        class="text-xs border-gray-300 rounded-lg shadow-sm focus:border-[#0a5554] focus:ring-[#0a5554] py-2 px-3 bg-white text-gray-700 cursor-pointer min-h-[38px]">
                     <option value="">All Activity Types</option>
                     <option value="interested">Expressed Interest</option>
                     <option value="invest">Invest Intent</option>
@@ -106,12 +106,12 @@
                 </select>
 
                 <!-- Search Input -->
-                <div class="relative min-w-[200px]">
+                <div class="relative min-w-[210px]">
                     <input type="text" 
                            wire:model.live.debounce.300ms="search" 
                            wire:keydown.enter="applySearch"
                            placeholder="Search member or company..." 
-                           class="w-full text-xs pl-8 pr-3 py-1.5 border border-gray-300 rounded-lg shadow-sm focus:border-[#0a5554] focus:ring-[#0a5554]">
+                           class="w-full text-xs pl-8 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:border-[#0a5554] focus:ring-[#0a5554] min-h-[38px]">
                     <svg class="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
@@ -119,7 +119,7 @@
 
                 <!-- Per Page selector -->
                 <select wire:model.live="perPage" 
-                        class="text-xs border-gray-300 rounded-lg shadow-sm focus:border-[#0a5554] focus:ring-[#0a5554] py-1.5 px-2 bg-white text-gray-700 cursor-pointer" 
+                        class="text-xs border-gray-300 rounded-lg shadow-sm focus:border-[#0a5554] focus:ring-[#0a5554] py-2 px-3 bg-white text-gray-700 cursor-pointer min-h-[38px]" 
                         title="Items per page">
                     <option value="10">10 / page</option>
                     <option value="20">20 / page</option>
@@ -127,16 +127,21 @@
                     <option value="100">100 / page</option>
                 </select>
 
+                <!-- Filter Button -->
                 <button type="button" 
                         wire:click="applySearch" 
-                        class="px-3 py-1.5 bg-gray-800 hover:bg-gray-900 text-white text-xs font-semibold rounded-lg transition-colors shadow-xs">
-                    Filter
+                        class="notif-filter-btn"
+                        title="Apply filters">
+                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                    </svg>
+                    <span>Filter</span>
                 </button>
 
                 @if ($dealId !== '' || $type !== '' || $search !== '' || $status !== 'all' || $perPage !== 20)
                     <button type="button" 
                             wire:click="resetFilters" 
-                            class="px-2.5 py-1.5 text-xs text-gray-500 hover:text-gray-800 underline font-medium">
+                            class="px-2.5 py-2 text-xs text-gray-500 hover:text-gray-800 underline font-semibold transition-colors">
                         Reset
                     </button>
                 @endif

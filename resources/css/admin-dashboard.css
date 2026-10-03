@@ -1085,7 +1085,7 @@ a.admin-metric:hover {
     background-color: #eef3f0 !important;
 }
 
-.admin-page:not(.admin-page--dashboard) :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not(.toggle-checkbox) {
+.admin-page:not(.admin-page--dashboard) :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not(.toggle-checkbox):not(.member-status-select):not(.member-mode-select) {
     min-height: 43px;
     border: 1px solid #cfdcd6 !important;
     border-radius: 11px !important;
@@ -1102,7 +1102,7 @@ a.admin-metric:hover {
     resize: vertical;
 }
 
-.admin-page:not(.admin-page--dashboard) :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not(.toggle-checkbox):focus {
+.admin-page:not(.admin-page--dashboard) :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not(.toggle-checkbox):not(.member-status-select):not(.member-mode-select):focus {
     border-color: #2b9b76 !important;
     outline: none !important;
     background-color: white !important;
@@ -1271,7 +1271,7 @@ a.admin-metric:hover {
     object-fit: cover;
 }
 
-.admin-page:not(.admin-page--dashboard) table td a:has(svg) {
+.admin-page:not(.admin-page--dashboard) table td a:has(svg):not(.member-action-btn) {
     display: inline-grid;
     width: 34px;
     height: 34px;
@@ -1282,25 +1282,25 @@ a.admin-metric:hover {
     transition: transform 150ms ease, border-color 150ms ease, background-color 150ms ease;
 }
 
-.admin-page:not(.admin-page--dashboard) table td a:has(svg):hover {
+.admin-page:not(.admin-page--dashboard) table td a:has(svg):not(.member-action-btn):hover {
     transform: translateY(-1px);
     border-color: #b9d7ca;
     background: #eaf5ef;
 }
 
-.admin-page:not(.admin-page--dashboard) table td a:has(svg) svg {
+.admin-page:not(.admin-page--dashboard) table td a:has(svg):not(.member-action-btn) svg {
     width: 18px !important;
     height: 18px !important;
     fill: var(--admin-green) !important;
 }
 
-.admin-page:not(.admin-page--dashboard) table :is(a, button):not([class*="bg-"]):not(.admin-investment-action) {
+.admin-page:not(.admin-page--dashboard) table :is(a, button):not([class*="bg-"]):not(.admin-investment-action):not(.member-action-btn) {
     color: var(--admin-green);
     font-weight: 700;
     text-decoration: none;
 }
 
-.admin-page:not(.admin-page--dashboard) table :is(a, button):not([class*="bg-"]):not(.admin-investment-action):hover {
+.admin-page:not(.admin-page--dashboard) table :is(a, button):not([class*="bg-"]):not(.admin-investment-action):not(.member-action-btn):hover {
     color: var(--admin-green-deep);
     text-decoration: underline;
     text-underline-offset: 3px;
