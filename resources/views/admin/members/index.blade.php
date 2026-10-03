@@ -80,4 +80,130 @@
 
 <livewire:members-table />
 
+@push('head_styles')
+<style>
+    /* Scoped overrides for members custom table action buttons & badges */
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn,
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn:has(svg),
+    .members-custom-table td :is(a, button).member-action-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 5px !important;
+        width: auto !important;
+        min-width: 0 !important;
+        height: auto !important;
+        min-height: 29px !important;
+        padding: 5px 12px !important;
+        border-radius: 7px !important;
+        font-size: 0.75rem !important; /* 12px */
+        font-weight: 700 !important;
+        line-height: 1 !important;
+        place-items: unset !important;
+        transform: none !important;
+        text-decoration: none !important;
+        white-space: nowrap !important;
+        cursor: pointer !important;
+        transition: all 150ms ease !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+    }
+
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn:hover,
+    .members-custom-table td :is(a, button).member-action-btn:hover {
+        transform: translateY(-1px) !important;
+        text-decoration: none !important;
+    }
+
+    /* SVG Icons inside member action buttons: strictly transparent fill and currentColor stroke */
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn svg,
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn:has(svg) svg,
+    .members-custom-table td :is(a, button).member-action-btn svg,
+    svg.member-svg-icon {
+        width: 13px !important;
+        height: 13px !important;
+        min-width: 13px !important;
+        min-height: 13px !important;
+        fill: none !important;
+        stroke: currentColor !important;
+        display: inline-block !important;
+        vertical-align: middle !important;
+        transform: none !important;
+    }
+
+    /* Approve Button */
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-approve,
+    .members-custom-table :is(a, button).member-action-approve {
+        background: #0a5554 !important;
+        background-color: #0a5554 !important;
+        border: 1px solid #084646 !important;
+        color: #ffffff !important;
+        box-shadow: 0 1px 2px rgba(10, 85, 84, 0.25) !important;
+        font-weight: 700 !important;
+    }
+
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-approve:hover,
+    .members-custom-table :is(a, button).member-action-approve:hover {
+        background: #073f3e !important;
+        background-color: #073f3e !important;
+        border-color: #052928 !important;
+        color: #ffffff !important;
+        transform: translateY(-1px) !important;
+    }
+
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-approve svg,
+    .members-custom-table :is(a, button).member-action-approve svg {
+        fill: none !important;
+        stroke: #ffffff !important;
+    }
+
+    /* Edit Button */
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-edit,
+    .members-custom-table a.member-action-edit {
+        color: #374151 !important;
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        border: 1px solid #d1d5db !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+    }
+
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-edit:hover,
+    .members-custom-table a.member-action-edit:hover {
+        background: #f3f4f6 !important;
+        background-color: #f3f4f6 !important;
+        border-color: #9ca3af !important;
+        color: #111827 !important;
+    }
+
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-edit svg,
+    .members-custom-table a.member-action-edit svg {
+        fill: none !important;
+        stroke: #4b5563 !important;
+    }
+
+    /* Delete Button */
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-delete,
+    .members-custom-table a.member-action-delete {
+        color: #dc2626 !important;
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        border: 1px solid #fecaca !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+    }
+
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-delete:hover,
+    .members-custom-table a.member-action-delete:hover {
+        background: #fef2f2 !important;
+        background-color: #fef2f2 !important;
+        border-color: #f87171 !important;
+        color: #b91c1c !important;
+    }
+
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-delete svg,
+    .members-custom-table a.member-action-delete svg {
+        fill: none !important;
+        stroke: #dc2626 !important;
+    }
+</style>
+@endpush
+
 @endsection

@@ -1271,7 +1271,7 @@ a.admin-metric:hover {
     object-fit: cover;
 }
 
-.admin-page:not(.admin-page--dashboard) table td a:has(svg) {
+.admin-page:not(.admin-page--dashboard) table td a:has(svg):not(.member-action-btn) {
     display: inline-grid;
     width: 34px;
     height: 34px;
@@ -1282,25 +1282,25 @@ a.admin-metric:hover {
     transition: transform 150ms ease, border-color 150ms ease, background-color 150ms ease;
 }
 
-.admin-page:not(.admin-page--dashboard) table td a:has(svg):hover {
+.admin-page:not(.admin-page--dashboard) table td a:has(svg):not(.member-action-btn):hover {
     transform: translateY(-1px);
     border-color: #b9d7ca;
     background: #eaf5ef;
 }
 
-.admin-page:not(.admin-page--dashboard) table td a:has(svg) svg {
+.admin-page:not(.admin-page--dashboard) table td a:has(svg):not(.member-action-btn) svg {
     width: 18px !important;
     height: 18px !important;
     fill: var(--admin-green) !important;
 }
 
-.admin-page:not(.admin-page--dashboard) table :is(a, button):not([class*="bg-"]):not(.admin-investment-action) {
+.admin-page:not(.admin-page--dashboard) table :is(a, button):not([class*="bg-"]):not(.admin-investment-action):not(.member-action-btn) {
     color: var(--admin-green);
     font-weight: 700;
     text-decoration: none;
 }
 
-.admin-page:not(.admin-page--dashboard) table :is(a, button):not([class*="bg-"]):not(.admin-investment-action):hover {
+.admin-page:not(.admin-page--dashboard) table :is(a, button):not([class*="bg-"]):not(.admin-investment-action):not(.member-action-btn):hover {
     color: var(--admin-green-deep);
     text-decoration: underline;
     text-underline-offset: 3px;

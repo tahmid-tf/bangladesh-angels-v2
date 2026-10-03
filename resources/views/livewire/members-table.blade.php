@@ -1,22 +1,51 @@
 <div>
     <style>
         /* Scoped overrides to prevent admin-dashboard.css aggressive table rules from breaking member actions & badges */
-        .members-custom-table td a.member-action-btn:has(svg),
-        .members-custom-table td button.member-action-btn:has(svg) {
+        .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn,
+        .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn:has(svg),
+        .members-custom-table td :is(a, button).member-action-btn {
             display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 5px !important;
             width: auto !important;
+            min-width: 0 !important;
             height: auto !important;
-            background: inherit !important;
+            min-height: 29px !important;
+            padding: 5px 12px !important;
             border-radius: 7px !important;
+            font-size: 0.75rem !important; /* 12px */
+            font-weight: 700 !important;
+            line-height: 1 !important;
+            place-items: unset !important;
             transform: none !important;
+            text-decoration: none !important;
+            white-space: nowrap !important;
+            cursor: pointer !important;
+            transition: all 150ms ease !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
         }
 
-        .members-custom-table td a.member-action-btn:has(svg) svg,
-        .members-custom-table td button.member-action-btn:has(svg) svg {
+        .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn:hover,
+        .members-custom-table td :is(a, button).member-action-btn:hover {
+            transform: translateY(-1px) !important;
+            text-decoration: none !important;
+        }
+
+        /* SVG Icons inside member action buttons: strictly transparent fill and currentColor stroke */
+        .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn svg,
+        .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn:has(svg) svg,
+        .members-custom-table td :is(a, button).member-action-btn svg,
+        svg.member-svg-icon {
             width: 13px !important;
             height: 13px !important;
+            min-width: 13px !important;
+            min-height: 13px !important;
             fill: none !important;
             stroke: currentColor !important;
+            display: inline-block !important;
+            vertical-align: middle !important;
+            transform: none !important;
         }
 
         /* Member Action Row (strictly single-line flex) */
@@ -28,71 +57,78 @@
             white-space: nowrap !important;
         }
 
-        .member-action-btn {
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            gap: 4px !important;
-            padding: 5px 11px !important;
-            border-radius: 7px !important;
-            font-size: 0.75rem !important; /* 12px */
-            font-weight: 700 !important;
-            min-height: 29px !important;
-            line-height: 1 !important;
-            text-decoration: none !important;
-            white-space: nowrap !important;
-            transition: all 150ms ease !important;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
-            cursor: pointer !important;
-        }
-
-        .member-action-btn:hover {
-            transform: translateY(-1px) !important;
-            text-decoration: none !important;
-        }
-
-        /* Approve Button (brand teal, not oversized) */
+        /* Approve Button (solid brand teal background with crisp white text & white checkmark) */
+        .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-approve,
         .members-custom-table :is(a, button).member-action-approve {
-            min-height: 29px !important;
-            border-radius: 7px !important;
             background: #0a5554 !important;
+            background-color: #0a5554 !important;
             border: 1px solid #084646 !important;
             color: #ffffff !important;
-            box-shadow: 0 1px 2px rgba(10, 85, 84, 0.2) !important;
+            box-shadow: 0 1px 2px rgba(10, 85, 84, 0.25) !important;
             font-weight: 700 !important;
         }
 
+        .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-approve:hover,
         .members-custom-table :is(a, button).member-action-approve:hover {
             background: #073f3e !important;
+            background-color: #073f3e !important;
             border-color: #052928 !important;
             color: #ffffff !important;
             transform: translateY(-1px) !important;
         }
 
-        /* Edit Button (clean neutral gray) */
+        .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-approve svg,
+        .members-custom-table :is(a, button).member-action-approve svg {
+            fill: none !important;
+            stroke: #ffffff !important;
+        }
+
+        /* Edit Button (clean neutral gray bordered button) */
+        .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-edit,
         .members-custom-table a.member-action-edit {
             color: #374151 !important;
             background: #ffffff !important;
+            background-color: #ffffff !important;
             border: 1px solid #d1d5db !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
         }
 
+        .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-edit:hover,
         .members-custom-table a.member-action-edit:hover {
             background: #f3f4f6 !important;
+            background-color: #f3f4f6 !important;
             border-color: #9ca3af !important;
             color: #111827 !important;
         }
 
-        /* Delete Button (crisp danger red, never green) */
+        .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-edit svg,
+        .members-custom-table a.member-action-edit svg {
+            fill: none !important;
+            stroke: #4b5563 !important;
+        }
+
+        /* Delete Button (crisp danger red bordered button, never solid green) */
+        .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-delete,
         .members-custom-table a.member-action-delete {
             color: #dc2626 !important;
             background: #ffffff !important;
+            background-color: #ffffff !important;
             border: 1px solid #fecaca !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
         }
 
+        .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-delete:hover,
         .members-custom-table a.member-action-delete:hover {
             background: #fef2f2 !important;
+            background-color: #fef2f2 !important;
             border-color: #f87171 !important;
             color: #b91c1c !important;
+        }
+
+        .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-delete svg,
+        .members-custom-table a.member-action-delete svg {
+            fill: none !important;
+            stroke: #dc2626 !important;
         }
 
         /* Status Pills (single-line horizontal badge with dot) */
@@ -374,7 +410,7 @@
                                             wire:loading.attr="disabled"
                                             class="member-action-btn member-action-approve"
                                             title="Approve member">
-                                            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg class="member-svg-icon w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
                                             </svg>
                                             <span>Approve</span>
@@ -384,7 +420,7 @@
                                     <a href="{{ route('member.edit', $user->id) }}" 
                                        class="member-action-btn member-action-edit"
                                        title="Edit member details">
-                                        <svg class="w-3.5 h-3.5 shrink-0 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg class="member-svg-icon w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                         </svg>
                                         <span>Edit</span>
@@ -405,7 +441,7 @@
                                            onclick="return confirm('Are you sure you want to delete this member? This action cannot be undone.')"
                                            class="member-action-btn member-action-delete"
                                            title="Delete member">
-                                            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg class="member-svg-icon w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                             </svg>
                                             <span>Delete</span>
