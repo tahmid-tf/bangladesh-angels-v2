@@ -9,13 +9,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Laravel\Sanctum\HasApiTokens;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 class User extends Authenticatable implements HasMedia, MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, InteractsWithMedia, MustVerifyEmailTrait, Notifiable;
+    use HasApiTokens, HasFactory, InteractsWithMedia, MustVerifyEmailTrait, Notifiable;
 
     /**
      * Self-service verification (email link) clears manual verifier attribution.
@@ -42,7 +43,6 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
         'preference_sector',
         'public_profile',
         'designation',
-        'organization',
         'registered_by',
         'phone',
         'email',

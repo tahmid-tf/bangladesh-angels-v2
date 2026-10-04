@@ -51,4 +51,9 @@ class TeamAboutSection extends Model implements HasMedia
             ->values()
             ->all();
     }
+
+    public static function current(): ?self
+    {
+        return static::query()->first();
+    }
 }

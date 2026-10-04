@@ -17,6 +17,13 @@ class ApprovedUserMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         if (Auth::check() && !Auth::user()->is_approved) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'message' => 'Your account is pending administrator approval.',
+                    'status' => 'pending_approval',
+                ], 403);
+            }
+
             return redirect()->route('approval.pending');
         }
 
