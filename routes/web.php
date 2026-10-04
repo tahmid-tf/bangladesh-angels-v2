@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\StartupServiceController;
 use App\Http\Controllers\Admin\TeamAboutSectionController;
 use App\Http\Controllers\Admin\TeamMemberController;
 use App\Http\Controllers\Admin\WhatWeDoCardController;
+use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AngelAcademyNetworkApplicationController;
 use App\Http\Controllers\BanWealthController;
@@ -324,6 +325,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/portfolio', [AdminController::class, 'viewDeals_portfolio'])->name('admin.deals.portfolio');
             Route::get('/invest-portfolio', [AdminController::class, 'viewDeals_investPortfolio'])->name('admin.deals.invest-portfolio');
             Route::get('/{deal:id}/member-activity', [AdminController::class, 'dealMemberActivity'])->name('admin.deals.member-activity');
+            Route::post('/{deal:id}/member-activity/investments/{investment:id}/toggle-viewed', [AdminController::class, 'toggleInvestmentViewed'])->name('admin.deals.member-activity.toggle-viewed');
+            Route::post('/{deal:id}/member-activity/mark-all-viewed', [AdminController::class, 'markAllInterestedViewed'])->name('admin.deals.member-activity.mark-all-viewed');
             Route::post('/{deal:id}/invest', [InvestmentController::class, 'invest'])->name('deal.invest');
 
             Route::get('/{deal:id}', function (Deal $deal) {
@@ -350,6 +353,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/ban-wealth-orders', [AdminBanWealthOrderController::class, 'index'])->name('admin.ban-wealth-orders.index');
         Route::get('/ban-wealth-orders/{banWealthOrder}', [AdminBanWealthOrderController::class, 'show'])->name('admin.ban-wealth-orders.show');
         Route::patch('/ban-wealth-orders/{banWealthOrder}', [AdminBanWealthOrderController::class, 'update'])->name('admin.ban-wealth-orders.update');
+
+        // Member Activity Notifications
+        Route::prefix('notifications')->group(function () {
+            Route::get('/', [AdminNotificationController::class, 'index'])->name('admin.notifications.index');
+            Route::get('/unread-count', [AdminNotificationController::class, 'unreadCount'])->name('admin.notifications.unread-count');
+            Route::post('/mark-all-viewed', [AdminNotificationController::class, 'markAllViewed'])->name('admin.notifications.mark-all-viewed');
+            Route::post('/{investment}/toggle-viewed', [AdminNotificationController::class, 'toggleViewed'])->name('admin.notifications.toggle-viewed');
+        });
 
     });
 

@@ -7,6 +7,7 @@ use App\Mail\AccountApproved;
 use App\Models\Deal;
 use App\Models\CommitSubmission;
 use App\Models\HomepagePortfolio;
+use App\Models\Investment;
 use App\Models\Payment;
 use App\Models\Subscription;
 use App\Models\SubscriptionTier;
@@ -151,8 +152,8 @@ class AdminController extends Controller
         $approvalScope = $filters['approval_scope'] ?? 'all';
 
         $baseQuery = User::query()
-            ->when($accountScope === 'active', fn ($query) => $query->where('account_status', '!=', 'free'))
-            ->when($accountScope === 'inactive', fn ($query) => $query->where('account_status', 'free'))
+            ->when($accountScope === 'active', fn ($query) => $query->where('status', 'active'))
+            ->when($accountScope === 'inactive', fn ($query) => $query->where('status', 'inactive'))
             ->when($approvalScope === 'approved', fn ($query) => $query->where('is_approved', true))
             ->when($approvalScope === 'pending', fn ($query) => $query->where('is_approved', false))
             ->orderBy('id');
@@ -271,39 +272,29 @@ class AdminController extends Controller
 
     public function viewActiveMembers()
     {
-        if (auth()->user()->isAdmin()) {
-            // Retrieve users with pagination
-            $allUsers = User::with('media')->where('account_status', '!=', 'free')->where('is_approved', true)->get(); // All approved active Users
-            $users = User::with('media')->where('account_status', '!=', 'free')->where('is_approved', true)->paginate(50); // 50 users per page
-
-            return view('admin.members.active_index', compact('users', 'allUsers'));
-        } else {
-            return redirect()->route('home');
+        if (auth()->user()?->isAdmin()) {
+            return redirect()->route('admin.members', ['filter' => 'active']);
         }
+
+        return redirect()->route('home');
     }
 
     public function viewInactiveMembers()
     {
-        if (auth()->user()->isAdmin()) {
-            $allUsers = User::with('media')->where('account_status', 'free')->where('is_approved', true)->get(); // Retrieve all users
-            $users = User::with('media')->where('account_status', 'free')->where('is_approved', true)->paginate(50); // Retrieve all users
-
-            return view('admin.members.inactive_index', compact('users', 'allUsers'));
-        } else {
-            return redirect()->route('home');
+        if (auth()->user()?->isAdmin()) {
+            return redirect()->route('admin.members', ['filter' => 'inactive']);
         }
+
+        return redirect()->route('home');
     }
 
     public function viewPendingApprovalMembers()
     {
-        if (auth()->user()->isAdmin()) {
-            $allUsers = User::with('media')->where('is_approved', false)->get(); // Retrieve all pending approval users
-            $users = User::with('media')->where('is_approved', false)->paginate(50);
-
-            return view('admin.members.pending_approval_index', compact('users', 'allUsers'));
-        } else {
-            return redirect()->route('home');
+        if (auth()->user()?->isAdmin()) {
+            return redirect()->route('admin.members', ['filter' => 'pending']);
         }
+
+        return redirect()->route('home');
     }
 
     public function approveUser(User $user)
@@ -837,9 +828,7 @@ class AdminController extends Controller
 
     public function editMember(User $user)
     {
-        $user->load('emailVerifiedByAdmin');
-
-        return view('admin.members.edit', compact('user'));
+        return redirect()->route('admin.members', ['edit' => $user->id]);
     }
 
     public function removeMember(User $user)
@@ -925,6 +914,7 @@ class AdminController extends Controller
             'phone' => $request->phone,
             'gender' => $request->gender,
             'account_status' => $request->account_status,
+            'status' => $request->filled('status') ? strtolower($request->status) : ($user->status ?? 'active'),
             'public_profile' => $request->public_profile,
             'level' => $request->account_level,
             'company_name' => $request->company_name,
@@ -1000,7 +990,7 @@ class AdminController extends Controller
         abort_unless(auth()->user()?->isAdmin(), 403);
 
         $deal->load([
-            'investments' => fn ($q) => $q->with('user')->orderByDesc('created_at'),
+            'investments' => fn ($q) => $q->with(['user', 'viewer'])->orderByDesc('created_at'),
             'commits' => fn ($q) => $q->with('user')->orderByDesc('created_at'),
             'commitSubmissions' => fn ($q) => $q->with('user')->orderByDesc('updated_at'),
         ]);
@@ -1015,5 +1005,82 @@ class AdminController extends Controller
             'investRows' => $investRows,
             'reviewRows' => $reviewRows,
         ]);
+    }
+
+    /**
+     * Toggle or update viewed status for an investment (member activity).
+     */
+    public function toggleInvestmentViewed(Request $request, Deal $deal, Investment $investment)
+    {
+        abort_unless(auth()->user()?->isAdmin(), 403);
+        abort_if((int) $investment->deal_id !== (int) $deal->id, 404);
+
+        $action = $request->input('action'); // 'view', 'unview', or null for toggle
+
+        if ($action === 'view' || ($action === null && ! $investment->viewed_at)) {
+            $investment->update([
+                'viewed_at' => now(),
+                'viewed_by' => auth()->id(),
+            ]);
+            $isViewed = true;
+            $message = 'Marked as viewed.';
+        } else {
+            $investment->update([
+                'viewed_at' => null,
+                'viewed_by' => null,
+            ]);
+            $isViewed = false;
+            $message = 'Marked as unread.';
+        }
+
+        $deal->load('investments');
+        $unviewedInterestedCount = $deal->investments->where('type', 'interested')->whereNull('viewed_at')->count();
+
+        if ($request->expectsJson() || $request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'viewed' => $isViewed,
+                'viewed_at' => $investment->viewed_at?->toISOString(),
+                'viewed_at_formatted' => $investment->viewed_at?->format('M j, Y g:i A'),
+                'viewed_at_human' => $investment->viewed_at?->diffForHumans(),
+                'viewer_name' => auth()->user()?->name,
+                'unviewed_count' => $unviewedInterestedCount,
+                'message' => $message,
+            ]);
+        }
+
+        return back()->with('success', $message);
+    }
+
+    /**
+     * Mark all unviewed interested investments for a deal as viewed.
+     */
+    public function markAllInterestedViewed(Request $request, Deal $deal)
+    {
+        abort_unless(auth()->user()?->isAdmin(), 403);
+
+        $updated = Investment::where('deal_id', $deal->id)
+            ->where('type', 'interested')
+            ->whereNull('viewed_at')
+            ->update([
+                'viewed_at' => now(),
+                'viewed_by' => auth()->id(),
+                'updated_at' => now(),
+            ]);
+
+        $message = $updated > 0
+            ? "Marked {$updated} interested " . Str::plural('member', $updated) . " as viewed."
+            : 'All interested members are already marked as viewed.';
+
+        if ($request->expectsJson() || $request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'updated_count' => $updated,
+                'unviewed_count' => 0,
+                'message' => $message,
+            ]);
+        }
+
+        return back()->with('success', $message);
     }
 }

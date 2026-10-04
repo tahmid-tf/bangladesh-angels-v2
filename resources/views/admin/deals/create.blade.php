@@ -29,7 +29,7 @@
         <!-- Deal Information -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Upload Logo -->
-            <div class="text-center border-dashed border-2 border-gray-300 rounded-lg p-6">
+            <div class="text-center border-dashed border-2 border-gray-300 rounded-lg p-6 flex flex-col justify-between">
                 <label class="block cursor-pointer">
                     <div class="mb-4">
                         <img 
@@ -40,9 +40,30 @@
                         >
                     </div>
                     <input type="file" name="logo" accept="image/*" class="hidden" id="logo-input">
-                    <p class="text-gray-500 text-sm">Upload logo</p>
+                    <p class="text-gray-700 text-sm font-semibold">Upload logo</p>
                     <p class="text-gray-400 text-xs">Allowed: *.jpeg, *.png, *.gif (Max: 3.1 MB)</p>
                 </label>
+
+                <!-- Highlighted Dimension Guidance -->
+                <div class="mt-4 rounded-lg border-2 border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 shadow-sm text-left">
+                    <div class="flex items-center gap-1.5 font-bold text-amber-900">
+                        <svg class="w-4 h-4 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>Recommended Logo Size: 400 &times; 400 px (1:1 Ratio)</span>
+                    </div>
+                    <div class="mt-1.5 space-y-1 text-amber-800 leading-normal">
+                        <p>
+                            &#x2022; <strong>Best dimensions:</strong> <strong>400 &times; 400 px</strong> or <strong>500 &times; 500 px</strong> (min <strong>200 &times; 200 px</strong>).
+                        </p>
+                        <p>
+                            &#x2022; <strong>Framing:</strong> Center the logo mark with safe margins so corners aren't clipped.
+                        </p>
+                        <p class="text-amber-700">
+                            &#x26A0; <strong>Square format required:</strong> Wide rectangular logos will get cropped in circular frames.
+                        </p>
+                    </div>
+                </div>
             </div>
 
             <script>
@@ -190,9 +211,30 @@
                     >
                 </div>
                 <input type="file" name="company_cover" accept="image/*" class="hidden" id="company-cover-input">
-                <p class="text-gray-500 text-sm">Select Deal Cover Image</p>
+                <p class="text-gray-600 text-sm font-semibold">Select Deal Cover Image</p>
                 <p class="text-gray-400 text-xs">Drop files here or click <span class="text-blue-500 underline">browse</span> through your machine</p>
             </label>
+
+            <!-- Highlighted Dimension Guidance -->
+            <div class="mt-4 max-w-xl mx-auto rounded-lg border-2 border-amber-300 bg-amber-50 p-3.5 text-xs text-amber-900 shadow-sm text-left">
+                <div class="flex items-center gap-1.5 font-bold text-amber-900">
+                    <svg class="w-4 h-4 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span>Recommended Cover Size: 800 &times; 600 px (4:3 Ratio)</span>
+                </div>
+                <div class="mt-1.5 space-y-1 text-amber-800 leading-normal">
+                    <p>
+                        &#x2022; <strong>Best dimensions:</strong> <strong>800 &times; 600 px</strong> or <strong>1200 &times; 900 px</strong> (min <strong>720 &times; 540 px</strong>).
+                    </p>
+                    <p>
+                        &#x2022; <strong>Framing:</strong> Keep key graphics/logos centered with safety margins around the edges.
+                    </p>
+                    <p class="text-amber-700">
+                        &#x26A0; <strong>Avoid wide/thin banner strips</strong> (e.g. 16:9 or horizontal headers). The deal cover frame is 4:3, so wide banners will have their sides heavily cropped.
+                    </p>
+                </div>
+            </div>
         </div>
 
         <script>

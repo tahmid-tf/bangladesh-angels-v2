@@ -188,22 +188,23 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
             && ! $this->isFree();
     }
 
-    /**
-     * Check user account status.
-     */
-    public function status()
+    public function isActive(): bool
     {
-        if ($this->account_status == 'free') {
-            return 'Free Tier';
-        } elseif ($this->account_status == 'core') {
-            return 'Core Tier';
-        } elseif ($this->account_status == 'advanced') {
-            return 'Advanced Tier';
-        } elseif ($this->account_status == 'institutional') {
-            return 'Institutional Tier';
-        } elseif ($this->account_status == 'disabled') {
-            return 'Disabled';
-        }
+        return strtolower((string) ($this->status ?? 'active')) === 'active';
+    }
+
+    /**
+     * Human-readable account tier name.
+     */
+    public function tierName(): string
+    {
+        return match (strtolower((string) $this->account_status)) {
+            'core' => 'Core Tier',
+            'advanced' => 'Advanced Tier',
+            'institutional' => 'Institutional Tier',
+            'disabled' => 'Disabled',
+            default => 'Free Tier',
+        };
     }
 
     /**

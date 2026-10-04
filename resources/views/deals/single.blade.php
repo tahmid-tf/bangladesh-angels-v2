@@ -79,7 +79,7 @@
                     </div>
                 </div>
 
-                <h1 id="deal-heading">{{ $deal->title }}</h1>
+                <h1 id="deal-heading" class="break-words">{{ $deal->title }}</h1>
                 <p class="ban-deal-hero__lede">{{ $heroDescription ?: 'Company information will be available soon.' }}</p>
 
                 <dl class="ban-deal-facts" aria-label="Investment overview">
@@ -106,18 +106,6 @@
                         <a href="{{ route('plans') }}" class="ban-deal-button ban-deal-button--primary">
                             Unlock investor materials <span aria-hidden="true">&rarr;</span>
                         </a>
-                    @endif
-
-                    @if (filled($deal->commit_link))
-                        @if ($memberDealLinks)
-                            <button type="button" id="open-commit-submission" class="ban-deal-button ban-deal-button--secondary" aria-haspopup="dialog" aria-controls="commit-submission-dialog">
-                                Commit <span aria-hidden="true">&rarr;</span>
-                            </button>
-                        @else
-                            <a href="{{ route('plans') }}" class="ban-deal-button ban-deal-button--secondary">
-                                Unlock commitment access <span aria-hidden="true">&rarr;</span>
-                            </a>
-                        @endif
                     @endif
 
                     @if (filled($deal->substack_link))
@@ -324,6 +312,12 @@
             };
 
             openButton?.addEventListener('click', openDialog);
+            document.addEventListener('click', function (event) {
+                if (event.target.closest('#open-commit-submission')) {
+                    event.preventDefault();
+                    openDialog();
+                }
+            });
             closeButtons.forEach(button => button.addEventListener('click', () => dialog.close()));
             dialog?.addEventListener('click', function (event) {
                 if (event.target === dialog) {
