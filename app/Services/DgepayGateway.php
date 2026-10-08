@@ -169,7 +169,9 @@ class DgepayGateway
 
             $data = $response->json() ?? [];
 
-            if (! $response->successful() || empty($data['data']['webview_url'])) {
+            $paymentUrl = $data['data']['webview_url'] ?? $data['data']['payment_url'] ?? null;
+
+            if (! $response->successful() || empty($paymentUrl)) {
                 $errorMsg = $data['error'][0] ?? $data['message'] ?? 'Failed to initiate DGePay payment (HTTP '.$response->status().').';
                 Log::warning('DGePay initiate payment failed', [
                     'status' => $response->status(),
@@ -182,7 +184,7 @@ class DgepayGateway
 
             return [
                 'success' => true,
-                'payment_url' => $data['data']['webview_url'],
+                'payment_url' => $paymentUrl,
                 'transaction_id' => $data['data']['unique_txn_id'] ?? $paymentData['orderId'],
             ];
         } catch (\Throwable $e) {
@@ -232,6 +234,22 @@ class DgepayGateway
                 return [
                     'success' => false,
                     'message' => $data['message'] ?? 'Failed to check payment status (HTTP '.$response->status().').',
+                ];
+            }
+
+            if (! empty($data['error']) || (isset($data['success']) && empty($data['success']))) {
+                return [
+                    'success' => false,
+                    'message' => is_array($data['error'] ?? null) ? ($data['error'][0] ?? 'Payment gateway transaction data not found.') : ($data['message'] ?? 'Payment gateway transaction data not found.'),
+                    'raw' => $data,
+                ];
+            }
+
+            if (! empty($data['data']['error']) || (isset($data['data']['success']) && empty($data['data']['success']))) {
+                return [
+                    'success' => false,
+                    'message' => is_array($data['data']['error'] ?? null) ? ($data['data']['error'][0] ?? 'Payment gateway transaction data not found.') : ($data['data']['message'] ?? 'Payment gateway transaction data not found.'),
+                    'raw' => $data,
                 ];
             }
 

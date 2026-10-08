@@ -291,4 +291,162 @@ class DgepayPaymentGatewayTest extends IsolatedDatabaseTestCase
         $response->assertSessionHas('error');
         $this->assertSame(0, Payment::count());
     }
+
+    public function test_api_checkout_initiates_dgepay_and_returns_payment_url(): void
+    {
+        config(['dgepay.test_real_initiation' => true]);
+
+        SubscriptionTier::firstOrCreate(
+            ['slug' => 'core'],
+            ['name' => 'Core', 'price_yearly' => 399.00, 'is_active' => true]
+        );
+
+        Http::fake([
+            'https://sandbox.dgepay.net/dipon/v3/payment_gateway/authenticate' => Http::response([
+                'data' => ['access_token' => 'jwt_api_token_123'],
+            ]),
+            'https://sandbox.dgepay.net/dipon/v3/payment_gateway/initiate_payment' => Http::response([
+                'status' => 'success',
+                'data' => [
+                    'payment_url' => 'https://checkout-sandbox.dgepay.net/payment/pay?data=xyz',
+                ],
+            ]),
+        ]);
+
+        $payload = $this->payload();
+        $response = $this->postJson(route('api.checkout.process'), $payload);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.status', 'pending_payment')
+            ->assertJsonPath('data.gateway', 'dgepay')
+            ->assertJsonPath('data.payment_url', 'https://checkout-sandbox.dgepay.net/payment/pay?data=xyz');
+
+        $this->assertDatabaseHas('membership_orders', [
+            'plan_slug' => 'core',
+            'amount' => 399.00,
+        ]);
+    }
+
+    public function test_api_status_check_verifies_with_dgepay_and_fulfills(): void
+    {
+        $tier = SubscriptionTier::firstOrCreate(
+            ['slug' => 'core'],
+            ['name' => 'Core', 'price_yearly' => 399.00, 'is_active' => true]
+        );
+        $user = User::factory()->create(['email' => 'api_buyer@example.test', 'gender' => 'other']);
+        $sub = Subscription::create(['user_id' => $user->id, 'plan' => 'core', 'price' => 399.00, 'status' => 'pending']);
+
+        $tranId = 'DG20261008API1';
+        $order = app(MembershipEvidence::class)->begin(
+            new \Illuminate\Http\Request,
+            $user,
+            $sub,
+            $tier,
+            $tranId,
+            'USD'
+        );
+
+        Http::fake([
+            'https://sandbox.dgepay.net/dipon/v3/payment_gateway/authenticate' => Http::response([
+                'data' => ['access_token' => 'jwt_api_token_123'],
+            ]),
+            'https://sandbox.dgepay.net/dipon/v3/payment_gateway/check_transaction_status' => Http::response([
+                'status' => 'success',
+                'data' => [
+                    'status_code' => 3,
+                    'message' => 'TRANSACTION SUCCESS',
+                    'txn_number' => 'DGE_PG_API_111',
+                    'amount' => 399.00,
+                    'unique_txn_id' => $tranId,
+                    'metadata' => [
+                        'custom_field_1' => 'core',
+                        'custom_field_2' => (string) $user->id,
+                    ],
+                ],
+            ]),
+        ]);
+
+        $response = $this->getJson(route('api.checkout.status', ['reference' => $order->reference]));
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.reference', $order->reference)
+            ->assertJsonPath('data.payment_status', 'completed')
+            ->assertJsonPath('data.payment_method', 'dgepay');
+
+        $this->assertDatabaseHas('payments', [
+            'merchant_txnid' => $tranId,
+            'payment_method' => 'dgepay',
+            'status' => 'completed',
+        ]);
+
+        $user->refresh();
+        $this->assertSame('paid', $user->payment_status);
+        $this->assertSame('core', $user->account_status);
+    }
+
+    public function test_api_callback_endpoint_fulfills_and_returns_json(): void
+    {
+        $tier = SubscriptionTier::firstOrCreate(
+            ['slug' => 'core'],
+            ['name' => 'Core', 'price_yearly' => 399.00, 'is_active' => true]
+        );
+        $user = User::factory()->create(['email' => 'api_callback_user@example.test', 'gender' => 'male']);
+        $sub = Subscription::create(['user_id' => $user->id, 'plan' => 'core', 'price' => 399.00, 'status' => 'pending']);
+
+        $tranId = 'DG20261008API2';
+        $order = app(MembershipEvidence::class)->begin(
+            new \Illuminate\Http\Request,
+            $user,
+            $sub,
+            $tier,
+            $tranId,
+            'USD'
+        );
+
+        $gateway = app(DgepayGateway::class);
+        $callbackData = [
+            'status_code' => 3,
+            'unique_txn_id' => $tranId,
+            'message' => 'TRANSACTION SUCCESS',
+            'txn_number' => 'DGE_PG_API_222',
+            'amount' => 399.00,
+        ];
+        $encryptedQuery = $gateway->encryptPayload($callbackData, 'test_secret_16ch');
+
+        Http::fake([
+            'https://sandbox.dgepay.net/dipon/v3/payment_gateway/authenticate' => Http::response([
+                'data' => ['access_token' => 'jwt_api_token_123'],
+            ]),
+            'https://sandbox.dgepay.net/dipon/v3/payment_gateway/check_transaction_status' => Http::response([
+                'status' => 'success',
+                'data' => [
+                    'status_code' => 3,
+                    'message' => 'TRANSACTION SUCCESS',
+                    'txn_number' => 'DGE_PG_API_222',
+                    'amount' => 399.00,
+                    'unique_txn_id' => $tranId,
+                    'metadata' => [
+                        'custom_field_1' => 'core',
+                        'custom_field_2' => (string) $user->id,
+                    ],
+                ],
+            ]),
+        ]);
+
+        $response = $this->postJson(route('api.checkout.callback'), ['data' => $encryptedQuery]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.status', 'completed')
+            ->assertJsonPath('data.transaction_id', $tranId);
+
+        $this->assertDatabaseHas('payments', [
+            'merchant_txnid' => $tranId,
+            'payment_method' => 'dgepay',
+            'status' => 'completed',
+        ]);
+    }
 }
+

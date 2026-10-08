@@ -90,6 +90,7 @@ Route::post('/member/apply', [SubmissionApiController::class, 'applyMember'])->n
 // Checkout / Membership upgrade
 Route::post('/checkout', [CheckoutApiController::class, 'process'])->name('api.checkout.process');
 Route::get('/checkout/status/{reference}', [CheckoutApiController::class, 'status'])->name('api.checkout.status');
+Route::match(['get', 'post'], '/checkout/callback', [CheckoutApiController::class, 'callback'])->name('api.checkout.callback');
 
 // =========================================================================
 // 4. AUTHENTICATED USER & INVESTOR ROUTES (auth:sanctum)
