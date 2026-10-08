@@ -18,6 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'upgrade/fail',
             'payment/aamarpay/callback',
             '*payment/aamarpay/callback',
+            'payment/dgepay/callback',
+            '*payment/dgepay/callback',
+            'payment/callback',
+            '*payment/callback',
         ]);
 
         $middleware->alias([

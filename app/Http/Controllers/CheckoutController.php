@@ -9,6 +9,7 @@ use App\Models\Subscription;
 use App\Models\SubscriptionTier;
 use App\Models\User;
 use App\Services\AamarpayGateway;
+use App\Services\DgepayGateway;
 use App\Services\MembershipEvidence;
 use App\Support\MembershipPolicies;
 use Illuminate\Http\Request;
@@ -24,8 +25,14 @@ use Illuminate\Validation\Rule;
 class CheckoutController extends Controller
 {
     public function __construct(
-        protected AamarpayGateway $aamarpay
+        protected AamarpayGateway $aamarpay,
+        protected DgepayGateway $dgepay
     ) {}
+
+    protected function activeGatewayName(): string
+    {
+        return strtolower((string) config('payment.default', env('PAYMENT_GATEWAY', 'dgepay')));
+    }
 
     public function checkout(Request $request)
     {
@@ -108,8 +115,13 @@ class CheckoutController extends Controller
             return redirect()->route('plans')->with('error', 'Plan pricing was updated. Please choose your plan again.');
         }
 
+        $activeGateway = $this->activeGatewayName();
+        $configuredCurrency = $activeGateway === 'dgepay'
+            ? $this->dgepay->currency()
+            : strtoupper((string) config('aamarpay.currency', 'USD'));
+
         // The public catalogue quotes USD; never send the same numeric price as BDT.
-        if (strtoupper((string) config('aamarpay.currency', 'USD')) !== 'USD') {
+        if ($configuredCurrency !== 'USD') {
             return redirect()->route('checkout')->with('error', 'USD membership checkout is unavailable. Please contact support.');
         }
 
@@ -125,7 +137,7 @@ class CheckoutController extends Controller
                     'designation' => $validated['designation'],
                     'gender' => $validated['gender'],
                     'investment_expertise' => $validated['investment_expertise'],
-                    'linkedin' => $validated['linkedin'],
+                    'linkedin' => $validated['linkedin'] ?? null,
                     'password' => Auth::check() ? auth()->user()->password : Hash::make($request->password),
                     'is_approved' => false,
                 ]
@@ -141,7 +153,7 @@ class CheckoutController extends Controller
                     'designation' => $validated['designation'],
                     'gender' => $validated['gender'],
                     'investment_expertise' => $validated['investment_expertise'],
-                    'linkedin' => $validated['linkedin'],
+                    'linkedin' => $validated['linkedin'] ?? null,
                 ]);
             }
 
@@ -186,6 +198,60 @@ class CheckoutController extends Controller
                 ]);
 
                 return redirect()->route('dashboard')->with('success', 'Your subscription has been activated in test mode.');
+            }
+
+            if ($activeGateway === 'dgepay') {
+                $gatewayMode = $this->dgepay->mode();
+
+                try {
+                    $this->dgepay->activeConfig();
+                } catch (\RuntimeException $e) {
+                    Log::error($e->getMessage());
+
+                    return redirect()->route('checkout')->with('error', 'Payment gateway is not configured. Please contact support.');
+                }
+
+                $tranPrefix = $gatewayMode === 'live' ? 'DG' : 'DGTEST';
+                $tran_id = DgepayGateway::generateTransactionId($tranPrefix);
+                $currency = $configuredCurrency;
+                $amount = $validated['price'];
+
+                app(MembershipEvidence::class)->begin($request, $user, $subscription, $tier, $tran_id, $currency);
+
+                $callbackUrl = route('payment.dgepay.callback', [], true);
+
+                $gatewayResponse = $this->dgepay->initiatePayment([
+                    'amount' => $amount,
+                    'orderId' => $tran_id,
+                    'redirectUrl' => $callbackUrl,
+                    'description' => 'Membership - '.$tier->name,
+                    'unique_user_reference' => (string) $user->id,
+                    'meta_data' => [
+                        'plan' => $validated['plan'],
+                        'user_id' => (string) $user->id,
+                        'mode' => $gatewayMode,
+                    ],
+                ]);
+
+                if (! empty($gatewayResponse['success']) && ! empty($gatewayResponse['payment_url'])) {
+                    session(['checkout.tran_id' => $tran_id]);
+
+                    return redirect()->away($gatewayResponse['payment_url']);
+                }
+
+                Log::error('DGePay initiate payment failed', [
+                    'mode' => $gatewayMode,
+                    'tran_id' => $tran_id,
+                    'response' => $gatewayResponse,
+                ]);
+
+                if ($gatewayMode === 'sandbox' && filter_var(env('DGEPAY_SANDBOX_FALLBACK', false), FILTER_VALIDATE_BOOLEAN)) {
+                    return $this->activateSandboxWithoutGatewayFallback($user, $subscription, $validated);
+                }
+
+                $userMessage = $gatewayResponse['message'] ?? 'Payment gateway error. Please try again or contact support.';
+
+                return redirect()->route('checkout')->with('error', $userMessage);
             }
 
             $gatewayMode = $this->aamarpay->mode();
@@ -325,6 +391,132 @@ class CheckoutController extends Controller
     }
 
     /**
+     * DGePay redirects or returns here after payment.
+     */
+    public function dgepayCallback(Request $request)
+    {
+        $callbackData = [];
+        if ($request->has('data')) {
+            $decrypted = $this->dgepay->decryptCallbackData((string) $request->input('data'));
+            if ($decrypted) {
+                $callbackData = $decrypted;
+            }
+        }
+
+        if (empty($callbackData)) {
+            $callbackData = $request->all();
+        }
+
+        $parsed = $this->dgepay->parseCallbackResult($callbackData);
+        $uniqueTxnId = $parsed['unique_txn_id'] ?: ($request->input('unique_txn_id') ?: (string) session('checkout.tran_id'));
+
+        Log::info('DGePay callback received', [
+            'unique_txn_id' => $uniqueTxnId,
+            'parsed' => $parsed,
+        ]);
+
+        if (empty($uniqueTxnId)) {
+            Log::warning('DGePay callback missing transaction ID', ['input' => $request->all()]);
+
+            return redirect()->route('upgrade.page')->with('error', 'Payment session invalid. Please try again.');
+        }
+
+        if ($parsed['is_cancelled']) {
+            Log::info('DGePay payment cancelled by customer', ['unique_txn_id' => $uniqueTxnId]);
+
+            return redirect()->route('upgrade.page')->with('info', 'Checkout was cancelled.');
+        }
+
+        // Server-to-server transaction status verification
+        $statusCheck = $this->dgepay->getTransactionStatus($uniqueTxnId);
+
+        if (! ($statusCheck['success'] ?? false) || ! is_array($statusCheck['data'] ?? null)) {
+            Log::error('DGePay status verification failed', [
+                'unique_txn_id' => $uniqueTxnId,
+                'status_check' => $statusCheck,
+            ]);
+
+            return redirect()->route('upgrade.page')->with('error', 'Could not verify payment with gateway. Please contact support.');
+        }
+
+        $verified = $statusCheck['data'];
+        $statusCode = (string) ($verified['status_code'] ?? '');
+        $pgTxnId = $verified['txn_number'] ?? $verified['txn_id'] ?? null;
+        $amount = $verified['amount'] ?? null;
+        $order = MembershipOrder::where('merchant_txnid', $uniqueTxnId)->first();
+
+        $subscriptionPlan = $order?->plan_slug ?? ($verified['metadata']['plan'] ?? null);
+        $userId = $order?->user_id ?? ($verified['metadata']['user_id'] ?? null);
+        $currency = $order?->currency ?? $this->dgepay->currency();
+
+        if (($verified['unique_txn_id'] ?? '') !== $uniqueTxnId
+            || ! is_numeric($amount)
+            || ! $subscriptionPlan
+            || ($order && abs((float) $amount - (float) $order->amount) > 0.009)) {
+            Log::error('DGePay payment verification mismatch', [
+                'unique_txn_id' => $uniqueTxnId,
+                'order' => $order?->toArray(),
+                'verified' => $verified,
+            ]);
+
+            return redirect()->route('upgrade.page')->with('error', 'Payment details could not be matched to your order. Please contact support.');
+        }
+
+        if (empty($userId) || ! User::query()->whereKey($userId)->exists()) {
+            Log::error('DGePay callback invalid user', ['user_id' => $userId, 'unique_txn_id' => $uniqueTxnId]);
+
+            return redirect()->route('payment.error', ['error' => 'user_not_found', 'user_id' => $userId]);
+        }
+
+        if (DgepayGateway::isSuccessStatus($statusCode)) {
+            try {
+                $payment = $this->fulfillSuccessfulPayment(
+                    (int) $userId,
+                    (string) $subscriptionPlan,
+                    (string) $uniqueTxnId,
+                    $pgTxnId ? (string) $pgTxnId : null,
+                    $amount,
+                    (string) $currency,
+                    (int) $statusCode,
+                    $request->ip(),
+                    'dgepay'
+                );
+
+                app(MembershipEvidence::class)->sendReceipt($payment);
+
+                return redirect()->temporarySignedRoute(
+                    'payment.complete',
+                    now()->addHours(48),
+                    ['payment' => $payment->id]
+                );
+            } catch (\Throwable $e) {
+                Log::error('Fulfill DGePay payment failed: '.$e->getMessage());
+
+                return redirect()->route('upgrade.page')->with('error', 'An error occurred while completing your payment. Please contact support.');
+            }
+        }
+
+        if (DgepayGateway::isCancelledStatus($statusCode)) {
+            Log::warning('DGePay payment cancelled', ['unique_txn_id' => $uniqueTxnId]);
+
+            return redirect()->route('payment.failed', [
+                'mer_txnid' => $uniqueTxnId,
+                'error_message' => $verified['message'] ?? 'Payment was cancelled',
+                'user_id' => $userId,
+            ]);
+        }
+
+        Log::error('DGePay unknown or failed status', ['status_code' => $statusCode, 'unique_txn_id' => $uniqueTxnId]);
+
+        return redirect()->route('payment.failed', [
+            'mer_txnid' => $uniqueTxnId,
+            'error_message' => $verified['message'] ?? 'Payment could not be confirmed (status: '.$statusCode.').',
+            'user_id' => $userId,
+            'status_code' => $statusCode,
+        ]);
+    }
+
+    /**
      * AamarPay redirects or POSTs here after payment (success, fail, or cancel — verify server-side).
      */
     public function aamarpayCallback(Request $request)
@@ -391,7 +583,8 @@ class CheckoutController extends Controller
                     $amount,
                     (string) $currency,
                     $status_code,
-                    $request->ip()
+                    $request->ip(),
+                    'aamarpay'
                 );
 
                 app(MembershipEvidence::class)->sendReceipt($payment);
@@ -439,9 +632,10 @@ class CheckoutController extends Controller
         $amount,
         string $currency,
         int $status_code,
-        ?string $customerIp
+        ?string $customerIp,
+        string $paymentMethod = 'dgepay'
     ): Payment {
-        return DB::transaction(function () use ($user_id, $subscription_plan, $mer_txnid, $pg_txnid, $amount, $currency, $status_code, $customerIp) {
+        return DB::transaction(function () use ($user_id, $subscription_plan, $mer_txnid, $pg_txnid, $amount, $currency, $status_code, $customerIp, $paymentMethod) {
             $order = MembershipOrder::where('merchant_txnid', $mer_txnid)->lockForUpdate()->first();
             $user = User::query()->whereKey($user_id)->lockForUpdate()->firstOrFail();
             $existing = Payment::query()
@@ -461,7 +655,7 @@ class CheckoutController extends Controller
 
             $payment = Payment::create([
                 'user_id' => $user_id,
-                'payment_method' => 'aamarpay',
+                'payment_method' => $paymentMethod,
                 'transaction_id' => $pg_txnid,
                 'merchant_txnid' => $mer_txnid,
                 'pg_txnid' => $pg_txnid,
