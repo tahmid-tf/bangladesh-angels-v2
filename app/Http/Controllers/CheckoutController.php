@@ -227,9 +227,9 @@ class CheckoutController extends Controller
                     'description' => 'Membership - '.$tier->name,
                     'unique_user_reference' => (string) $user->id,
                     'meta_data' => [
-                        'plan' => $validated['plan'],
-                        'user_id' => (string) $user->id,
-                        'mode' => $gatewayMode,
+                        'custom_field_1' => (string) $validated['plan'],
+                        'custom_field_2' => (string) $user->id,
+                        'custom_field_3' => (string) $gatewayMode,
                     ],
                 ]);
 
@@ -445,8 +445,8 @@ class CheckoutController extends Controller
         $amount = $verified['amount'] ?? null;
         $order = MembershipOrder::where('merchant_txnid', $uniqueTxnId)->first();
 
-        $subscriptionPlan = $order?->plan_slug ?? ($verified['metadata']['plan'] ?? null);
-        $userId = $order?->user_id ?? ($verified['metadata']['user_id'] ?? null);
+        $subscriptionPlan = $order?->plan_slug ?? ($verified['metadata']['custom_field_1'] ?? ($verified['metadata']['plan'] ?? null));
+        $userId = $order?->user_id ?? ($verified['metadata']['custom_field_2'] ?? ($verified['metadata']['user_id'] ?? null));
         $currency = $order?->currency ?? $this->dgepay->currency();
 
         if (($verified['unique_txn_id'] ?? '') !== $uniqueTxnId

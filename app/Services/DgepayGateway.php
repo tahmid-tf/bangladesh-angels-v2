@@ -120,6 +120,29 @@ class DgepayGateway
                 return $auth;
             }
 
+            $metaData = null;
+            if (! empty($paymentData['meta_data']) && is_array($paymentData['meta_data'])) {
+                $rawMeta = $paymentData['meta_data'];
+                if (isset($rawMeta['custom_field_1']) || isset($rawMeta['custom_field_2']) || isset($rawMeta['custom_field_3'])) {
+                    $metaData = array_filter([
+                        'custom_field_1' => isset($rawMeta['custom_field_1']) ? (string) $rawMeta['custom_field_1'] : null,
+                        'custom_field_2' => isset($rawMeta['custom_field_2']) ? (string) $rawMeta['custom_field_2'] : null,
+                        'custom_field_3' => isset($rawMeta['custom_field_3']) ? (string) $rawMeta['custom_field_3'] : null,
+                    ], fn ($v) => $v !== null && $v !== '');
+                } else {
+                    $values = array_values($rawMeta);
+                    $metaData = array_filter([
+                        'custom_field_1' => isset($values[0]) ? (string) $values[0] : null,
+                        'custom_field_2' => isset($values[1]) ? (string) $values[1] : null,
+                        'custom_field_3' => isset($values[2]) ? (string) $values[2] : null,
+                    ], fn ($v) => $v !== null && $v !== '');
+                }
+
+                if (empty($metaData)) {
+                    $metaData = null;
+                }
+            }
+
             $payload = [
                 'amount' => (float) ($paymentData['amount'] ?? 0),
                 'customer_token' => $paymentData['customer_token'] ?? null,
@@ -128,7 +151,7 @@ class DgepayGateway
                 'payment_method' => $paymentData['payment_method'] ?? null,
                 'redirect_url' => $paymentData['redirectUrl'],
                 'unique_txn_id' => $paymentData['orderId'],
-                'meta_data' => $paymentData['meta_data'] ?? null,
+                'meta_data' => $metaData,
                 'unique_user_reference' => $paymentData['unique_user_reference'] ?? null,
             ];
 
