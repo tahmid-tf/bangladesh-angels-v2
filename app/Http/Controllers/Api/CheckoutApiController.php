@@ -98,13 +98,19 @@ class CheckoutApiController extends BaseApiController
 
         $activeGateway = config('payment.default', env('PAYMENT_GATEWAY', 'dgepay'));
 
+        $usdPrice = (float) $validated['price'];
+
         if ($activeGateway === 'dgepay') {
             $gatewayMode = $this->dgepay->mode();
-            $currency = $this->dgepay->currency();
+            $currency = 'USD';
+            $chargeAmount = $this->dgepay->resolveChargeAmount($usdPrice);
+            $chargeCurrency = $this->dgepay->resolveChargeCurrency();
             $tranPrefix = $gatewayMode === 'live' ? 'DG' : 'DGTEST';
             $tran_id = DgepayGateway::generateTransactionId($tranPrefix);
         } else {
             $currency = strtoupper((string) config('aamarpay.currency', 'USD'));
+            $chargeAmount = $usdPrice;
+            $chargeCurrency = $currency;
             $tran_id = 'BAN'.time().rand(1000, 9999);
         }
 
@@ -156,11 +162,15 @@ class CheckoutApiController extends BaseApiController
 
             $callbackUrl = route('payment.dgepay.callback', [], true);
 
+            $desc = $this->dgepay->shouldConvertUsdToBdt()
+                ? "BAN Membership - {$tier->name} ($ {$usdPrice} USD / ৳ {$chargeAmount} BDT)"
+                : 'BAN Membership - '.$tier->name;
+
             $gatewayResponse = $this->dgepay->initiatePayment([
-                'amount' => $validated['price'],
+                'amount' => $chargeAmount,
                 'orderId' => $tran_id,
                 'redirectUrl' => $callbackUrl,
-                'description' => 'BAN Membership - '.$tier->name,
+                'description' => $desc,
                 'unique_user_reference' => (string) $user->id,
                 'meta_data' => [
                     'custom_field_1' => (string) $validated['plan'],
@@ -176,6 +186,10 @@ class CheckoutApiController extends BaseApiController
                     'payment_url' => $gatewayResponse['payment_url'],
                     'transaction_id' => $tran_id,
                     'order_reference' => $order->reference,
+                    'amount' => $usdPrice,
+                    'currency' => 'USD',
+                    'payable_amount' => $chargeAmount,
+                    'payable_currency' => $chargeCurrency,
                     'token' => $authToken,
                     'user' => $this->formatUser($user),
                 ], 'Payment initiated. Redirect to payment URL.');
@@ -271,8 +285,8 @@ class CheckoutApiController extends BaseApiController
                             (string) $order->plan_slug,
                             (string) $order->merchant_txnid,
                             $verified['txn_number'] ?? $verified['txn_id'] ?? null,
-                            $verified['amount'] ?? $order->amount,
-                            $order->currency ?? $this->dgepay->currency(),
+                            $order->amount,
+                            $order->currency ?? 'USD',
                             (int) $statusCode,
                             request()->ip(),
                             'dgepay'
@@ -341,10 +355,13 @@ class CheckoutApiController extends BaseApiController
         $pgTxnId = $verified['txn_number'] ?? $verified['txn_id'] ?? null;
         $amount = $verified['amount'] ?? null;
         $order = MembershipOrder::where('merchant_txnid', $uniqueTxnId)->first();
-
         $subscriptionPlan = $order?->plan_slug ?? ($verified['metadata']['custom_field_1'] ?? null);
         $userId = $order?->user_id ?? ($verified['metadata']['custom_field_2'] ?? null);
-        $currency = $order?->currency ?? $this->dgepay->currency();
+        $expectedChargeAmount = $this->dgepay->resolveChargeAmount((float) ($order?->amount ?? 0));
+
+        if ($order && abs((float) $amount - (float) $expectedChargeAmount) > 0.009 && abs((float) $amount - (float) $order->amount) > 0.009) {
+            return $this->error('Payment amount mismatch.', 422, ['transaction_id' => $uniqueTxnId]);
+        }
 
         if (DgepayGateway::isSuccessStatus($statusCode)) {
             if ($userId && $subscriptionPlan) {
@@ -353,8 +370,8 @@ class CheckoutApiController extends BaseApiController
                     (string) $subscriptionPlan,
                     (string) $uniqueTxnId,
                     $pgTxnId ? (string) $pgTxnId : null,
-                    $amount,
-                    (string) $currency,
+                    $order ? $order->amount : $amount,
+                    'USD',
                     (int) $statusCode,
                     $request->ip(),
                     'dgepay'

@@ -120,8 +120,12 @@ class CheckoutController extends Controller
             ? $this->dgepay->currency()
             : strtoupper((string) config('aamarpay.currency', 'USD'));
 
-        // The public catalogue quotes USD; never send the same numeric price as BDT.
-        if ($configuredCurrency !== 'USD') {
+        // The public catalogue quotes USD; never send the same numeric price as BDT without conversion.
+        if ($activeGateway === 'aamarpay' && $configuredCurrency !== 'USD') {
+            return redirect()->route('checkout')->with('error', 'USD membership checkout is unavailable. Please contact support.');
+        }
+
+        if ($activeGateway === 'dgepay' && ! $this->dgepay->shouldConvertUsdToBdt() && $configuredCurrency !== 'USD') {
             return redirect()->route('checkout')->with('error', 'USD membership checkout is unavailable. Please contact support.');
         }
 
@@ -213,18 +217,23 @@ class CheckoutController extends Controller
 
                 $tranPrefix = $gatewayMode === 'live' ? 'DG' : 'DGTEST';
                 $tran_id = DgepayGateway::generateTransactionId($tranPrefix);
-                $currency = $configuredCurrency;
-                $amount = $validated['price'];
+                $usdAmount = (float) $validated['price'];
+                $chargeAmount = $this->dgepay->resolveChargeAmount($usdAmount);
+                $currency = 'USD';
 
                 app(MembershipEvidence::class)->begin($request, $user, $subscription, $tier, $tran_id, $currency);
 
                 $callbackUrl = route('payment.dgepay.callback', [], true);
 
+                $desc = $this->dgepay->shouldConvertUsdToBdt()
+                    ? "BAN Membership - {$tier->name} ($ {$usdAmount} USD / ৳ {$chargeAmount} BDT)"
+                    : 'Membership - '.$tier->name;
+
                 $gatewayResponse = $this->dgepay->initiatePayment([
-                    'amount' => $amount,
+                    'amount' => $chargeAmount,
                     'orderId' => $tran_id,
                     'redirectUrl' => $callbackUrl,
-                    'description' => 'Membership - '.$tier->name,
+                    'description' => $desc,
                     'unique_user_reference' => (string) $user->id,
                     'meta_data' => [
                         'custom_field_1' => (string) $validated['plan'],
@@ -449,14 +458,17 @@ class CheckoutController extends Controller
         $userId = $order?->user_id ?? ($verified['metadata']['custom_field_2'] ?? ($verified['metadata']['user_id'] ?? null));
         $currency = $order?->currency ?? $this->dgepay->currency();
 
+        $expectedChargeAmount = $this->dgepay->resolveChargeAmount((float) ($order?->amount ?? 0));
+
         if (($verified['unique_txn_id'] ?? '') !== $uniqueTxnId
             || ! is_numeric($amount)
             || ! $subscriptionPlan
-            || ($order && abs((float) $amount - (float) $order->amount) > 0.009)) {
+            || ($order && abs((float) $amount - (float) $expectedChargeAmount) > 0.009 && abs((float) $amount - (float) $order->amount) > 0.009)) {
             Log::error('DGePay payment verification mismatch', [
                 'unique_txn_id' => $uniqueTxnId,
                 'order' => $order?->toArray(),
                 'verified' => $verified,
+                'expected_charge_amount' => $expectedChargeAmount,
             ]);
 
             return redirect()->route('upgrade.page')->with('error', 'Payment details could not be matched to your order. Please contact support.');
@@ -475,7 +487,7 @@ class CheckoutController extends Controller
                     (string) $subscriptionPlan,
                     (string) $uniqueTxnId,
                     $pgTxnId ? (string) $pgTxnId : null,
-                    $amount,
+                    $order ? $order->amount : $amount,
                     (string) $currency,
                     (int) $statusCode,
                     $request->ip(),

@@ -11,11 +11,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Currency
+    | Currency & Conversion
     |--------------------------------------------------------------------------
-    | Currency configured for transactions (e.g. USD, BDT).
+    | When memberships are priced in USD, DGePay (a Bangladeshi PSO) settles
+    | in BDT. If convert_usd_to_bdt is true, the USD price is multiplied by
+    | usd_exchange_rate before initiating checkout with DGePay.
+    | If your DGePay merchant account is configured to settle directly in USD,
+    | set DGEPAY_CONVERT_USD_TO_BDT=false in .env.
     */
     'currency' => env('DGEPAY_CURRENCY', 'USD'),
+    'convert_usd_to_bdt' => filter_var(env('DGEPAY_CONVERT_USD_TO_BDT', true), FILTER_VALIDATE_BOOLEAN),
+    'usd_exchange_rate' => (float) env('DGEPAY_USD_EXCHANGE_RATE', 122.0),
+
 
     /*
     |--------------------------------------------------------------------------

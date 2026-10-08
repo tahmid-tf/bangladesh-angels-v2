@@ -30,6 +30,50 @@ class DgepayGateway
     }
 
     /**
+     * Whether USD plan prices should be converted to BDT for DGePay.
+     */
+    public function shouldConvertUsdToBdt(): bool
+    {
+        return (bool) config('dgepay.convert_usd_to_bdt', true);
+    }
+
+    /**
+     * Exchange rate from USD to BDT (e.g. 122.0).
+     */
+    public function usdExchangeRate(): float
+    {
+        $rate = (float) config('dgepay.usd_exchange_rate', 122.0);
+
+        return $rate > 0 ? $rate : 1.0;
+    }
+
+    /**
+     * Resolve the payable amount to send to DGePay.
+     */
+    public function resolveChargeAmount(float|int|string $usdAmount): float
+    {
+        $numericUsd = (float) $usdAmount;
+
+        if ($this->shouldConvertUsdToBdt()) {
+            return round($numericUsd * $this->usdExchangeRate(), 2);
+        }
+
+        return round($numericUsd, 2);
+    }
+
+    /**
+     * Resolve the currency denomination for the DGePay transaction.
+     */
+    public function resolveChargeCurrency(): string
+    {
+        if ($this->shouldConvertUsdToBdt()) {
+            return 'BDT';
+        }
+
+        return $this->currency();
+    }
+
+    /**
      * Get active configuration for the current mode.
      *
      * @return array{base_url: string, client_id: string, client_secret: string, client_api_key: string}

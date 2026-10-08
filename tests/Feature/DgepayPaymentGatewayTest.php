@@ -448,5 +448,113 @@ class DgepayPaymentGatewayTest extends IsolatedDatabaseTestCase
             'status' => 'completed',
         ]);
     }
+
+    public function test_checkout_converts_usd_to_bdt_when_configured(): void
+    {
+        config([
+            'dgepay.convert_usd_to_bdt' => true,
+            'dgepay.usd_exchange_rate' => 122.0,
+        ]);
+
+        Http::fake([
+            'https://sandbox.dgepay.net/dipon/v3/payment_gateway/authenticate' => Http::response([
+                'data' => ['access_token' => 'fake_jwt_token_123'],
+            ]),
+            'https://sandbox.dgepay.net/dipon/v3/payment_gateway/initiate_payment' => Http::response([
+                'data' => [
+                    'webview_url' => 'https://sandbox.dgepay.net/checkout/session_converted_bdt',
+                    'unique_txn_id' => 'DGTEST_ORDER',
+                ],
+            ]),
+        ]);
+
+        $response = $this->post(route('checkout.process'), $this->payload());
+
+        $response->assertRedirect('https://sandbox.dgepay.net/checkout/session_converted_bdt');
+
+        // Check that DGePay received 48678 BDT (399 * 122)
+        Http::assertSent(function ($request) {
+            if (! str_contains($request->url(), '/payment_gateway/initiate_payment')) {
+                return false;
+            }
+
+            $gateway = app(DgepayGateway::class);
+            $decrypted = $gateway->decryptPayload($request->body(), 'test_secret_16ch');
+            $data = json_decode($decrypted, true);
+
+            return isset($data['amount']) && abs((float) $data['amount'] - 48678.0) < 0.01;
+        });
+
+        // The order retains USD 399
+        $order = MembershipOrder::firstOrFail();
+        $this->assertSame('399.00', $order->amount);
+        $this->assertSame('USD', $order->currency);
+    }
+
+    public function test_callback_accepts_and_fulfills_converted_bdt_amount(): void
+    {
+        config([
+            'dgepay.convert_usd_to_bdt' => true,
+            'dgepay.usd_exchange_rate' => 122.0,
+        ]);
+
+        $tier = SubscriptionTier::where('slug', 'core')->firstOrFail();
+        $user = User::factory()->create(['email' => 'converted_buyer@example.test', 'gender' => 'other']);
+        $sub = Subscription::create(['user_id' => $user->id, 'plan' => 'core', 'price' => 399.00, 'status' => 'pending']);
+
+        $tranId = 'DGTEST_CONV_999';
+        $order = app(MembershipEvidence::class)->begin(
+            new \Illuminate\Http\Request,
+            $user,
+            $sub,
+            $tier,
+            $tranId,
+            'USD'
+        );
+
+        $gateway = app(DgepayGateway::class);
+        $callbackData = [
+            'status_code' => 3,
+            'unique_txn_id' => $tranId,
+            'message' => 'TRANSACTION SUCCESS',
+            'txn_number' => 'DGE_PG_CONV_111',
+            'amount' => 48678.00, // DGePay returns BDT amount
+        ];
+        $encryptedQuery = $gateway->encryptPayload($callbackData, 'test_secret_16ch');
+
+        Http::fake([
+            'https://sandbox.dgepay.net/dipon/v3/payment_gateway/authenticate' => Http::response([
+                'data' => ['access_token' => 'fake_jwt_token_123'],
+            ]),
+            'https://sandbox.dgepay.net/dipon/v3/payment_gateway/check_transaction_status' => Http::response([
+                'status' => 'success',
+                'data' => [
+                    'status_code' => 3,
+                    'message' => 'TRANSACTION SUCCESS',
+                    'txn_number' => 'DGE_PG_CONV_111',
+                    'payment_method' => 'bKash',
+                    'amount' => 48678.00, // Verified in BDT
+                    'unique_txn_id' => $tranId,
+                    'metadata' => [
+                        'plan' => 'core',
+                        'user_id' => (string) $user->id,
+                    ],
+                ],
+            ]),
+        ]);
+
+        $response = $this->get(route('payment.dgepay.callback', ['data' => $encryptedQuery]));
+
+        $payment = Payment::where('merchant_txnid', $tranId)->firstOrFail();
+        $this->assertSame('completed', $payment->status);
+        $this->assertSame('dgepay', $payment->payment_method);
+        $this->assertEquals(399.00, (float) $payment->amount);
+        $this->assertSame('USD', $payment->currency);
+
+        $user->refresh();
+        $this->assertSame('paid', $user->payment_status);
+        $this->assertSame('core', $user->account_status);
+    }
 }
+
 
