@@ -9,13 +9,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Laravel\Sanctum\HasApiTokens;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 class User extends Authenticatable implements HasMedia, MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, InteractsWithMedia, MustVerifyEmailTrait, Notifiable;
+    use HasApiTokens, HasFactory, InteractsWithMedia, MustVerifyEmailTrait, Notifiable;
 
     /**
      * Self-service verification (email link) clears manual verifier attribution.
@@ -42,7 +43,6 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
         'preference_sector',
         'public_profile',
         'designation',
-        'organization',
         'registered_by',
         'phone',
         'email',
@@ -188,22 +188,23 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
             && ! $this->isFree();
     }
 
-    /**
-     * Check user account status.
-     */
-    public function status()
+    public function isActive(): bool
     {
-        if ($this->account_status == 'free') {
-            return 'Free Tier';
-        } elseif ($this->account_status == 'core') {
-            return 'Core Tier';
-        } elseif ($this->account_status == 'advanced') {
-            return 'Advanced Tier';
-        } elseif ($this->account_status == 'institutional') {
-            return 'Institutional Tier';
-        } elseif ($this->account_status == 'disabled') {
-            return 'Disabled';
-        }
+        return strtolower((string) ($this->status ?? 'active')) === 'active';
+    }
+
+    /**
+     * Human-readable account tier name.
+     */
+    public function tierName(): string
+    {
+        return match (strtolower((string) $this->account_status)) {
+            'core' => 'Core Tier',
+            'advanced' => 'Advanced Tier',
+            'institutional' => 'Institutional Tier',
+            'disabled' => 'Disabled',
+            default => 'Free Tier',
+        };
     }
 
     /**

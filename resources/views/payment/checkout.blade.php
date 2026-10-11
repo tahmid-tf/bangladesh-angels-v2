@@ -445,6 +445,17 @@
                             <span>Total Billed Today</span>
                             <span class="font-semibold">${{ number_format((float) $planPrice, 2) }}</span>
                         </li>
+                        @php
+                            $gateway = config('payment.default', 'dgepay');
+                            $convertUsd = config('dgepay.convert_usd_to_bdt', true);
+                            $rate = config('dgepay.usd_exchange_rate', 122);
+                        @endphp
+                        @if($gateway === 'dgepay' && $convertUsd)
+                        <li class="flex justify-between items-center text-xs text-gray-600 bg-emerald-50 p-2 rounded border border-emerald-200">
+                            <span>Payable via DGePay:</span>
+                            <span class="font-bold text-emerald-800">৳ {{ number_format((float) $planPrice * (float) $rate, 2) }} BDT <span class="font-normal text-[11px] text-gray-500">(@ ৳{{ $rate }}/$)</span></span>
+                        </li>
+                        @endif
                     </ul>
                 </div>
                 <input type="hidden" name="policy_version" value="{{ \App\Support\MembershipPolicies::version() }}">

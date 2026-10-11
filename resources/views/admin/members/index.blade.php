@@ -179,10 +179,9 @@
         text-decoration: none !important;
     }
 
-    /* SVG Icons inside member action buttons: strictly transparent fill and currentColor stroke */
-    .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn svg,
-    .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn:has(svg) svg,
-    .members-custom-table td :is(a, button).member-action-btn svg,
+    /* Standard SVG action icons (outline icons: pencil, approve checkmark, trash bin) */
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn svg.member-svg-icon,
+    .members-custom-table td :is(a, button).member-action-btn svg.member-svg-icon,
     svg.member-svg-icon {
         width: 12px !important;
         height: 12px !important;
@@ -190,9 +189,51 @@
         min-height: 12px !important;
         fill: none !important;
         stroke: currentColor !important;
-        display: inline-block !important;
+        display: inline-block;
         vertical-align: middle !important;
-        transform: none !important;
+    }
+
+    /* Dedicated Spinner SVGs inside action buttons */
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn svg.member-spinner-icon,
+    .members-custom-table td :is(a, button).member-action-btn svg.member-spinner-icon,
+    svg.member-spinner-icon {
+        width: 12px !important;
+        height: 12px !important;
+        min-width: 12px !important;
+        min-height: 12px !important;
+        vertical-align: middle !important;
+        animation: spin 1s linear infinite !important;
+    }
+
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn svg.member-spinner-icon circle,
+    .members-custom-table td :is(a, button).member-action-btn svg.member-spinner-icon circle,
+    svg.member-spinner-icon circle {
+        stroke: currentColor !important;
+        stroke-width: 4 !important;
+        fill: none !important;
+    }
+
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn svg.member-spinner-icon path,
+    .members-custom-table td :is(a, button).member-action-btn svg.member-spinner-icon path,
+    svg.member-spinner-icon path {
+        fill: currentColor !important;
+        stroke: none !important;
+    }
+
+    /* Livewire loading display rules for action buttons */
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn [wire\:loading],
+    .members-custom-table td :is(a, button).member-action-btn [wire\:loading] {
+        display: none;
+    }
+
+    .admin-page:not(.admin-page--dashboard) table.members-custom-table td :is(a, button).member-action-btn [wire\:loading\.remove],
+    .members-custom-table td :is(a, button).member-action-btn [wire\:loading\.remove] {
+        display: inline-block;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
     }
 
     /* Member Action Row (strictly single-line flex aligned to right) */
