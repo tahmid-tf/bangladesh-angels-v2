@@ -41,13 +41,16 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register'])->name('api.auth.register');
     Route::post('/login', [AuthController::class, 'login'])->name('api.auth.login');
+    Route::post('/google', [AuthController::class, 'googleLogin'])->name('api.auth.google');
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->name('api.auth.forgot-password');
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('api.auth.reset-password');
 });
 
 // =========================================================================
-// 2. PUBLIC SITE & CONTENT APIS
+// 2. APP CONFIGURATION & PUBLIC SITE APIS
 // =========================================================================
+Route::get('/app-config', [PublicController::class, 'appConfig'])->name('api.app-config');
+Route::get('/config', [PublicController::class, 'appConfig'])->name('api.config');
 Route::get('/home', [PublicController::class, 'home'])->name('api.home');
 Route::get('/plans', [PublicController::class, 'plans'])->name('api.plans');
 Route::get('/faq', [PublicController::class, 'faqs'])->name('api.faq');
@@ -90,6 +93,7 @@ Route::post('/member/apply', [SubmissionApiController::class, 'applyMember'])->n
 // Checkout / Membership upgrade
 Route::post('/checkout', [CheckoutApiController::class, 'process'])->name('api.checkout.process');
 Route::get('/checkout/status/{reference}', [CheckoutApiController::class, 'status'])->name('api.checkout.status');
+Route::match(['get', 'post'], '/checkout/callback', [CheckoutApiController::class, 'callback'])->name('api.checkout.callback');
 
 // =========================================================================
 // 4. AUTHENTICATED USER & INVESTOR ROUTES (auth:sanctum)
@@ -100,8 +104,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout'])->name('api.auth.logout');
         Route::get('/me', [AuthController::class, 'me'])->name('api.auth.me');
-        Route::put('/profile', [AuthController::class, 'updateProfile'])->name('api.auth.profile.update');
+        Route::match(['put', 'post'], '/profile', [AuthController::class, 'updateProfile'])->name('api.auth.profile.update');
+        Route::post('/profile/photo', [AuthController::class, 'updateProfilePhoto'])->name('api.auth.profile.photo');
         Route::put('/password', [AuthController::class, 'updatePassword'])->name('api.auth.password.update');
+        Route::delete('/account', [AuthController::class, 'deleteAccount'])->name('api.auth.account.delete');
+        Route::delete('/profile', [AuthController::class, 'deleteAccount'])->name('api.auth.profile.delete');
         Route::post('/email/verification-notification', [AuthController::class, 'sendVerificationEmail'])
             ->middleware('throttle:6,1')
             ->name('api.verification.send');
@@ -113,12 +120,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('investor')->group(function () {
         Route::get('/dashboard', [InvestorApiController::class, 'dashboard'])->name('api.investor.dashboard');
         Route::get('/investments', [InvestorApiController::class, 'myInvestments'])->name('api.investor.investments');
+        Route::get('/portfolio-investments', [InvestorApiController::class, 'myPortfolioInvestments'])->name('api.investor.portfolio-investments');
         Route::get('/commits', [InvestorApiController::class, 'myCommits'])->name('api.investor.commits');
     });
 
     // Deals (Approved users / tier access)
     Route::prefix('deals')->middleware('approved')->group(function () {
         Route::get('/', [InvestorApiController::class, 'deals'])->name('api.deals.index');
+        Route::get('/filters', [InvestorApiController::class, 'dealFilters'])->name('api.deals.filters');
         Route::get('/{slug}', [InvestorApiController::class, 'deal'])->name('api.deals.show');
         Route::post('/{deal}/invest', [InvestorApiController::class, 'invest'])->name('api.deals.invest');
         Route::post('/{deal}/commit', [InvestorApiController::class, 'commit'])->name('api.deals.commit');
@@ -163,6 +172,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{user}/approve', [AdminMemberApiController::class, 'approve'])->name('api.admin.members.approve');
             Route::post('/{user}/verify-email', [AdminMemberApiController::class, 'verifyEmail'])->name('api.admin.members.verify-email');
             Route::patch('/{user}/status', [AdminMemberApiController::class, 'updateStatus'])->name('api.admin.members.status');
+            Route::patch('/{user}/mode', [AdminMemberApiController::class, 'updateMode'])->name('api.admin.members.mode');
             Route::delete('/{user}', [AdminMemberApiController::class, 'destroy'])->name('api.admin.members.destroy');
         });
 

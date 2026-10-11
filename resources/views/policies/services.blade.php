@@ -7,7 +7,7 @@
     @include('policies.navigation')
     <article class="ban-policy-prose">
         <h2>Availability and purchase options</h2>
-        <p>The active memberships below are available for purchase online. Choose a plan, complete your account and billing details, acknowledge the policies, and pay through aamarPay using the methods available on its secure payment page. Fees are billed annually in USD. International payment availability is subject to gateway and banking approval.</p>
+        <p>The active memberships below are available for purchase online. Choose a plan, complete your account and billing details, acknowledge the policies, and pay through our secure payment gateway (DGePay) using the methods available on its secure payment page. Fees are billed annually in USD. International payment availability is subject to gateway and banking approval.</p>
         @include('policies.blocks', ['blocks' => [['type' => 'plans']]])
         <p><a class="ban2-button ban2-button--primary" href="{{ route('plans') }}">Compare plans &amp; purchase</a></p>
         <h2>Electronic delivery</h2>
@@ -17,6 +17,7 @@
         <p>Membership pays for BAN’s services; it is not an investment in a fund or startup. BAN does not pool member capital or provide investment advice. Startup investments are high-risk and may be lost in full.</p>
         <p>For eligibility, refund timelines, and cancellation details, read the linked policies before checkout.</p>
         <ul>@foreach(\App\Support\MembershipPolicies::checkoutPages() as $slug => $page)<li><a href="{{ route('policies.show', $slug) }}">{{ $page['title'] }}</a></li>@endforeach</ul>
+        @include('policies.business-details')
     </article>
     </div>
 </main>

@@ -93,6 +93,36 @@ class InvestorApiController extends BaseApiController
     }
 
     /**
+     * Get available deal filter options (sectors, stages, types).
+     */
+    public function dealFilters(): JsonResponse
+    {
+        $sectors = Deal::query()
+            ->whereNotNull('sector')
+            ->where('sector', '!=', '')
+            ->distinct()
+            ->pluck('sector')
+            ->sort()
+            ->values();
+
+        $stages = Deal::query()
+            ->whereNotNull('investment_stage')
+            ->where('investment_stage', '!=', '')
+            ->distinct()
+            ->pluck('investment_stage')
+            ->sort()
+            ->values();
+
+        $types = ['invest', 'commit', 'review'];
+
+        return $this->success([
+            'sectors' => $sectors,
+            'stages' => $stages,
+            'types' => $types,
+        ]);
+    }
+
+    /**
      * Active & member-visible deals.
      */
     public function deals(Request $request): JsonResponse
@@ -110,12 +140,14 @@ class InvestorApiController extends BaseApiController
         $type = $request->query('type');
         $search = trim((string) $request->query('search', ''));
         $stage = $request->query('stage');
+        $sector = $request->query('sector');
 
         $query = Deal::with('media')
             ->where('type', '!=', 'portfolio')
             ->where('status', 'active')
             ->when($type && in_array($type, ['invest', 'commit', 'review']), fn ($q) => $q->where('type', $type))
             ->when($stage, fn ($q) => $q->where('investment_stage', $stage))
+            ->when($sector, fn ($q) => $q->where('sector', $sector))
             ->when($search !== '', function ($q) use ($search) {
                 $q->where(function ($inner) use ($search) {
                     $inner->where('title', 'like', "%{$search}%")
@@ -334,6 +366,21 @@ class InvestorApiController extends BaseApiController
             ->where('user_id', $user->id)
             ->when($type && in_array($type, ['interested', 'invest', 'review']), fn ($q) => $q->where('type', $type))
             ->latest()
+            ->paginate((int) $request->query('per_page', 20));
+
+        return $this->success($investments);
+    }
+
+    /**
+     * Get investor's actual funded portfolio investments.
+     */
+    public function myPortfolioInvestments(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $investments = InvestorInvestment::query()
+            ->where('investor_id', $user->id)
+            ->latest('completed_at')
             ->paginate((int) $request->query('per_page', 20));
 
         return $this->success($investments);

@@ -22,6 +22,50 @@ use Illuminate\Http\Request;
 class PublicController extends BaseApiController
 {
     /**
+     * Mobile app configuration, exchange rates, and metadata.
+     */
+    public function appConfig(): JsonResponse
+    {
+        $activeGateway = config('payment.default', env('PAYMENT_GATEWAY', 'dgepay'));
+        $dgepayMode = config('dgepay.mode', 'sandbox');
+        $bdtRate = (float) config('dgepay.usd_exchange_rate', 122.0);
+        $convertUsdToBdt = (bool) config('dgepay.convert_usd_to_bdt', true);
+
+        $tiers = SubscriptionTier::query()
+            ->active()
+            ->ordered()
+            ->get()
+            ->map(fn (SubscriptionTier $tier) => $this->formatTier($tier));
+
+        return $this->success([
+            'app_name' => config('app.name', 'Bangladesh Angels Network'),
+            'environment' => config('app.env'),
+            'policy_version' => MembershipPolicies::version(),
+            'currencies' => [
+                'base' => 'USD',
+                'settlement' => 'BDT',
+                'usd_bdt_rate' => $bdtRate,
+                'convert_usd_to_bdt' => $convertUsdToBdt,
+            ],
+            'payment' => [
+                'default_gateway' => $activeGateway,
+                'dgepay' => [
+                    'enabled' => true,
+                    'mode' => $dgepayMode,
+                ],
+                'aamarpay' => [
+                    'enabled' => (bool) config('aamarpay.store_id'),
+                ],
+            ],
+            'tiers' => $tiers,
+            'support' => [
+                'email' => config('mail.from.address', 'support@bdangels.co'),
+                'website' => config('app.url', 'https://bdangels.co'),
+            ],
+        ]);
+    }
+
+    /**
      * Homepage comprehensive data bundle.
      */
     public function home(): JsonResponse

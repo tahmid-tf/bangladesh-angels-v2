@@ -44,6 +44,7 @@ class MembershipComplianceTest extends IsolatedDatabaseTestCase
     {
         parent::setUp();
         Http::preventStrayRequests();
+        config(['payment.default' => 'aamarpay']);
     }
 
     public function test_checkout_retains_acknowledgement_before_gateway_redirect(): void

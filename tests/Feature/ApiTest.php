@@ -78,6 +78,25 @@ class ApiTest extends TestCase
             ->assertJson(['success' => true]);
     }
 
+    public function test_app_config_endpoint(): void
+    {
+        $response = $this->getJson('/api/app-config');
+
+        $response->assertOk()
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'app_name',
+                    'policy_version',
+                    'currencies' => ['base', 'settlement', 'usd_bdt_rate'],
+                    'payment' => ['default_gateway', 'dgepay'],
+                    'tiers',
+                ],
+            ]);
+
+        $this->getJson('/api/config')->assertOk();
+    }
+
     public function test_public_cms_endpoints(): void
     {
         $endpoints = [
@@ -229,6 +248,32 @@ class ApiTest extends TestCase
             'email' => 'testuser@example.com',
             'password' => 'WrongPassword!',
         ])->assertStatus(422);
+    }
+
+    public function test_google_login_and_account_deletion(): void
+    {
+        $response = $this->postJson('/api/auth/google', [
+            'email' => 'googleuser@example.com',
+            'google_id' => 'gid_123456789',
+            'name' => 'Google Mobile User',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonStructure([
+                'success',
+                'data' => ['user', 'token', 'is_new_user'],
+            ]);
+
+        $token = $response->json('data.token');
+
+        // Delete account (Play Store compliance)
+        $deleteResponse = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->deleteJson('/api/auth/account');
+
+        $deleteResponse->assertOk()
+            ->assertJson(['success' => true]);
+
+        $this->assertDatabaseMissing('users', ['email' => 'googleuser@example.com']);
     }
 
     // =========================================================================
@@ -412,7 +457,10 @@ class ApiTest extends TestCase
 
         // View user's investments and commits
         $this->getJson('/api/investor/investments')->assertOk();
+        $this->getJson('/api/investor/portfolio-investments')->assertOk();
         $this->getJson('/api/investor/commits')->assertOk();
+        $this->getJson('/api/deals/filters')->assertOk()
+            ->assertJsonStructure(['success', 'data' => ['sectors', 'stages', 'types']]);
         $this->getJson('/api/membership/orders')->assertOk();
         $this->getJson('/api/ban-wealth/funds')->assertOk();
     }
@@ -479,6 +527,10 @@ class ApiTest extends TestCase
         $this->patchJson('/api/admin/members/'.$memberToApprove->id.'/status', [
             'account_status' => 'core',
         ])->assertOk()->assertJsonPath('data.account_status', 'core');
+
+        $this->patchJson('/api/admin/members/'.$memberToApprove->id.'/mode', [
+            'status' => 'inactive',
+        ])->assertOk()->assertJsonPath('data.status', 'inactive');
 
         // Deals CRUD
         $this->getJson('/api/admin/deals')->assertOk();
