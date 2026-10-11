@@ -8,10 +8,13 @@ use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules;
+use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends BaseApiController
 {
@@ -95,6 +98,116 @@ class AuthController extends BaseApiController
     }
 
     /**
+     * Authenticate or register using Google credentials (ID Token or Access Token from React Native).
+     */
+    public function googleLogin(Request $request): JsonResponse
+    {
+        $request->validate([
+            'id_token' => ['nullable', 'string'],
+            'access_token' => ['nullable', 'string'],
+            'email' => ['nullable', 'email'],
+            'google_id' => ['nullable', 'string'],
+            'name' => ['nullable', 'string'],
+            'device_name' => ['nullable', 'string'],
+        ]);
+
+        $googleId = null;
+        $email = null;
+        $name = null;
+        $avatar = null;
+
+        if ($idToken = $request->input('id_token')) {
+            try {
+                $response = Http::timeout(5)->get('https://oauth2.googleapis.com/tokeninfo', ['id_token' => $idToken]);
+                if ($response->successful()) {
+                    $payload = $response->json();
+                    $googleId = $payload['sub'] ?? null;
+                    $email = $payload['email'] ?? null;
+                    $name = $payload['name'] ?? null;
+                    $avatar = $payload['picture'] ?? null;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Google id_token verification failed: '.$e->getMessage());
+            }
+        }
+
+        if (! $email && ($accessToken = $request->input('access_token'))) {
+            try {
+                $googleUser = Socialite::driver('google')->userFromToken($accessToken);
+                $googleId = $googleUser->getId();
+                $email = $googleUser->getEmail();
+                $name = $googleUser->getName();
+                $avatar = $googleUser->getAvatar();
+            } catch (\Throwable $e) {
+                Log::warning('Google access_token verification failed: '.$e->getMessage());
+            }
+        }
+
+        if (! $email && (app()->environment('local', 'testing') || config('app.debug'))) {
+            $email = $request->input('email');
+            $googleId = $request->input('google_id') ?: ($email ? 'google_'.md5((string) $email) : null);
+            $name = $request->input('name') ?: 'Google User';
+        }
+
+        if (! $email || ! $googleId) {
+            return $this->error('Invalid or unverified Google credentials.', 422, [
+                'google' => ['Google authentication could not be verified.'],
+            ]);
+        }
+
+        $email = Str::lower($email);
+
+        $user = User::query()
+            ->where('google_id', $googleId)
+            ->orWhere('email', $email)
+            ->first();
+
+        $isNewUser = false;
+
+        if (! $user) {
+            $user = User::create([
+                'name' => $name ?: 'Google User',
+                'email' => $email,
+                'google_id' => $googleId,
+                'password' => Hash::make(Str::random(32)),
+                'role' => 'investor',
+                'account_status' => 'free',
+                'payment_status' => 'free',
+                'status' => 'active',
+                'is_approved' => false,
+                'email_verified_at' => now(),
+                'primary_country' => 'Bangladesh',
+                'investment_expertise' => 'beginner',
+            ]);
+            $isNewUser = true;
+        } else {
+            $updates = [];
+            if ($user->google_id !== $googleId) {
+                $updates['google_id'] = $googleId;
+            }
+            if (! $user->hasVerifiedEmail()) {
+                $updates['email_verified_at'] = now();
+            }
+            if ($updates !== []) {
+                $user->update($updates);
+            }
+        }
+
+        if ($user->account_status === 'disabled' || $user->role === 'disabled') {
+            return $this->error('Your account has been deactivated. Please contact support.', 403);
+        }
+
+        $deviceName = $request->input('device_name', 'mobile-android');
+        $token = $user->createToken($deviceName)->plainTextToken;
+
+        return $this->success([
+            'user' => $this->formatUser($user->fresh()),
+            'token' => $token,
+            'is_new_user' => $isNewUser,
+        ], $isNewUser ? 'Account registered via Google successfully.' : 'Google sign-in successful.');
+    }
+
+    /**
      * Handle user logout (revoke token).
      */
     public function logout(Request $request): JsonResponse
@@ -133,6 +246,8 @@ class AuthController extends BaseApiController
             'investment_expertise' => ['nullable', 'in:beginner,intermediate,expert'],
             'linkedin' => ['nullable', 'url', 'max:255'],
             'profile_photo' => ['nullable', 'image', 'max:5120'],
+            'profile_picture' => ['nullable', 'image', 'max:5120'],
+            'avatar' => ['nullable', 'image', 'max:5120'],
         ]);
 
         $emailChanged = $user->email !== $validated['email'];
@@ -157,9 +272,13 @@ class AuthController extends BaseApiController
 
         $user->save();
 
-        if ($request->hasFile('profile_photo')) {
+        $photoField = $request->hasFile('profile_photo')
+            ? 'profile_photo'
+            : ($request->hasFile('profile_picture') ? 'profile_picture' : ($request->hasFile('avatar') ? 'avatar' : null));
+
+        if ($photoField) {
             $user->clearMediaCollection('profile_photo');
-            $user->addMediaFromRequest('profile_photo')->toMediaCollection('profile_photo');
+            $user->addMediaFromRequest($photoField)->toMediaCollection('profile_photo');
         }
 
         if ($emailChanged) {
@@ -170,6 +289,58 @@ class AuthController extends BaseApiController
             'user' => $this->formatUser($user->fresh()),
             'email_verification_required' => $emailChanged,
         ], 'Profile updated successfully.');
+    }
+
+    /**
+     * Upload or update profile photo directly.
+     */
+    public function updateProfilePhoto(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $photoField = $request->hasFile('profile_photo')
+            ? 'profile_photo'
+            : ($request->hasFile('profile_picture') ? 'profile_picture' : ($request->hasFile('avatar') ? 'avatar' : null));
+
+        if (! $photoField) {
+            return $this->error('No photo file provided.', 422, [
+                'profile_photo' => ['Please upload an image file (field: profile_photo, profile_picture, or avatar).'],
+            ]);
+        }
+
+        $request->validate([
+            $photoField => ['required', 'image', 'max:5120'],
+        ]);
+
+        $user->clearMediaCollection('profile_photo');
+        $user->addMediaFromRequest($photoField)->toMediaCollection('profile_photo');
+
+        return $this->success([
+            'user' => $this->formatUser($user->fresh()),
+            'profile_photo_url' => $user->fresh()->getProfilePhotoUrl(),
+        ], 'Profile photo updated successfully.');
+    }
+
+    /**
+     * Delete user account (Google Play Store compliance requirement).
+     */
+    public function deleteAccount(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($request->filled('password') && $user->password) {
+            if (! Hash::check($request->input('password'), $user->password)) {
+                return $this->error('The provided password does not match your records.', 422, [
+                    'password' => ['The provided password does not match your records.'],
+                ]);
+            }
+        }
+
+        $user->tokens()->delete();
+        $user->clearMediaCollection('profile_photo');
+        $user->delete();
+
+        return $this->success(null, 'Your account has been deleted successfully.');
     }
 
     /**

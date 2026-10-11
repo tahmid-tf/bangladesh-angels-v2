@@ -200,19 +200,47 @@ class AdminMemberApiController extends BaseApiController
     }
 
     /**
-     * Update account status (e.g. core, advanced, institutional, free, disabled).
+     * Update account status (tier: free, core, advanced, institutional, disabled) and/or member mode (active, inactive).
      */
     public function updateStatus(Request $request, User $user): JsonResponse
     {
         $validated = $request->validate([
-            'account_status' => ['required', 'in:free,core,advanced,institutional,disabled'],
+            'account_status' => ['nullable', 'in:free,core,advanced,institutional,disabled'],
+            'status' => ['nullable', 'in:active,inactive'],
+            'mode' => ['nullable', 'in:active,inactive'],
+        ]);
+
+        $updates = [];
+        if (! empty($validated['account_status'])) {
+            $updates['account_status'] = $validated['account_status'];
+        }
+
+        $mode = $validated['status'] ?? $validated['mode'] ?? null;
+        if (! empty($mode)) {
+            $updates['status'] = $mode;
+        }
+
+        if ($updates !== []) {
+            $user->update($updates);
+        }
+
+        return $this->success($this->formatUser($user->fresh()), 'Account status updated.');
+    }
+
+    /**
+     * Update member active/inactive mode.
+     */
+    public function updateMode(Request $request, User $user): JsonResponse
+    {
+        $validated = $request->validate([
+            'status' => ['required', 'in:active,inactive'],
         ]);
 
         $user->update([
-            'account_status' => $validated['account_status'],
+            'status' => $validated['status'],
         ]);
 
-        return $this->success($this->formatUser($user->fresh()), 'Account status updated.');
+        return $this->success($this->formatUser($user->fresh()), 'Member mode updated successfully.');
     }
 
     /**

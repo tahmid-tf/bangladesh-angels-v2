@@ -57,6 +57,7 @@ class CheckoutApiController extends BaseApiController
             'price' => 'required|numeric|min:0',
             'policy_consent' => ['required', 'accepted'],
             'policy_version' => ['required', Rule::in([MembershipPolicies::version()])],
+            'callback_url' => ['nullable', 'string', 'max:500'],
         ]);
 
         $tier = SubscriptionTier::query()->active()->where('slug', $validated['plan'])->first();
@@ -160,7 +161,9 @@ class CheckoutApiController extends BaseApiController
                 return $this->error('Payment gateway is not configured. Please contact support.', 500);
             }
 
-            $callbackUrl = route('payment.dgepay.callback', [], true);
+            $callbackUrl = $request->filled('callback_url')
+                ? (string) $request->input('callback_url')
+                : route('payment.dgepay.callback', [], true);
 
             $desc = $this->dgepay->shouldConvertUsdToBdt()
                 ? "BAN Membership - {$tier->name} ($ {$usdPrice} USD / ৳ {$chargeAmount} BDT)"
@@ -208,7 +211,9 @@ class CheckoutApiController extends BaseApiController
         try {
             $aamarpay = $this->aamarpay ?? app(AamarpayGateway::class);
             $cfg = $aamarpay->activeConfig();
-            $callbackUrl = route('payment.aamarpay.callback');
+            $callbackUrl = $request->filled('callback_url')
+                ? (string) $request->input('callback_url')
+                : route('payment.aamarpay.callback');
 
             $postData = [
                 'store_id' => $cfg['store_id'],
