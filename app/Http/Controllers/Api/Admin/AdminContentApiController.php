@@ -68,67 +68,206 @@ class AdminContentApiController extends BaseApiController
     // STARTUP SERVICES
     // ==========================================
 
-    public function startupServices(): JsonResponse
+    private function formatStartupService(StartupService $s): array
     {
-        $services = StartupService::with('media')->ordered()->get()->map(fn ($s) => [
+        $logoUrl = $s->logoUrl() ?: null;
+        $brochurePdfUrl = $s->getFirstMedia(StartupService::MEDIA_BROCHURE)?->getUrl();
+        $bullets = $s->bulletList();
+
+        return [
             'id' => $s->id,
             'title' => $s->title,
-            'description' => $s->description,
+            'intro' => $s->intro,
+            'bullets' => $bullets,
+            'bullets_count' => count($bullets),
+            'footer_note' => $s->footer_note,
+            'link' => $s->link,
+            'cta_label' => $s->cta_label ?? 'Get in touch',
             'sort_order' => $s->sort_order,
-            'cta_label' => $s->cta_label,
-            'cta_url' => $s->cta_url,
+            'show_brochure_link' => (bool) $s->show_brochure_link,
             'brochure_url' => $s->brochure_url,
-            'icon_url' => $s->getFirstMedia('icon')?->getUrl(),
-        ]);
+            'logo_url' => $logoUrl,
+            'brochure_pdf_url' => $brochurePdfUrl,
+            'brochure_public_href' => $s->brochurePublicHref(),
+            // Aliases for compatibility
+            'description' => $s->intro,
+            'cta_url' => $s->link,
+            'icon_url' => $logoUrl,
+            'created_at' => $s->created_at?->toISOString(),
+            'updated_at' => $s->updated_at?->toISOString(),
+        ];
+    }
+
+    public function startupServices(): JsonResponse
+    {
+        $services = StartupService::with('media')
+            ->ordered()
+            ->get()
+            ->map(fn (StartupService $s) => $this->formatStartupService($s));
 
         return $this->success($services);
     }
 
+    public function showStartupService(StartupService $startupService): JsonResponse
+    {
+        $startupService->loadMissing('media');
+
+        return $this->success($this->formatStartupService($startupService));
+    }
+
     public function storeStartupService(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['required', 'string', 'max:2000'],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
-            'cta_label' => ['nullable', 'string', 'max:100'],
-            'cta_url' => ['nullable', 'string', 'max:2048'],
-            'brochure_url' => ['nullable', 'string', 'max:2048'],
-            'icon' => ['nullable', 'image', 'max:2048'],
-        ]);
-
-        $service = StartupService::create($validated);
-
-        if ($request->hasFile('icon')) {
-            $service->addMediaFromRequest('icon')->toMediaCollection('icon');
+        if ($request->has('description') && ! $request->has('intro')) {
+            $request->merge(['intro' => $request->input('description')]);
+        }
+        if ($request->has('cta_url') && ! $request->has('link')) {
+            $request->merge(['link' => $request->input('cta_url')]);
+        }
+        if ($request->has('bullets') && is_string($request->input('bullets'))) {
+            $decoded = json_decode($request->input('bullets'), true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $request->merge(['bullets' => $decoded]);
+            }
+        }
+        if ($request->has('show_brochure_link')) {
+            $request->merge(['show_brochure_link' => filter_var($request->input('show_brochure_link'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? true]);
         }
 
-        return $this->success($service, 'Startup service created.', 201);
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'intro' => ['required', 'string', 'max:5000'],
+            'bullets' => ['nullable', 'array'],
+            'bullets.*' => ['nullable', 'string', 'max:1000'],
+            'footer_note' => ['nullable', 'string', 'max:2000'],
+            'link' => ['required', 'string', 'max:2048'],
+            'cta_label' => ['nullable', 'string', 'max:120'],
+            'sort_order' => ['nullable', 'integer', 'min:0', 'max:999999'],
+            'show_brochure_link' => ['nullable', 'boolean'],
+            'brochure_url' => ['nullable', 'string', 'max:2048'],
+            'logo' => ['nullable', 'image', 'max:4096'],
+            'icon' => ['nullable', 'image', 'max:4096'],
+            'brochure' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
+        ]);
+
+        $nextOrder = (int) (StartupService::query()->max('sort_order') ?? 0) + 1;
+        $bullets = array_values(array_filter($validated['bullets'] ?? [], fn ($item) => is_string($item) && trim($item) !== ''));
+
+        $service = StartupService::create([
+            'title' => $validated['title'],
+            'intro' => $validated['intro'],
+            'bullets' => $bullets,
+            'footer_note' => ! empty($validated['footer_note']) ? trim($validated['footer_note']) : null,
+            'link' => $validated['link'],
+            'cta_label' => ! empty($validated['cta_label']) ? trim($validated['cta_label']) : 'Get in touch',
+            'sort_order' => isset($validated['sort_order']) && $validated['sort_order'] !== '' ? (int) $validated['sort_order'] : $nextOrder,
+            'show_brochure_link' => $validated['show_brochure_link'] ?? true,
+            'brochure_url' => ! empty($validated['brochure_url']) ? trim($validated['brochure_url']) : null,
+        ]);
+
+        if ($request->hasFile('logo')) {
+            $service->addMediaFromRequest('logo')->toMediaCollection(StartupService::MEDIA_LOGO);
+        } elseif ($request->hasFile('icon')) {
+            $service->addMediaFromRequest('icon')->toMediaCollection(StartupService::MEDIA_LOGO);
+        }
+
+        if ($request->hasFile('brochure')) {
+            $service->addMediaFromRequest('brochure')->toMediaCollection(StartupService::MEDIA_BROCHURE);
+        }
+
+        $service->loadMissing('media');
+
+        return $this->success($this->formatStartupService($service), 'Startup service created.', 201);
     }
 
     public function updateStartupService(Request $request, StartupService $startupService): JsonResponse
     {
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['required', 'string', 'max:2000'],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
-            'cta_label' => ['nullable', 'string', 'max:100'],
-            'cta_url' => ['nullable', 'string', 'max:2048'],
-            'brochure_url' => ['nullable', 'string', 'max:2048'],
-            'icon' => ['nullable', 'image', 'max:2048'],
-        ]);
-
-        $startupService->update($validated);
-
-        if ($request->hasFile('icon')) {
-            $startupService->clearMediaCollection('icon');
-            $startupService->addMediaFromRequest('icon')->toMediaCollection('icon');
+        if ($request->has('description') && ! $request->has('intro')) {
+            $request->merge(['intro' => $request->input('description')]);
+        }
+        if ($request->has('cta_url') && ! $request->has('link')) {
+            $request->merge(['link' => $request->input('cta_url')]);
+        }
+        if ($request->has('bullets') && is_string($request->input('bullets'))) {
+            $decoded = json_decode($request->input('bullets'), true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $request->merge(['bullets' => $decoded]);
+            }
+        }
+        if ($request->has('show_brochure_link')) {
+            $request->merge(['show_brochure_link' => filter_var($request->input('show_brochure_link'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $startupService->show_brochure_link]);
         }
 
-        return $this->success($startupService->fresh(), 'Startup service updated.');
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'intro' => ['required', 'string', 'max:5000'],
+            'bullets' => ['nullable', 'array'],
+            'bullets.*' => ['nullable', 'string', 'max:1000'],
+            'footer_note' => ['nullable', 'string', 'max:2000'],
+            'link' => ['required', 'string', 'max:2048'],
+            'cta_label' => ['nullable', 'string', 'max:120'],
+            'sort_order' => ['nullable', 'integer', 'min:0', 'max:999999'],
+            'show_brochure_link' => ['nullable', 'boolean'],
+            'brochure_url' => ['nullable', 'string', 'max:2048'],
+            'logo' => ['nullable', 'image', 'max:4096'],
+            'icon' => ['nullable', 'image', 'max:4096'],
+            'brochure' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
+            'remove_logo' => ['nullable', 'boolean'],
+            'remove_icon' => ['nullable', 'boolean'],
+            'remove_brochure' => ['nullable', 'boolean'],
+        ]);
+
+        $bullets = array_values(array_filter($validated['bullets'] ?? [], fn ($item) => is_string($item) && trim($item) !== ''));
+
+        $startupService->update([
+            'title' => $validated['title'],
+            'intro' => $validated['intro'],
+            'bullets' => $bullets,
+            'footer_note' => ! empty($validated['footer_note']) ? trim($validated['footer_note']) : null,
+            'link' => $validated['link'],
+            'cta_label' => ! empty($validated['cta_label']) ? trim($validated['cta_label']) : 'Get in touch',
+            'sort_order' => isset($validated['sort_order']) && $validated['sort_order'] !== '' ? (int) $validated['sort_order'] : $startupService->sort_order,
+            'show_brochure_link' => $validated['show_brochure_link'] ?? $startupService->show_brochure_link,
+            'brochure_url' => ! empty($validated['brochure_url']) ? trim($validated['brochure_url']) : null,
+        ]);
+
+        if ($request->hasFile('logo')) {
+            $startupService->clearMediaCollection(StartupService::MEDIA_LOGO);
+            $startupService->addMediaFromRequest('logo')->toMediaCollection(StartupService::MEDIA_LOGO);
+        } elseif ($request->hasFile('icon')) {
+            $startupService->clearMediaCollection(StartupService::MEDIA_LOGO);
+            $startupService->addMediaFromRequest('icon')->toMediaCollection(StartupService::MEDIA_LOGO);
+        } elseif ($request->boolean('remove_logo') || $request->boolean('remove_icon')) {
+            $startupService->clearMediaCollection(StartupService::MEDIA_LOGO);
+        }
+
+        if ($request->hasFile('brochure')) {
+            $startupService->clearMediaCollection(StartupService::MEDIA_BROCHURE);
+            $startupService->addMediaFromRequest('brochure')->toMediaCollection(StartupService::MEDIA_BROCHURE);
+        } elseif ($request->boolean('remove_brochure')) {
+            $startupService->clearMediaCollection(StartupService::MEDIA_BROCHURE);
+        }
+
+        $startupService->loadMissing('media');
+
+        return $this->success($this->formatStartupService($startupService), 'Startup service updated.');
+    }
+
+    public function reorderStartupServices(Request $request): JsonResponse
+    {
+        $order = $request->input('order', []);
+        if (is_array($order)) {
+            foreach ($order as $index => $id) {
+                StartupService::where('id', $id)->update(['sort_order' => $index + 1]);
+            }
+        }
+
+        return $this->success(null, 'Startup services reordered successfully.');
     }
 
     public function destroyStartupService(StartupService $startupService): JsonResponse
     {
+        $startupService->clearMediaCollection(StartupService::MEDIA_LOGO);
+        $startupService->clearMediaCollection(StartupService::MEDIA_BROCHURE);
         $startupService->delete();
 
         return $this->success(null, 'Startup service deleted.');
@@ -174,20 +313,35 @@ class AdminContentApiController extends BaseApiController
         $validated = $request->validate([
             'stats' => ['required', 'array'],
             'stats.*.id' => ['required', 'exists:landing_page_stats,id'],
-            'stats.*.stat_value' => ['required', 'string', 'max:100'],
-            'stats.*.stat_label' => ['required', 'string', 'max:255'],
-            'stats.*.sort_order' => ['required', 'integer', 'min:0'],
+            'stats.*.value' => ['nullable', 'string', 'max:100'],
+            'stats.*.stat_value' => ['nullable', 'string', 'max:100'],
+            'stats.*.label' => ['nullable', 'string', 'max:255'],
+            'stats.*.stat_label' => ['nullable', 'string', 'max:255'],
+            'stats.*.sort_order' => ['nullable', 'integer', 'min:0'],
         ]);
 
         foreach ($validated['stats'] as $item) {
-            LandingPageStat::where('id', $item['id'])->update([
-                'stat_value' => $item['stat_value'],
-                'stat_label' => $item['stat_label'],
-                'sort_order' => $item['sort_order'],
-            ]);
+            $value = $item['value'] ?? $item['stat_value'] ?? null;
+            $label = $item['label'] ?? $item['stat_label'] ?? null;
+            $order = $item['sort_order'] ?? null;
+
+            $updateData = [];
+            if ($value !== null) {
+                $updateData['value'] = trim($value);
+            }
+            if ($label !== null) {
+                $updateData['label'] = trim($label);
+            }
+            if ($order !== null) {
+                $updateData['sort_order'] = (int) $order;
+            }
+
+            if (! empty($updateData)) {
+                LandingPageStat::where('id', $item['id'])->update($updateData);
+            }
         }
 
-        return $this->success(LandingPageStat::query()->ordered()->get(), 'Landing page stats updated.');
+        return $this->success(LandingPageStat::query()->ordered()->get(), 'Homepage statistics updated successfully.');
     }
 
     // ==========================================
@@ -201,45 +355,118 @@ class AdminContentApiController extends BaseApiController
 
     public function storeLandingProgramCard(Request $request): JsonResponse
     {
+        if (LandingProgramCard::query()->count() >= LandingProgramCard::MAX_CARDS) {
+            return $this->error('The homepage can show a maximum of five program cards.', 422);
+        }
+
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'badge' => ['nullable', 'string', 'max:100'],
-            'description' => ['required', 'string', 'max:1000'],
-            'link_url' => ['required', 'string', 'max:2048'],
-            'link_label' => ['required', 'string', 'max:100'],
-            'is_external' => ['nullable', 'boolean'],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
-            'dropdown_items' => ['nullable', 'array'],
+            'eyebrow' => ['nullable', 'string', 'max:120'],
+            'badge' => ['nullable', 'string', 'max:120'],
+            'description' => ['required', 'string', 'max:1200'],
+            'primary_label' => ['nullable', 'string', 'max:120'],
+            'link_label' => ['nullable', 'string', 'max:120'],
+            'primary_link' => ['nullable', 'string', 'max:2048'],
+            'link_url' => ['nullable', 'string', 'max:2048'],
+            'secondary_label' => ['nullable', 'string', 'max:120'],
+            'secondary_link' => ['nullable', 'string', 'max:2048'],
+            'theme' => ['nullable', 'string', 'in:blush,dark,mint,sand,white'],
+            'sort_order' => ['nullable', 'integer', 'min:0', 'max:999'],
+            'dropdown_items' => ['nullable'],
         ]);
 
-        $card = LandingProgramCard::create($validated);
+        $eyebrow = $validated['eyebrow'] ?? $validated['badge'] ?? 'Program';
+        $primaryLabel = $validated['primary_label'] ?? $validated['link_label'] ?? 'Learn more';
+        $primaryLink = $validated['primary_link'] ?? $validated['link_url'] ?? '#';
 
-        return $this->success($card, 'Landing program card created.', 201);
+        $nextOrder = (int) (LandingProgramCard::query()->max('sort_order') ?? 0) + 1;
+
+        $dropdownItems = $validated['dropdown_items'] ?? null;
+        if (is_string($dropdownItems)) {
+            $dropdownItems = json_decode($dropdownItems, true);
+        }
+
+        $card = LandingProgramCard::create([
+            'eyebrow' => $eyebrow,
+            'title' => $validated['title'],
+            'description' => $validated['description'],
+            'primary_label' => $primaryLabel,
+            'primary_link' => $primaryLink,
+            'secondary_label' => $validated['secondary_label'] ?? null,
+            'secondary_link' => $validated['secondary_link'] ?? null,
+            'dropdown_items' => $dropdownItems,
+            'theme' => $validated['theme'] ?? 'white',
+            'sort_order' => (int) ($validated['sort_order'] ?? $nextOrder),
+        ]);
+
+        return $this->success($card, 'Homepage program card created successfully.', 201);
     }
 
     public function updateLandingProgramCard(Request $request, LandingProgramCard $landingProgramCard): JsonResponse
     {
         $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'badge' => ['nullable', 'string', 'max:100'],
-            'description' => ['required', 'string', 'max:1000'],
-            'link_url' => ['required', 'string', 'max:2048'],
-            'link_label' => ['required', 'string', 'max:100'],
-            'is_external' => ['nullable', 'boolean'],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
-            'dropdown_items' => ['nullable', 'array'],
+            'title' => ['sometimes', 'required', 'string', 'max:255'],
+            'eyebrow' => ['nullable', 'string', 'max:120'],
+            'badge' => ['nullable', 'string', 'max:120'],
+            'description' => ['sometimes', 'required', 'string', 'max:1200'],
+            'primary_label' => ['nullable', 'string', 'max:120'],
+            'link_label' => ['nullable', 'string', 'max:120'],
+            'primary_link' => ['nullable', 'string', 'max:2048'],
+            'link_url' => ['nullable', 'string', 'max:2048'],
+            'secondary_label' => ['nullable', 'string', 'max:120'],
+            'secondary_link' => ['nullable', 'string', 'max:2048'],
+            'theme' => ['nullable', 'string', 'in:blush,dark,mint,sand,white'],
+            'sort_order' => ['nullable', 'integer', 'min:0', 'max:999'],
+            'dropdown_items' => ['nullable'],
         ]);
 
-        $landingProgramCard->update($validated);
+        $updateData = [];
 
-        return $this->success($landingProgramCard->fresh(), 'Landing program card updated.');
+        if ($request->has('title')) {
+            $updateData['title'] = $validated['title'];
+        }
+        if ($request->has('eyebrow') || $request->has('badge')) {
+            $updateData['eyebrow'] = $validated['eyebrow'] ?? $validated['badge'] ?? $landingProgramCard->eyebrow;
+        }
+        if ($request->has('description')) {
+            $updateData['description'] = $validated['description'];
+        }
+        if ($request->has('primary_label') || $request->has('link_label')) {
+            $updateData['primary_label'] = $validated['primary_label'] ?? $validated['link_label'] ?? $landingProgramCard->primary_label;
+        }
+        if ($request->has('primary_link') || $request->has('link_url')) {
+            $updateData['primary_link'] = $validated['primary_link'] ?? $validated['link_url'] ?? $landingProgramCard->primary_link;
+        }
+        if ($request->has('secondary_label')) {
+            $updateData['secondary_label'] = $validated['secondary_label'];
+        }
+        if ($request->has('secondary_link')) {
+            $updateData['secondary_link'] = $validated['secondary_link'];
+        }
+        if ($request->has('theme')) {
+            $updateData['theme'] = $validated['theme'] ?? 'white';
+        }
+        if ($request->has('sort_order')) {
+            $updateData['sort_order'] = (int) $validated['sort_order'];
+        }
+        if ($request->has('dropdown_items')) {
+            $dropdownItems = $validated['dropdown_items'];
+            if (is_string($dropdownItems)) {
+                $dropdownItems = json_decode($dropdownItems, true);
+            }
+            $updateData['dropdown_items'] = $dropdownItems;
+        }
+
+        $landingProgramCard->update($updateData);
+
+        return $this->success($landingProgramCard->fresh(), 'Homepage program card updated successfully.');
     }
 
     public function destroyLandingProgramCard(LandingProgramCard $landingProgramCard): JsonResponse
     {
         $landingProgramCard->delete();
 
-        return $this->success(null, 'Landing program card deleted.');
+        return $this->success(null, 'Homepage program card deleted successfully.');
     }
 
     // ==========================================
@@ -248,24 +475,37 @@ class AdminContentApiController extends BaseApiController
 
     public function homepagePortfolios(): JsonResponse
     {
-        $items = HomepagePortfolio::with('deal.media')->ordered()->get();
+        $items = HomepagePortfolio::with('deal.media')->ordered()->get()->map(fn ($p) => $this->formatHomepagePortfolio($p));
 
         return $this->success($items);
     }
 
     public function storeHomepagePortfolio(Request $request): JsonResponse
     {
+        if (HomepagePortfolio::query()->count() >= HomepagePortfolio::MAX_SELECTIONS) {
+            return $this->error('The homepage can show a maximum of ' . HomepagePortfolio::MAX_SELECTIONS . ' selected portfolios.', 422);
+        }
+
         $validated = $request->validate([
             'deal_id' => ['required', 'exists:deals,id', 'unique:homepage_portfolios,deal_id'],
+        ], [
+            'deal_id.unique' => 'This portfolio company is already selected for the homepage.',
+            'deal_id.exists' => 'The selected company was not found.',
         ]);
+
+        $deal = \App\Models\Deal::findOrFail($validated['deal_id']);
+
+        if (! $deal->isListedInPortfolio()) {
+            return $this->error('Only companies listed in the portfolio can be featured on the homepage.', 422);
+        }
 
         $maxOrder = (int) HomepagePortfolio::max('sort_order');
         $item = HomepagePortfolio::create([
-            'deal_id' => $validated['deal_id'],
+            'deal_id' => $deal->id,
             'sort_order' => $maxOrder + 1,
         ]);
 
-        return $this->success($item->load('deal.media'), 'Portfolio added to homepage.', 201);
+        return $this->success($this->formatHomepagePortfolio($item->load('deal.media')), 'Portfolio added to homepage.', 201);
     }
 
     public function reorderHomepagePortfolios(Request $request): JsonResponse
@@ -279,14 +519,101 @@ class AdminContentApiController extends BaseApiController
             HomepagePortfolio::where('id', $id)->update(['sort_order' => $index + 1]);
         }
 
-        return $this->success(HomepagePortfolio::with('deal.media')->ordered()->get(), 'Order updated.');
+        $this->normalizePortfolioSortOrders();
+
+        $items = HomepagePortfolio::with('deal.media')->ordered()->get()->map(fn ($p) => $this->formatHomepagePortfolio($p));
+
+        return $this->success($items, 'Order updated.');
     }
 
     public function destroyHomepagePortfolio(HomepagePortfolio $homepagePortfolio): JsonResponse
     {
+        $title = $homepagePortfolio->deal?->title ?? 'Portfolio company';
         $homepagePortfolio->delete();
+        $this->normalizePortfolioSortOrders();
 
-        return $this->success(null, 'Homepage portfolio removed.');
+        return $this->success(null, "{$title} removed from homepage selection.");
+    }
+
+    public function syncHomepagePortfolios(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'deal_ids' => ['nullable', 'array', 'max:' . HomepagePortfolio::MAX_SELECTIONS],
+            'deal_ids.*' => ['integer', 'exists:deals,id'],
+        ], [
+            'deal_ids.max' => 'You can select a maximum of ' . HomepagePortfolio::MAX_SELECTIONS . ' portfolios for the homepage.',
+        ]);
+
+        $dealIds = array_values(array_unique(array_filter($validated['deal_ids'] ?? [])));
+
+        if (empty($dealIds)) {
+            HomepagePortfolio::query()->delete();
+            return $this->success([], 'Homepage selections cleared. Default latest portfolios will be shown.');
+        }
+
+        $validDeals = \App\Models\Deal::query()
+            ->whereIn('id', $dealIds)
+            ->inPortfolio()
+            ->pluck('id')
+            ->all();
+
+        if (count($validDeals) !== count($dealIds)) {
+            return $this->error('One or more selected deals are not valid portfolio companies.', 422);
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($dealIds): void {
+            HomepagePortfolio::query()
+                ->whereNotIn('deal_id', $dealIds)
+                ->delete();
+
+            foreach ($dealIds as $index => $dealId) {
+                HomepagePortfolio::query()->updateOrCreate(
+                    ['deal_id' => $dealId],
+                    ['sort_order' => $index + 1]
+                );
+            }
+        });
+
+        $this->normalizePortfolioSortOrders();
+
+        $items = HomepagePortfolio::with('deal.media')->ordered()->get()->map(fn ($p) => $this->formatHomepagePortfolio($p));
+
+        return $this->success($items, 'Homepage portfolio selections synced successfully.');
+    }
+
+    protected function formatHomepagePortfolio(HomepagePortfolio $item): array
+    {
+        return [
+            'id' => $item->id,
+            'deal_id' => $item->deal_id,
+            'sort_order' => (int) $item->sort_order,
+            'created_at' => $item->created_at?->toIso8601String(),
+            'updated_at' => $item->updated_at?->toIso8601String(),
+            'deal' => $item->deal ? [
+                'id' => $item->deal->id,
+                'title' => $item->deal->title,
+                'slug' => $item->deal->slug,
+                'sector' => $item->deal->sector,
+                'type' => $item->deal->type,
+                'is_portfolio' => (bool) $item->deal->is_portfolio,
+                'status' => $item->deal->status,
+                'description' => $item->deal->description,
+                'logo_url' => $item->deal->getLogoUrl(),
+                'cover_url' => $item->deal->getCoverUrl(),
+            ] : null,
+        ];
+    }
+
+    protected function normalizePortfolioSortOrders(): void
+    {
+        $items = HomepagePortfolio::query()->ordered()->get();
+
+        foreach ($items as $index => $item) {
+            $expectedOrder = $index + 1;
+            if ($item->sort_order !== $expectedOrder) {
+                $item->update(['sort_order' => $expectedOrder]);
+            }
+        }
     }
 
     // ==========================================
@@ -319,6 +646,7 @@ class AdminContentApiController extends BaseApiController
             'image_alt' => ['required', 'string', 'max:255'],
             'image_badge' => ['required', 'string', 'max:160'],
             'image' => ['nullable', 'image', 'max:8192'],
+            'remove_image' => ['sometimes', 'boolean'],
         ]);
 
         $paragraphs = $validated['body'] ?? (filled($validated['body_text'] ?? null)
@@ -341,27 +669,78 @@ class AdminContentApiController extends BaseApiController
             $section = TeamAboutSection::create($attributes);
         }
 
+        if ($request->boolean('remove_image')) {
+            $section->clearMediaCollection(TeamAboutSection::MEDIA_IMAGE);
+        }
+
         if ($request->hasFile('image')) {
             $section->clearMediaCollection(TeamAboutSection::MEDIA_IMAGE);
             $section->addMediaFromRequest('image')->toMediaCollection(TeamAboutSection::MEDIA_IMAGE);
         }
 
-        return $this->success($section->fresh(), 'Team About section updated.');
+        $fresh = $section->fresh();
+
+        return $this->success([
+            'id' => $fresh->id,
+            'kicker' => $fresh->kicker,
+            'heading' => $fresh->heading,
+            'body' => $fresh->body,
+            'paragraphs' => $fresh->paragraphs(),
+            'image_alt' => $fresh->image_alt,
+            'image_badge' => $fresh->image_badge,
+            'image_url' => $fresh->imageUrl(),
+        ], 'Team About section updated.');
     }
 
     // ==========================================
     // TEAM MEMBERS
     // ==========================================
 
-    public function teamMembers(): JsonResponse
+    public function teamMembers(Request $request): JsonResponse
     {
-        $management = TeamMember::forSection(TeamMember::SECTION_MANAGEMENT)->ordered()->get()->map(fn ($m) => $this->formatMember($m));
-        $governing = TeamMember::forSection(TeamMember::SECTION_GOVERNING_BOARD)->ordered()->get()->map(fn ($m) => $this->formatMember($m));
+        $search = trim((string) $request->input('search', ''));
+        $sectionFilter = trim((string) $request->input('section', ''));
+
+        $query = TeamMember::with('media')->ordered();
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('title', 'like', "%{$search}%")
+                    ->orWhere('subtitle', 'like', "%{$search}%");
+            });
+        }
+
+        if ($sectionFilter !== '' && in_array($sectionFilter, [TeamMember::SECTION_MANAGEMENT, TeamMember::SECTION_GOVERNING_BOARD], true)) {
+            $query->where('section', $sectionFilter);
+        }
+
+        $allMembers = $query->get();
+
+        $management = $allMembers->where('section', TeamMember::SECTION_MANAGEMENT)->values()->map(fn ($m) => $this->formatMember($m));
+        $governing = $allMembers->where('section', TeamMember::SECTION_GOVERNING_BOARD)->values()->map(fn ($m) => $this->formatMember($m));
+        $formattedList = $allMembers->map(fn ($m) => $this->formatMember($m))->values();
+
+        // Total counts across the database
+        $counts = [
+            'all' => TeamMember::count(),
+            'management' => TeamMember::where('section', TeamMember::SECTION_MANAGEMENT)->count(),
+            'governing_board' => TeamMember::where('section', TeamMember::SECTION_GOVERNING_BOARD)->count(),
+        ];
 
         return $this->success([
+            'members' => $formattedList,
             'management' => $management,
             'governing_board' => $governing,
+            'counts' => $counts,
         ]);
+    }
+
+    public function showTeamMember(TeamMember $teamMember): JsonResponse
+    {
+        $teamMember->loadMissing('media');
+
+        return $this->success($this->formatMember($teamMember));
     }
 
     public function storeTeamMember(Request $request): JsonResponse
@@ -371,8 +750,8 @@ class AdminContentApiController extends BaseApiController
             'name' => ['required', 'string', 'max:255'],
             'title' => ['required', 'string', 'max:255'],
             'subtitle' => ['nullable', 'string', 'max:255'],
-            'linkedin_url' => ['nullable', 'url', 'max:2048'],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'linkedin_url' => ['nullable', 'string', 'max:512'],
+            'sort_order' => ['nullable', 'integer', 'min:0', 'max:99999'],
             'photo' => ['nullable', 'image', 'max:5120'],
         ]);
 
@@ -380,16 +759,18 @@ class AdminContentApiController extends BaseApiController
 
         $member = TeamMember::create([
             'section' => $validated['section'],
-            'name' => $validated['name'],
-            'title' => $validated['title'],
-            'subtitle' => $validated['subtitle'] ?? null,
-            'linkedin_url' => $validated['linkedin_url'] ?? null,
-            'sort_order' => $validated['sort_order'] ?? $nextOrder,
+            'name' => trim($validated['name']),
+            'title' => trim($validated['title']),
+            'subtitle' => filled($validated['subtitle'] ?? null) ? trim((string) $validated['subtitle']) : null,
+            'linkedin_url' => filled($validated['linkedin_url'] ?? null) ? trim((string) $validated['linkedin_url']) : null,
+            'sort_order' => isset($validated['sort_order']) && $validated['sort_order'] !== '' ? (int) $validated['sort_order'] : $nextOrder,
         ]);
 
         if ($request->hasFile('photo')) {
-            $member->addMediaFromRequest('photo')->toMediaCollection('photo');
+            $member->addMediaFromRequest('photo')->toMediaCollection(TeamMember::MEDIA_PHOTO);
         }
+
+        $member->loadMissing('media');
 
         return $this->success($this->formatMember($member), 'Team member created.', 201);
     }
@@ -401,30 +782,48 @@ class AdminContentApiController extends BaseApiController
             'name' => ['required', 'string', 'max:255'],
             'title' => ['required', 'string', 'max:255'],
             'subtitle' => ['nullable', 'string', 'max:255'],
-            'linkedin_url' => ['nullable', 'url', 'max:2048'],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'linkedin_url' => ['nullable', 'string', 'max:512'],
+            'sort_order' => ['nullable', 'integer', 'min:0', 'max:99999'],
             'photo' => ['nullable', 'image', 'max:5120'],
+            'remove_photo' => ['nullable', 'boolean'],
         ]);
 
         $teamMember->update([
             'section' => $validated['section'],
-            'name' => $validated['name'],
-            'title' => $validated['title'],
-            'subtitle' => $validated['subtitle'] ?? null,
-            'linkedin_url' => $validated['linkedin_url'] ?? null,
-            'sort_order' => $validated['sort_order'] ?? $teamMember->sort_order,
+            'name' => trim($validated['name']),
+            'title' => trim($validated['title']),
+            'subtitle' => filled($validated['subtitle'] ?? null) ? trim((string) $validated['subtitle']) : null,
+            'linkedin_url' => filled($validated['linkedin_url'] ?? null) ? trim((string) $validated['linkedin_url']) : null,
+            'sort_order' => isset($validated['sort_order']) && $validated['sort_order'] !== '' ? (int) $validated['sort_order'] : $teamMember->sort_order,
         ]);
 
         if ($request->hasFile('photo')) {
-            $teamMember->clearMediaCollection('photo');
-            $teamMember->addMediaFromRequest('photo')->toMediaCollection('photo');
+            $teamMember->clearMediaCollection(TeamMember::MEDIA_PHOTO);
+            $teamMember->addMediaFromRequest('photo')->toMediaCollection(TeamMember::MEDIA_PHOTO);
+        } elseif ($request->boolean('remove_photo')) {
+            $teamMember->clearMediaCollection(TeamMember::MEDIA_PHOTO);
         }
 
-        return $this->success($this->formatMember($teamMember->fresh()), 'Team member updated.');
+        $teamMember->loadMissing('media');
+
+        return $this->success($this->formatMember($teamMember), 'Team member updated.');
+    }
+
+    public function reorderTeamMembers(Request $request): JsonResponse
+    {
+        $order = $request->input('order', []);
+        if (is_array($order)) {
+            foreach ($order as $index => $id) {
+                TeamMember::where('id', $id)->update(['sort_order' => $index + 1]);
+            }
+        }
+
+        return $this->success(null, 'Team members reordered successfully.');
     }
 
     public function destroyTeamMember(TeamMember $teamMember): JsonResponse
     {
+        $teamMember->clearMediaCollection(TeamMember::MEDIA_PHOTO);
         $teamMember->delete();
 
         return $this->success(null, 'Team member deleted.');
@@ -440,7 +839,10 @@ class AdminContentApiController extends BaseApiController
             'subtitle' => $m->subtitle,
             'linkedin_url' => $m->linkedin_url,
             'sort_order' => $m->sort_order,
-            'photo_url' => $m->getFirstMedia('photo')?->getUrl() ?? asset('default_pfp.jpg'),
+            'photo_url' => $m->photoUrl() ?: asset('default_pfp.jpg'),
+            'has_custom_photo' => $m->hasMedia(TeamMember::MEDIA_PHOTO),
+            'created_at' => $m->created_at?->toISOString(),
+            'updated_at' => $m->updated_at?->toISOString(),
         ];
     }
 }

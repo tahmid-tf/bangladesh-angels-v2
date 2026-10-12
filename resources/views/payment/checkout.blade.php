@@ -20,6 +20,18 @@
     $planSlug = (string) ($cp['slug'] ?? '');
     $planName = (string) ($cp['name'] ?? 'Default Plan');
     $planPrice = $cp['price'] ?? 0;
+
+    if (empty($planSlug) || request()->filled('plan')) {
+        $targetSlug = (string) request('plan', $planSlug);
+        $foundTier = \App\Models\SubscriptionTier::query()->active()
+            ->when($targetSlug, fn ($q) => $q->where('slug', $targetSlug))
+            ->first() ?? \App\Models\SubscriptionTier::query()->active()->first();
+        if ($foundTier) {
+            $planSlug = $foundTier->slug;
+            $planName = $foundTier->name;
+            $planPrice = (float) $foundTier->price_yearly;
+        }
+    }
     $checkoutUser = auth()->user();
     $isLoggedInCheckout = (bool) $checkoutUser;
     $knownCodes = ['880', '44', '1', '971', '91', '92', '61', '65', '81'];

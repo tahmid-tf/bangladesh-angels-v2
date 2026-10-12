@@ -26,12 +26,24 @@ class AdminPublicationApiController extends BaseApiController
             ->when(in_array($status, [Publication::STATUS_ARCHIVED, Publication::STATUS_PUBLISHED], true), fn ($q) => $q->where('status', $status))
             ->when($search !== '', fn ($q) => $q->where(function ($inner) use ($search) {
                 $inner->where('title', 'like', '%'.$search.'%')
+                    ->orWhere('excerpt', 'like', '%'.$search.'%')
                     ->orWhere('category', 'like', '%'.$search.'%');
             }))
             ->latest('updated_at')
             ->paginate((int) $request->query('per_page', 15));
 
-        return $this->success($publications);
+        $counts = [
+            'all' => Publication::count(),
+            'published' => Publication::where('status', Publication::STATUS_PUBLISHED)->count(),
+            'archived' => Publication::where('status', Publication::STATUS_ARCHIVED)->count(),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Publications retrieved successfully.',
+            'data' => $publications,
+            'counts' => $counts,
+        ]);
     }
 
     /**
@@ -39,21 +51,24 @@ class AdminPublicationApiController extends BaseApiController
      */
     public function store(Request $request): JsonResponse
     {
-        $data = $this->validated($request, true);
+        $data = $this->validated($request, false);
         $file = $request->file('pdf');
-        $path = $this->storePdf($file);
+        $path = $file ? $this->storePdf($file) : ($request->input('pdf_path') ?: 'publications/document.pdf');
+        $originalName = $file ? $file->getClientOriginalName() : ($request->input('pdf_original_name') ?: (Str::slug($data['title']) . '.pdf'));
         unset($data['pdf']);
 
         try {
             $pub = Publication::create([
                 ...$data,
                 'pdf_path' => $path,
-                'pdf_original_name' => $file->getClientOriginalName(),
+                'pdf_original_name' => $originalName,
                 'created_by' => $request->user()->id,
                 'published_at' => $this->publicationDate($data),
             ]);
         } catch (\Throwable $e) {
-            Storage::disk('local')->delete($path);
+            if ($file && $path) {
+                Storage::disk('local')->delete($path);
+            }
             throw $e;
         }
 
@@ -136,6 +151,22 @@ class AdminPublicationApiController extends BaseApiController
         return $this->success(null, 'Publication deleted successfully.');
     }
 
+    /**
+     * Download publication PDF file for admin.
+     */
+    public function download(Publication $publication)
+    {
+        if (! $publication->pdf_path || ! Storage::disk('local')->exists($publication->pdf_path)) {
+            return $this->error('Publication PDF file not found.', 404);
+        }
+
+        return Storage::disk('local')->download(
+            $publication->pdf_path,
+            $publication->pdf_original_name ?: 'publication.pdf',
+            ['X-Content-Type-Options' => 'nosniff']
+        );
+    }
+
     private function validated(Request $request, bool $pdfRequired = false): array
     {
         return $request->validate([
@@ -144,7 +175,9 @@ class AdminPublicationApiController extends BaseApiController
             'category' => ['required', 'string', 'max:100'],
             'status' => ['required', Rule::in([Publication::STATUS_ARCHIVED, Publication::STATUS_PUBLISHED])],
             'published_at' => ['nullable', 'date'],
-            'pdf' => [$pdfRequired ? 'required' : 'nullable', 'file', 'mimes:pdf', 'max:20480'],
+            'pdf' => [$pdfRequired ? 'required' : 'nullable', 'file', 'max:20480'],
+            'pdf_original_name' => ['nullable', 'string', 'max:255'],
+            'pdf_path' => ['nullable', 'string', 'max:500'],
         ]);
     }
 

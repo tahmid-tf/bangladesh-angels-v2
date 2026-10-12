@@ -21,9 +21,15 @@ class AdminDealApiController extends BaseApiController
         $search = trim((string) $request->query('search', ''));
 
         $query = Deal::with('media')
+            ->withCount([
+                'investments as interested_count' => fn ($q) => $q->where('type', 'interested'),
+                'investments as unviewed_interested_count' => fn ($q) => $q->where('type', 'interested')->whereNull('viewed_at'),
+            ])
             ->when($type, function ($q) use ($type) {
                 if ($type === 'portfolio') {
                     $q->inPortfolio();
+                } elseif ($type === 'invest-portfolio') {
+                    $q->where('type', 'invest')->where('is_portfolio', true);
                 } else {
                     $q->where('type', $type);
                 }
@@ -39,7 +45,21 @@ class AdminDealApiController extends BaseApiController
         $deals = $query->latest()->paginate((int) $request->query('per_page', 20))
             ->through(fn (Deal $deal) => $this->formatDeal($deal, true));
 
-        return $this->success($deals);
+        $counts = [
+            'all' => Deal::count(),
+            'invest' => Deal::where('type', 'invest')->count(),
+            'commit' => Deal::where('type', 'commit')->count(),
+            'review' => Deal::where('type', 'review')->count(),
+            'portfolio' => Deal::inPortfolio()->count(),
+            'invest_portfolio' => Deal::where('type', 'invest')->where('is_portfolio', true)->count(),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Success',
+            'data' => $deals,
+            'counts' => $counts,
+        ]);
     }
 
     /**
@@ -57,6 +77,13 @@ class AdminDealApiController extends BaseApiController
      */
     public function store(Request $request): JsonResponse
     {
+        if ($request->has('key_metrics') && is_string($request->input('key_metrics'))) {
+            $decoded = json_decode($request->input('key_metrics'), true);
+            if (is_array($decoded)) {
+                $request->merge(['key_metrics' => $decoded]);
+            }
+        }
+
         $validatedData = $request->validate([
             'title' => 'required|string|max:255',
             'sector' => 'required|string|max:255',
@@ -76,7 +103,7 @@ class AdminDealApiController extends BaseApiController
             'revenue_model' => 'nullable|string',
             'future_plans' => 'nullable|string',
             'partnerships' => 'nullable|string',
-            'video_url' => 'nullable|url|max:255',
+            'video_url' => 'nullable|string|max:255',
             'image_gallery.*' => 'nullable|image|max:5120',
             'status' => 'nullable|in:active,closed,draft',
             'key_metrics' => 'nullable|array',
@@ -85,13 +112,14 @@ class AdminDealApiController extends BaseApiController
         ]);
 
         $slug = Deal::makeUniqueSlug(Deal::slugBaseFromTitle($validatedData['title']));
+        $isPortfolio = $validatedData['type'] === 'portfolio' ? true : $request->boolean('is_portfolio');
 
         $deal = Deal::create([
             'title' => $validatedData['title'],
             'slug' => $slug,
             'sector' => $validatedData['sector'],
             'type' => $validatedData['type'],
-            'is_portfolio' => $request->boolean('is_portfolio'),
+            'is_portfolio' => $isPortfolio,
             'investment_stage' => $validatedData['investment_stage'] ?? null,
             'amount_seeking' => $validatedData['amount_seeking'] ?? null,
             'description' => $validatedData['description'],
@@ -132,6 +160,13 @@ class AdminDealApiController extends BaseApiController
      */
     public function update(Request $request, Deal $deal): JsonResponse
     {
+        if ($request->has('key_metrics') && is_string($request->input('key_metrics'))) {
+            $decoded = json_decode($request->input('key_metrics'), true);
+            if (is_array($decoded)) {
+                $request->merge(['key_metrics' => $decoded]);
+            }
+        }
+
         $validatedData = $request->validate([
             'title' => 'required|string|max:255',
             'sector' => 'required|string|max:255',
@@ -151,7 +186,7 @@ class AdminDealApiController extends BaseApiController
             'revenue_model' => 'nullable|string',
             'future_plans' => 'nullable|string',
             'partnerships' => 'nullable|string',
-            'video_url' => 'nullable|url|max:255',
+            'video_url' => 'nullable|string|max:255',
             'image_gallery.*' => 'nullable|image|max:5120',
             'status' => 'nullable|in:active,closed,draft',
             'key_metrics' => 'nullable|array',
@@ -159,11 +194,13 @@ class AdminDealApiController extends BaseApiController
             'key_metrics.*.value' => 'nullable|string|max:255',
         ]);
 
+        $isPortfolio = $validatedData['type'] === 'portfolio' ? true : $request->boolean('is_portfolio');
+
         $deal->update([
             'title' => $validatedData['title'],
             'sector' => $validatedData['sector'],
             'type' => $validatedData['type'],
-            'is_portfolio' => $request->boolean('is_portfolio'),
+            'is_portfolio' => $isPortfolio,
             'investment_stage' => $validatedData['investment_stage'] ?? null,
             'amount_seeking' => $validatedData['amount_seeking'] ?? null,
             'description' => $validatedData['description'],
@@ -181,12 +218,16 @@ class AdminDealApiController extends BaseApiController
             'key_metrics' => isset($validatedData['key_metrics']) ? json_encode($validatedData['key_metrics']) : $deal->key_metrics,
         ]);
 
-        if ($request->hasFile('company_logo')) {
+        if ($request->boolean('remove_logo')) {
+            $deal->clearMediaCollection('company_logo');
+        } elseif ($request->hasFile('company_logo')) {
             $deal->clearMediaCollection('company_logo');
             $deal->addMediaFromRequest('company_logo')->toMediaCollection('company_logo');
         }
 
-        if ($request->hasFile('company_cover')) {
+        if ($request->boolean('remove_cover')) {
+            $deal->clearMediaCollection('company_cover');
+        } elseif ($request->hasFile('company_cover')) {
             $deal->clearMediaCollection('company_cover');
             $deal->addMediaFromRequest('company_cover')->toMediaCollection('company_cover');
         }
@@ -215,7 +256,7 @@ class AdminDealApiController extends BaseApiController
      */
     public function memberActivity(Deal $deal): JsonResponse
     {
-        $investments = Investment::with('user')
+        $investments = Investment::with(['user', 'viewer'])
             ->where('deal_id', $deal->id)
             ->latest()
             ->get();
@@ -225,10 +266,25 @@ class AdminDealApiController extends BaseApiController
             ->latest()
             ->get();
 
+        $interested = $investments->where('type', 'interested')->values();
+        $investRows = $investments->where('type', 'invest')->values();
+        $reviewRows = $investments->where('type', 'review')->values();
+
         return $this->success([
-            'deal' => $this->formatDeal($deal),
+            'deal' => $this->formatDeal($deal, true),
             'investments' => $investments,
+            'interested' => $interested,
+            'invest_rows' => $investRows,
+            'review_rows' => $reviewRows,
             'commits' => $commits,
+            'summary' => [
+                'interested_count' => $interested->count(),
+                'unviewed_interested_count' => $interested->whereNull('viewed_at')->count(),
+                'invest_count' => $investRows->count(),
+                'review_count' => $reviewRows->count(),
+                'commits_count' => $commits->count(),
+                'total_committed_amount' => (float) $commits->sum('amount'),
+            ],
         ]);
     }
 

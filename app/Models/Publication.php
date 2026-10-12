@@ -27,6 +27,15 @@ class Publication extends Model
         'created_by',
     ];
 
+    protected $appends = [
+        'download_url',
+    ];
+
+    public function getDownloadUrlAttribute(): string
+    {
+        return route('api.publications.download', $this->id);
+    }
+
     protected function casts(): array
     {
         return ['published_at' => 'datetime'];

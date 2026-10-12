@@ -19,7 +19,7 @@ class AdminMemberApiController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         $search = trim((string) $request->query('search', ''));
-        $status = $request->query('status'); // 'active', 'inactive', 'pending_approval'
+        $status = $request->query('status'); // 'all', 'active', 'inactive', 'pending', 'pending_approval', 'featured'
         $role = $request->query('role');
         $accountStatus = $request->query('account_status');
 
@@ -29,19 +29,43 @@ class AdminMemberApiController extends BaseApiController
                     $inner->where('name', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%")
                         ->orWhere('phone', 'like', "%{$search}%")
-                        ->orWhere('company_name', 'like', "%{$search}%");
+                        ->orWhere('company_name', 'like', "%{$search}%")
+                        ->orWhere('designation', 'like', "%{$search}%");
                 });
             })
-            ->when($status === 'active', fn ($q) => $q->where('is_approved', true)->where('account_status', '!=', 'disabled'))
-            ->when($status === 'inactive', fn ($q) => $q->where('account_status', 'disabled'))
-            ->when($status === 'pending_approval', fn ($q) => $q->where('is_approved', false))
+            ->when($status === 'active', fn ($q) => $q->where('is_approved', true)->where(function ($inner) {
+                $inner->where('status', 'active')->orWhereNull('status');
+            })->where('account_status', '!=', 'disabled'))
+            ->when($status === 'inactive', fn ($q) => $q->where(function ($inner) {
+                $inner->where('status', 'inactive')->orWhere('account_status', 'disabled');
+            }))
+            ->when($status === 'pending_approval' || $status === 'pending', fn ($q) => $q->where('is_approved', false))
+            ->when($status === 'featured', fn ($q) => $q->where('featured', true)->where('is_approved', true))
+            ->when($status === 'all', fn ($q) => $q->where('is_approved', true))
             ->when($role, fn ($q) => $q->where('role', $role))
             ->when($accountStatus, fn ($q) => $q->where('account_status', $accountStatus));
 
         $members = $query->latest()->paginate((int) $request->query('per_page', 25))
             ->through(fn (User $user) => $this->formatUser($user));
 
-        return $this->success($members);
+        $counts = [
+            'all' => User::where('is_approved', true)->count(),
+            'active' => User::where(function ($q) {
+                $q->where('status', 'active')->orWhereNull('status');
+            })->where('is_approved', true)->where('account_status', '!=', 'disabled')->count(),
+            'inactive' => User::where(function ($q) {
+                $q->where('status', 'inactive')->orWhere('account_status', 'disabled');
+            })->where('is_approved', true)->count(),
+            'pending' => User::where('is_approved', false)->count(),
+            'featured' => User::where('featured', true)->where('is_approved', true)->count(),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Success',
+            'data' => $members,
+            'counts' => $counts,
+        ]);
     }
 
     /**
@@ -65,40 +89,57 @@ class AdminMemberApiController extends BaseApiController
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required_without:full_name', 'nullable', 'string', 'max:255'],
+            'full_name' => ['required_without:name', 'nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
-            'phone' => ['nullable', 'string', 'max:20'],
+            'phone' => ['nullable', 'string', 'max:30'],
             'address' => ['nullable', 'string', 'max:255'],
             'company_name' => ['nullable', 'string', 'max:255'],
+            'organization' => ['nullable', 'string', 'max:255'],
             'designation' => ['nullable', 'string', 'max:255'],
-            'gender' => ['required', 'in:male,female,other'],
-            'role' => ['required', 'in:investor,admin,superadmin,disabled'],
-            'account_status' => ['required', 'in:free,core,advanced,institutional,disabled'],
+            'gender' => ['nullable', 'in:male,female,other'],
+            'role' => ['nullable', 'in:investor,admin,superadmin,disabled'],
+            'account_status' => ['nullable', 'in:free,core,advanced,institutional,disabled'],
+            'status' => ['nullable', 'in:active,inactive'],
             'is_approved' => ['nullable', 'boolean'],
+            'verify_email' => ['nullable', 'boolean'],
             'password' => ['required', 'string', 'min:8'],
             'primary_country' => ['nullable', 'string', 'max:100'],
+            'country' => ['nullable', 'string', 'max:100'],
+            'preference_sector' => ['nullable', 'string', 'max:255'],
             'linkedin' => ['nullable', 'url', 'max:255'],
             'investment_expertise' => ['nullable', 'in:beginner,intermediate,expert'],
             'profile_photo' => ['nullable', 'image', 'max:5120'],
         ]);
 
+        $name = trim((string) ($validated['name'] ?? $validated['full_name'] ?? ''));
+        $company = $validated['company_name'] ?? $validated['organization'] ?? null;
+        $primaryCountry = $validated['primary_country'] ?? $validated['country'] ?? 'Bangladesh';
+        $role = $validated['role'] ?? 'investor';
+        $accountStatus = $validated['account_status'] ?? 'free';
+        $gender = $validated['gender'] ?? 'male';
+        $status = $validated['status'] ?? 'active';
+
         $user = User::create([
-            'name' => $validated['name'],
+            'name' => $name,
             'email' => $validated['email'],
             'phone' => $validated['phone'] ?? null,
             'address' => $validated['address'] ?? null,
-            'company_name' => $validated['company_name'] ?? null,
+            'company_name' => $company,
             'designation' => $validated['designation'] ?? null,
-            'gender' => $validated['gender'],
-            'role' => $validated['role'],
-            'account_status' => $validated['account_status'],
-            'payment_status' => $validated['account_status'] === 'free' ? 'free' : 'paid',
+            'gender' => $gender,
+            'role' => $role,
+            'account_status' => $accountStatus,
+            'payment_status' => $accountStatus === 'free' ? 'free' : 'paid',
+            'status' => $status,
+            'preference_sector' => $validated['preference_sector'] ?? null,
             'is_approved' => $request->boolean('is_approved', true),
             'password' => Hash::make($validated['password']),
-            'primary_country' => $validated['primary_country'] ?? 'Bangladesh',
+            'primary_country' => $primaryCountry,
+            'country' => $primaryCountry,
             'linkedin' => $validated['linkedin'] ?? null,
             'investment_expertise' => $validated['investment_expertise'] ?? 'beginner',
-            'email_verified_at' => now(),
+            'email_verified_at' => $request->boolean('verify_email', true) ? now() : null,
             'approved_by' => $request->user()->id,
             'approved_at' => now(),
         ]);
@@ -121,10 +162,12 @@ class AdminMemberApiController extends BaseApiController
             'phone' => ['nullable', 'string', 'max:20'],
             'address' => ['nullable', 'string', 'max:255'],
             'company_name' => ['nullable', 'string', 'max:255'],
+            'organization' => ['nullable', 'string', 'max:255'],
             'designation' => ['nullable', 'string', 'max:255'],
             'gender' => ['required', 'in:male,female,other'],
-            'role' => ['required', 'in:investor,admin,superadmin,disabled'],
-            'account_status' => ['required', 'in:free,core,advanced,institutional,disabled'],
+            'role' => ['nullable', 'in:investor,admin,superadmin,disabled'],
+            'account_status' => ['nullable', 'in:free,core,advanced,institutional,disabled'],
+            'status' => ['nullable', 'in:active,inactive'],
             'is_approved' => ['nullable', 'boolean'],
             'password' => ['nullable', 'string', 'min:8'],
             'primary_country' => ['nullable', 'string', 'max:100'],
@@ -133,16 +176,19 @@ class AdminMemberApiController extends BaseApiController
             'profile_photo' => ['nullable', 'image', 'max:5120'],
         ]);
 
+        $company = $validated['company_name'] ?? $validated['organization'] ?? $user->company_name;
+
         $user->fill([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'phone' => $validated['phone'] ?? $user->phone,
             'address' => $validated['address'] ?? $user->address,
-            'company_name' => $validated['company_name'] ?? $user->company_name,
+            'company_name' => $company,
             'designation' => $validated['designation'] ?? $user->designation,
             'gender' => $validated['gender'],
-            'role' => $validated['role'],
-            'account_status' => $validated['account_status'],
+            'role' => $validated['role'] ?? $user->role,
+            'account_status' => $validated['account_status'] ?? $user->account_status,
+            'status' => $validated['status'] ?? $user->status,
             'primary_country' => $validated['primary_country'] ?? $user->primary_country,
             'linkedin' => $validated['linkedin'] ?? $user->linkedin,
             'investment_expertise' => $validated['investment_expertise'] ?? $user->investment_expertise,

@@ -43,7 +43,7 @@ class CheckoutController extends Controller
         if ($request->isMethod('post')) {
             $validated = $request->validate([
                 'plan' => ['required', 'string', 'max:64'],
-                'plan_price' => ['required', 'numeric', 'min:0'],
+                'plan_price' => ['nullable', 'numeric', 'min:0'],
             ]);
 
             $tier = SubscriptionTier::query()
@@ -55,7 +55,7 @@ class CheckoutController extends Controller
                 return redirect()->route('plans')->with('error', 'That plan is no longer available.');
             }
 
-            if (abs((float) $tier->price_yearly - (float) $validated['plan_price']) > 0.009) {
+            if (isset($validated['plan_price']) && abs((float) $tier->price_yearly - (float) $validated['plan_price']) > 0.009) {
                 return redirect()->route('plans')->with('error', 'Plan pricing was updated. Please choose your plan again.');
             }
 
@@ -64,6 +64,28 @@ class CheckoutController extends Controller
                 'name' => $tier->name,
                 'price' => (float) $tier->price_yearly,
             ]);
+        } elseif ($request->filled('plan')) {
+            $tier = SubscriptionTier::query()
+                ->active()
+                ->where('slug', (string) $request->input('plan'))
+                ->first();
+
+            if ($tier) {
+                $request->session()->put('checkout.plan', [
+                    'slug' => $tier->slug,
+                    'name' => $tier->name,
+                    'price' => (float) $tier->price_yearly,
+                ]);
+            }
+        } elseif (! $request->session()->has('checkout.plan')) {
+            $tier = SubscriptionTier::query()->active()->first();
+            if ($tier) {
+                $request->session()->put('checkout.plan', [
+                    'slug' => $tier->slug,
+                    'name' => $tier->name,
+                    'price' => (float) $tier->price_yearly,
+                ]);
+            }
         }
 
         return view('payment.checkout');

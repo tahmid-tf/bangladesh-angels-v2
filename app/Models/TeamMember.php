@@ -26,11 +26,20 @@ class TeamMember extends Model implements HasMedia
         'sort_order',
     ];
 
+    protected $appends = [
+        'photo_url',
+    ];
+
     protected function casts(): array
     {
         return [
             'sort_order' => 'integer',
         ];
+    }
+
+    public function getPhotoUrlAttribute(): string
+    {
+        return $this->photoUrl() ?: asset('default_pfp.jpg');
     }
 
     public function scopeForSection(Builder $query, string $section): Builder

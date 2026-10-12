@@ -232,6 +232,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', [AdminSubmissionApiController::class, 'founderPitches'])->name('api.admin.founder-pitches.index');
             Route::get('/{founderPitchSubmission}', [AdminSubmissionApiController::class, 'founderPitch'])->name('api.admin.founder-pitches.show');
             Route::get('/{founderPitchSubmission}/deck', [AdminSubmissionApiController::class, 'downloadFounderPitchDeck'])->name('api.admin.founder-pitches.deck');
+            Route::get('/{founderPitchSubmission}/deck-base64', [AdminSubmissionApiController::class, 'founderPitchDeckBase64'])->name('api.admin.founder-pitches.deck-base64');
+            Route::delete('/{founderPitchSubmission}', [AdminSubmissionApiController::class, 'destroyFounderPitch'])->name('api.admin.founder-pitches.destroy');
         });
 
         Route::prefix('angel-academy-applications')->group(function () {
@@ -244,7 +246,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', [AdminBlogApiController::class, 'index'])->name('api.admin.blogs.index');
             Route::post('/', [AdminBlogApiController::class, 'store'])->name('api.admin.blogs.store');
             Route::get('/{blog}', [AdminBlogApiController::class, 'show'])->name('api.admin.blogs.show');
-            Route::match(['put', 'patch'], '/{blog}', [AdminBlogApiController::class, 'update'])->name('api.admin.blogs.update');
+            Route::match(['put', 'patch', 'post'], '/{blog}', [AdminBlogApiController::class, 'update'])->name('api.admin.blogs.update');
             Route::patch('/{blog}/status', [AdminBlogApiController::class, 'updateStatus'])->name('api.admin.blogs.status');
             Route::delete('/{blog}', [AdminBlogApiController::class, 'destroy'])->name('api.admin.blogs.destroy');
         });
@@ -254,7 +256,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', [AdminPublicationApiController::class, 'index'])->name('api.admin.publications.index');
             Route::post('/', [AdminPublicationApiController::class, 'store'])->name('api.admin.publications.store');
             Route::get('/{publication}', [AdminPublicationApiController::class, 'show'])->name('api.admin.publications.show');
-            Route::match(['put', 'post'], '/{publication}', [AdminPublicationApiController::class, 'update'])->name('api.admin.publications.update');
+            Route::get('/{publication}/download', [AdminPublicationApiController::class, 'download'])->name('api.admin.publications.download');
+            Route::match(['put', 'patch', 'post'], '/{publication}', [AdminPublicationApiController::class, 'update'])->name('api.admin.publications.update');
             Route::patch('/{publication}/status', [AdminPublicationApiController::class, 'updateStatus'])->name('api.admin.publications.status');
             Route::delete('/{publication}', [AdminPublicationApiController::class, 'destroy'])->name('api.admin.publications.destroy');
         });
@@ -272,6 +275,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('homepage-portfolios')->group(function () {
             Route::get('/', [AdminContentApiController::class, 'homepagePortfolios'])->name('api.admin.homepage-portfolios.index');
             Route::post('/', [AdminContentApiController::class, 'storeHomepagePortfolio'])->name('api.admin.homepage-portfolios.store');
+            Route::post('/sync', [AdminContentApiController::class, 'syncHomepagePortfolios'])->name('api.admin.homepage-portfolios.sync');
             Route::put('/reorder', [AdminContentApiController::class, 'reorderHomepagePortfolios'])->name('api.admin.homepage-portfolios.reorder');
             Route::delete('/{homepagePortfolio}', [AdminContentApiController::class, 'destroyHomepagePortfolio'])->name('api.admin.homepage-portfolios.destroy');
         });
@@ -288,6 +292,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('startup-services')->group(function () {
             Route::get('/', [AdminContentApiController::class, 'startupServices'])->name('api.admin.startup-services.index');
             Route::post('/', [AdminContentApiController::class, 'storeStartupService'])->name('api.admin.startup-services.store');
+            Route::post('/reorder', [AdminContentApiController::class, 'reorderStartupServices'])->name('api.admin.startup-services.reorder');
+            Route::get('/{startupService}', [AdminContentApiController::class, 'showStartupService'])->name('api.admin.startup-services.show');
             Route::match(['put', 'post'], '/{startupService}', [AdminContentApiController::class, 'updateStartupService'])->name('api.admin.startup-services.update');
             Route::delete('/{startupService}', [AdminContentApiController::class, 'destroyStartupService'])->name('api.admin.startup-services.destroy');
         });
@@ -301,14 +307,14 @@ Route::middleware('auth:sanctum')->group(function () {
         // CMS: Landing Page Stats
         Route::prefix('landing-page-stats')->group(function () {
             Route::get('/', [AdminContentApiController::class, 'landingPageStats'])->name('api.admin.landing-page-stats.index');
-            Route::put('/', [AdminContentApiController::class, 'updateLandingPageStats'])->name('api.admin.landing-page-stats.update');
+            Route::match(['put', 'post'], '/', [AdminContentApiController::class, 'updateLandingPageStats'])->name('api.admin.landing-page-stats.update');
         });
 
         // CMS: Landing Program Cards
         Route::prefix('landing-program-cards')->group(function () {
             Route::get('/', [AdminContentApiController::class, 'landingProgramCards'])->name('api.admin.landing-program-cards.index');
             Route::post('/', [AdminContentApiController::class, 'storeLandingProgramCard'])->name('api.admin.landing-program-cards.store');
-            Route::put('/{landingProgramCard}', [AdminContentApiController::class, 'updateLandingProgramCard'])->name('api.admin.landing-program-cards.update');
+            Route::match(['put', 'post'], '/{landingProgramCard}', [AdminContentApiController::class, 'updateLandingProgramCard'])->name('api.admin.landing-program-cards.update');
             Route::delete('/{landingProgramCard}', [AdminContentApiController::class, 'destroyLandingProgramCard'])->name('api.admin.landing-program-cards.destroy');
         });
 
@@ -322,6 +328,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('team-members')->group(function () {
             Route::get('/', [AdminContentApiController::class, 'teamMembers'])->name('api.admin.team-members.index');
             Route::post('/', [AdminContentApiController::class, 'storeTeamMember'])->name('api.admin.team-members.store');
+            Route::post('/reorder', [AdminContentApiController::class, 'reorderTeamMembers'])->name('api.admin.team-members.reorder');
+            Route::get('/{teamMember}', [AdminContentApiController::class, 'showTeamMember'])->name('api.admin.team-members.show');
             Route::match(['put', 'post'], '/{teamMember}', [AdminContentApiController::class, 'updateTeamMember'])->name('api.admin.team-members.update');
             Route::delete('/{teamMember}', [AdminContentApiController::class, 'destroyTeamMember'])->name('api.admin.team-members.destroy');
         });

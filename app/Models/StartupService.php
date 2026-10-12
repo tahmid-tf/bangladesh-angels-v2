@@ -27,6 +27,13 @@ class StartupService extends Model implements HasMedia
         'sort_order',
     ];
 
+    protected $appends = [
+        'logo_url',
+        'brochure_pdf_url',
+        'brochure_public_href',
+        'bullet_list',
+    ];
+
     protected function casts(): array
     {
         return [
@@ -34,6 +41,28 @@ class StartupService extends Model implements HasMedia
             'show_brochure_link' => 'boolean',
             'sort_order' => 'integer',
         ];
+    }
+
+    public function getLogoUrlAttribute(): ?string
+    {
+        $url = $this->logoUrl();
+
+        return $url !== '' ? $url : null;
+    }
+
+    public function getBrochurePdfUrlAttribute(): ?string
+    {
+        return $this->getFirstMedia(self::MEDIA_BROCHURE)?->getUrl();
+    }
+
+    public function getBrochurePublicHrefAttribute(): string
+    {
+        return $this->brochurePublicHref();
+    }
+
+    public function getBulletListAttribute(): array
+    {
+        return $this->bulletList();
     }
 
     public function scopeOrdered(Builder $query): Builder

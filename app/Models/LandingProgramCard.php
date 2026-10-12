@@ -52,4 +52,19 @@ class LandingProgramCard extends Model
     {
         return filled($this->dropdown_items['label'] ?? null);
     }
+
+    public function getBadgeAttribute(): ?string
+    {
+        return $this->eyebrow;
+    }
+
+    public function getLinkLabelAttribute(): ?string
+    {
+        return $this->primary_label;
+    }
+
+    public function getLinkUrlAttribute(): ?string
+    {
+        return $this->primary_link;
+    }
 }
