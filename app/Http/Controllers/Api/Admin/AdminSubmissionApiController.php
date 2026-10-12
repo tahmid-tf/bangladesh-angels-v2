@@ -67,6 +67,8 @@ class AdminSubmissionApiController extends BaseApiController
                 'last_page' => $paginator->lastPage(),
                 'per_page' => $paginator->perPage(),
                 'total' => $paginator->total(),
+                'from' => $paginator->firstItem() ?? 0,
+                'to' => $paginator->lastItem() ?? 0,
             ],
         ]);
     }
