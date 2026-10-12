@@ -302,7 +302,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // CMS: Landing Page Stats
         Route::prefix('landing-page-stats')->group(function () {
             Route::get('/', [AdminContentApiController::class, 'landingPageStats'])->name('api.admin.landing-page-stats.index');
-            Route::put('/', [AdminContentApiController::class, 'updateLandingPageStats'])->name('api.admin.landing-page-stats.update');
+            Route::match(['put', 'post'], '/', [AdminContentApiController::class, 'updateLandingPageStats'])->name('api.admin.landing-page-stats.update');
         });
 
         // CMS: Landing Program Cards

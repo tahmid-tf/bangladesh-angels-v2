@@ -174,20 +174,35 @@ class AdminContentApiController extends BaseApiController
         $validated = $request->validate([
             'stats' => ['required', 'array'],
             'stats.*.id' => ['required', 'exists:landing_page_stats,id'],
-            'stats.*.stat_value' => ['required', 'string', 'max:100'],
-            'stats.*.stat_label' => ['required', 'string', 'max:255'],
-            'stats.*.sort_order' => ['required', 'integer', 'min:0'],
+            'stats.*.value' => ['nullable', 'string', 'max:100'],
+            'stats.*.stat_value' => ['nullable', 'string', 'max:100'],
+            'stats.*.label' => ['nullable', 'string', 'max:255'],
+            'stats.*.stat_label' => ['nullable', 'string', 'max:255'],
+            'stats.*.sort_order' => ['nullable', 'integer', 'min:0'],
         ]);
 
         foreach ($validated['stats'] as $item) {
-            LandingPageStat::where('id', $item['id'])->update([
-                'stat_value' => $item['stat_value'],
-                'stat_label' => $item['stat_label'],
-                'sort_order' => $item['sort_order'],
-            ]);
+            $value = $item['value'] ?? $item['stat_value'] ?? null;
+            $label = $item['label'] ?? $item['stat_label'] ?? null;
+            $order = $item['sort_order'] ?? null;
+
+            $updateData = [];
+            if ($value !== null) {
+                $updateData['value'] = trim($value);
+            }
+            if ($label !== null) {
+                $updateData['label'] = trim($label);
+            }
+            if ($order !== null) {
+                $updateData['sort_order'] = (int) $order;
+            }
+
+            if (! empty($updateData)) {
+                LandingPageStat::where('id', $item['id'])->update($updateData);
+            }
         }
 
-        return $this->success(LandingPageStat::query()->ordered()->get(), 'Landing page stats updated.');
+        return $this->success(LandingPageStat::query()->ordered()->get(), 'Homepage statistics updated successfully.');
     }
 
     // ==========================================
