@@ -68,67 +68,206 @@ class AdminContentApiController extends BaseApiController
     // STARTUP SERVICES
     // ==========================================
 
-    public function startupServices(): JsonResponse
+    private function formatStartupService(StartupService $s): array
     {
-        $services = StartupService::with('media')->ordered()->get()->map(fn ($s) => [
+        $logoUrl = $s->logoUrl() ?: null;
+        $brochurePdfUrl = $s->getFirstMedia(StartupService::MEDIA_BROCHURE)?->getUrl();
+        $bullets = $s->bulletList();
+
+        return [
             'id' => $s->id,
             'title' => $s->title,
-            'description' => $s->description,
+            'intro' => $s->intro,
+            'bullets' => $bullets,
+            'bullets_count' => count($bullets),
+            'footer_note' => $s->footer_note,
+            'link' => $s->link,
+            'cta_label' => $s->cta_label ?? 'Get in touch',
             'sort_order' => $s->sort_order,
-            'cta_label' => $s->cta_label,
-            'cta_url' => $s->cta_url,
+            'show_brochure_link' => (bool) $s->show_brochure_link,
             'brochure_url' => $s->brochure_url,
-            'icon_url' => $s->getFirstMedia('icon')?->getUrl(),
-        ]);
+            'logo_url' => $logoUrl,
+            'brochure_pdf_url' => $brochurePdfUrl,
+            'brochure_public_href' => $s->brochurePublicHref(),
+            // Aliases for compatibility
+            'description' => $s->intro,
+            'cta_url' => $s->link,
+            'icon_url' => $logoUrl,
+            'created_at' => $s->created_at?->toISOString(),
+            'updated_at' => $s->updated_at?->toISOString(),
+        ];
+    }
+
+    public function startupServices(): JsonResponse
+    {
+        $services = StartupService::with('media')
+            ->ordered()
+            ->get()
+            ->map(fn (StartupService $s) => $this->formatStartupService($s));
 
         return $this->success($services);
     }
 
+    public function showStartupService(StartupService $startupService): JsonResponse
+    {
+        $startupService->loadMissing('media');
+
+        return $this->success($this->formatStartupService($startupService));
+    }
+
     public function storeStartupService(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['required', 'string', 'max:2000'],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
-            'cta_label' => ['nullable', 'string', 'max:100'],
-            'cta_url' => ['nullable', 'string', 'max:2048'],
-            'brochure_url' => ['nullable', 'string', 'max:2048'],
-            'icon' => ['nullable', 'image', 'max:2048'],
-        ]);
-
-        $service = StartupService::create($validated);
-
-        if ($request->hasFile('icon')) {
-            $service->addMediaFromRequest('icon')->toMediaCollection('icon');
+        if ($request->has('description') && ! $request->has('intro')) {
+            $request->merge(['intro' => $request->input('description')]);
+        }
+        if ($request->has('cta_url') && ! $request->has('link')) {
+            $request->merge(['link' => $request->input('cta_url')]);
+        }
+        if ($request->has('bullets') && is_string($request->input('bullets'))) {
+            $decoded = json_decode($request->input('bullets'), true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $request->merge(['bullets' => $decoded]);
+            }
+        }
+        if ($request->has('show_brochure_link')) {
+            $request->merge(['show_brochure_link' => filter_var($request->input('show_brochure_link'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? true]);
         }
 
-        return $this->success($service, 'Startup service created.', 201);
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'intro' => ['required', 'string', 'max:5000'],
+            'bullets' => ['nullable', 'array'],
+            'bullets.*' => ['nullable', 'string', 'max:1000'],
+            'footer_note' => ['nullable', 'string', 'max:2000'],
+            'link' => ['required', 'string', 'max:2048'],
+            'cta_label' => ['nullable', 'string', 'max:120'],
+            'sort_order' => ['nullable', 'integer', 'min:0', 'max:999999'],
+            'show_brochure_link' => ['nullable', 'boolean'],
+            'brochure_url' => ['nullable', 'string', 'max:2048'],
+            'logo' => ['nullable', 'image', 'max:4096'],
+            'icon' => ['nullable', 'image', 'max:4096'],
+            'brochure' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
+        ]);
+
+        $nextOrder = (int) (StartupService::query()->max('sort_order') ?? 0) + 1;
+        $bullets = array_values(array_filter($validated['bullets'] ?? [], fn ($item) => is_string($item) && trim($item) !== ''));
+
+        $service = StartupService::create([
+            'title' => $validated['title'],
+            'intro' => $validated['intro'],
+            'bullets' => $bullets,
+            'footer_note' => ! empty($validated['footer_note']) ? trim($validated['footer_note']) : null,
+            'link' => $validated['link'],
+            'cta_label' => ! empty($validated['cta_label']) ? trim($validated['cta_label']) : 'Get in touch',
+            'sort_order' => isset($validated['sort_order']) && $validated['sort_order'] !== '' ? (int) $validated['sort_order'] : $nextOrder,
+            'show_brochure_link' => $validated['show_brochure_link'] ?? true,
+            'brochure_url' => ! empty($validated['brochure_url']) ? trim($validated['brochure_url']) : null,
+        ]);
+
+        if ($request->hasFile('logo')) {
+            $service->addMediaFromRequest('logo')->toMediaCollection(StartupService::MEDIA_LOGO);
+        } elseif ($request->hasFile('icon')) {
+            $service->addMediaFromRequest('icon')->toMediaCollection(StartupService::MEDIA_LOGO);
+        }
+
+        if ($request->hasFile('brochure')) {
+            $service->addMediaFromRequest('brochure')->toMediaCollection(StartupService::MEDIA_BROCHURE);
+        }
+
+        $service->loadMissing('media');
+
+        return $this->success($this->formatStartupService($service), 'Startup service created.', 201);
     }
 
     public function updateStartupService(Request $request, StartupService $startupService): JsonResponse
     {
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['required', 'string', 'max:2000'],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
-            'cta_label' => ['nullable', 'string', 'max:100'],
-            'cta_url' => ['nullable', 'string', 'max:2048'],
-            'brochure_url' => ['nullable', 'string', 'max:2048'],
-            'icon' => ['nullable', 'image', 'max:2048'],
-        ]);
-
-        $startupService->update($validated);
-
-        if ($request->hasFile('icon')) {
-            $startupService->clearMediaCollection('icon');
-            $startupService->addMediaFromRequest('icon')->toMediaCollection('icon');
+        if ($request->has('description') && ! $request->has('intro')) {
+            $request->merge(['intro' => $request->input('description')]);
+        }
+        if ($request->has('cta_url') && ! $request->has('link')) {
+            $request->merge(['link' => $request->input('cta_url')]);
+        }
+        if ($request->has('bullets') && is_string($request->input('bullets'))) {
+            $decoded = json_decode($request->input('bullets'), true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $request->merge(['bullets' => $decoded]);
+            }
+        }
+        if ($request->has('show_brochure_link')) {
+            $request->merge(['show_brochure_link' => filter_var($request->input('show_brochure_link'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $startupService->show_brochure_link]);
         }
 
-        return $this->success($startupService->fresh(), 'Startup service updated.');
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'intro' => ['required', 'string', 'max:5000'],
+            'bullets' => ['nullable', 'array'],
+            'bullets.*' => ['nullable', 'string', 'max:1000'],
+            'footer_note' => ['nullable', 'string', 'max:2000'],
+            'link' => ['required', 'string', 'max:2048'],
+            'cta_label' => ['nullable', 'string', 'max:120'],
+            'sort_order' => ['nullable', 'integer', 'min:0', 'max:999999'],
+            'show_brochure_link' => ['nullable', 'boolean'],
+            'brochure_url' => ['nullable', 'string', 'max:2048'],
+            'logo' => ['nullable', 'image', 'max:4096'],
+            'icon' => ['nullable', 'image', 'max:4096'],
+            'brochure' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
+            'remove_logo' => ['nullable', 'boolean'],
+            'remove_icon' => ['nullable', 'boolean'],
+            'remove_brochure' => ['nullable', 'boolean'],
+        ]);
+
+        $bullets = array_values(array_filter($validated['bullets'] ?? [], fn ($item) => is_string($item) && trim($item) !== ''));
+
+        $startupService->update([
+            'title' => $validated['title'],
+            'intro' => $validated['intro'],
+            'bullets' => $bullets,
+            'footer_note' => ! empty($validated['footer_note']) ? trim($validated['footer_note']) : null,
+            'link' => $validated['link'],
+            'cta_label' => ! empty($validated['cta_label']) ? trim($validated['cta_label']) : 'Get in touch',
+            'sort_order' => isset($validated['sort_order']) && $validated['sort_order'] !== '' ? (int) $validated['sort_order'] : $startupService->sort_order,
+            'show_brochure_link' => $validated['show_brochure_link'] ?? $startupService->show_brochure_link,
+            'brochure_url' => ! empty($validated['brochure_url']) ? trim($validated['brochure_url']) : null,
+        ]);
+
+        if ($request->hasFile('logo')) {
+            $startupService->clearMediaCollection(StartupService::MEDIA_LOGO);
+            $startupService->addMediaFromRequest('logo')->toMediaCollection(StartupService::MEDIA_LOGO);
+        } elseif ($request->hasFile('icon')) {
+            $startupService->clearMediaCollection(StartupService::MEDIA_LOGO);
+            $startupService->addMediaFromRequest('icon')->toMediaCollection(StartupService::MEDIA_LOGO);
+        } elseif ($request->boolean('remove_logo') || $request->boolean('remove_icon')) {
+            $startupService->clearMediaCollection(StartupService::MEDIA_LOGO);
+        }
+
+        if ($request->hasFile('brochure')) {
+            $startupService->clearMediaCollection(StartupService::MEDIA_BROCHURE);
+            $startupService->addMediaFromRequest('brochure')->toMediaCollection(StartupService::MEDIA_BROCHURE);
+        } elseif ($request->boolean('remove_brochure')) {
+            $startupService->clearMediaCollection(StartupService::MEDIA_BROCHURE);
+        }
+
+        $startupService->loadMissing('media');
+
+        return $this->success($this->formatStartupService($startupService), 'Startup service updated.');
+    }
+
+    public function reorderStartupServices(Request $request): JsonResponse
+    {
+        $order = $request->input('order', []);
+        if (is_array($order)) {
+            foreach ($order as $index => $id) {
+                StartupService::where('id', $id)->update(['sort_order' => $index + 1]);
+            }
+        }
+
+        return $this->success(null, 'Startup services reordered successfully.');
     }
 
     public function destroyStartupService(StartupService $startupService): JsonResponse
     {
+        $startupService->clearMediaCollection(StartupService::MEDIA_LOGO);
+        $startupService->clearMediaCollection(StartupService::MEDIA_BROCHURE);
         $startupService->delete();
 
         return $this->success(null, 'Startup service deleted.');

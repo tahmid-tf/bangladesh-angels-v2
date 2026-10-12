@@ -290,6 +290,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('startup-services')->group(function () {
             Route::get('/', [AdminContentApiController::class, 'startupServices'])->name('api.admin.startup-services.index');
             Route::post('/', [AdminContentApiController::class, 'storeStartupService'])->name('api.admin.startup-services.store');
+            Route::post('/reorder', [AdminContentApiController::class, 'reorderStartupServices'])->name('api.admin.startup-services.reorder');
+            Route::get('/{startupService}', [AdminContentApiController::class, 'showStartupService'])->name('api.admin.startup-services.show');
             Route::match(['put', 'post'], '/{startupService}', [AdminContentApiController::class, 'updateStartupService'])->name('api.admin.startup-services.update');
             Route::delete('/{startupService}', [AdminContentApiController::class, 'destroyStartupService'])->name('api.admin.startup-services.destroy');
         });
