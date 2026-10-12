@@ -152,6 +152,23 @@ class PublicController extends BaseApiController
     }
 
     /**
+     * Public events and webinars list.
+     */
+    public function events(): JsonResponse
+    {
+        $events = Resource::query()
+            ->with('media')
+            ->whereIn('type', ['event', 'webinar'])
+            ->orderByRaw('CASE WHEN date IS NULL THEN 1 ELSE 0 END')
+            ->orderByDesc('date')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (Resource $res) => $this->formatResource($res));
+
+        return $this->success($events);
+    }
+
+    /**
      * FAQs list.
      */
     public function faqs(): JsonResponse

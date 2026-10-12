@@ -52,6 +52,7 @@ Route::prefix('auth')->group(function () {
 Route::get('/app-config', [PublicController::class, 'appConfig'])->name('api.app-config');
 Route::get('/config', [PublicController::class, 'appConfig'])->name('api.config');
 Route::get('/home', [PublicController::class, 'home'])->name('api.home');
+Route::get('/events', [PublicController::class, 'events'])->name('api.events');
 Route::get('/plans', [PublicController::class, 'plans'])->name('api.plans');
 Route::get('/faq', [PublicController::class, 'faqs'])->name('api.faq');
 Route::get('/team', [PublicController::class, 'team'])->name('api.team');
