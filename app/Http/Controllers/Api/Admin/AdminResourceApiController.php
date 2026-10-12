@@ -10,13 +10,39 @@ use Illuminate\Http\Request;
 class AdminResourceApiController extends BaseApiController
 {
     /**
-     * List all events/resources.
+     * List all events/resources with search, type filtering, and counts.
      */
     public function index(Request $request): JsonResponse
     {
-        $resources = Resource::with('media')->latest('id')->paginate((int) $request->query('per_page', 20));
+        $search = trim((string) $request->query('search', ''));
+        $type = $request->query('type');
+        $landing = $request->query('landing');
 
-        return $this->success($resources);
+        $query = Resource::with('media')
+            ->when($type && in_array($type, ['event', 'webinar'], true), fn ($q) => $q->where('type', $type))
+            ->when($landing !== null && $landing !== '', fn ($q) => $q->where('show_on_landing', filter_var($landing, FILTER_VALIDATE_BOOLEAN)))
+            ->when($search !== '', fn ($q) => $q->where(function ($inner) use ($search) {
+                $inner->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhere('location', 'like', "%{$search}%");
+            }))
+            ->latest('id');
+
+        $resources = $query->paginate((int) $request->query('per_page', 20));
+
+        $counts = [
+            'all' => Resource::count(),
+            'events' => Resource::where('type', 'event')->count(),
+            'webinars' => Resource::where('type', 'webinar')->count(),
+            'landing' => Resource::where('show_on_landing', true)->count(),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Events retrieved successfully.',
+            'data' => $resources,
+            'counts' => $counts,
+        ]);
     }
 
     /**
@@ -24,6 +50,15 @@ class AdminResourceApiController extends BaseApiController
      */
     public function store(Request $request): JsonResponse
     {
+        foreach (['benefits', 'event_highlights', 'target_audience', 'speakers'] as $field) {
+            if (is_string($request->input($field))) {
+                $decoded = json_decode($request->input($field), true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $request->merge([$field => $decoded]);
+                }
+            }
+        }
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'type' => 'required|in:event,webinar',
@@ -89,6 +124,15 @@ class AdminResourceApiController extends BaseApiController
      */
     public function update(Request $request, Resource $resource): JsonResponse
     {
+        foreach (['benefits', 'event_highlights', 'target_audience', 'speakers'] as $field) {
+            if (is_string($request->input($field))) {
+                $decoded = json_decode($request->input($field), true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $request->merge([$field => $decoded]);
+                }
+            }
+        }
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'type' => 'required|in:event,webinar',
@@ -132,7 +176,9 @@ class AdminResourceApiController extends BaseApiController
             'speakers' => $speakers,
         ]);
 
-        if ($request->hasFile('banner_image')) {
+        if ($request->boolean('remove_banner')) {
+            $resource->clearMediaCollection('banner');
+        } elseif ($request->hasFile('banner_image')) {
             $resource->clearMediaCollection('banner');
             $resource->addMediaFromRequest('banner_image')->toMediaCollection('banner');
         }

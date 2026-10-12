@@ -44,6 +44,12 @@ class Resource extends Model implements HasMedia
         'show_on_landing' => 'boolean',
     ];
 
+    protected $appends = [
+        'banner_url',
+        'formatted_date_time',
+        'formatted_time_range',
+    ];
+
     protected static function booted(): void
     {
         static::creating(function (Resource $resource): void {
@@ -140,5 +146,20 @@ class Resource extends Model implements HasMedia
         }
 
         return $date ?? $time;
+    }
+
+    public function getBannerUrlAttribute(): ?string
+    {
+        return $this->cardBannerUrl();
+    }
+
+    public function getFormattedDateTimeAttribute(): ?string
+    {
+        return $this->formattedDateTime();
+    }
+
+    public function getFormattedTimeRangeAttribute(): ?string
+    {
+        return $this->formattedTimeRange();
     }
 }
