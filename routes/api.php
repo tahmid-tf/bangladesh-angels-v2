@@ -273,6 +273,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('homepage-portfolios')->group(function () {
             Route::get('/', [AdminContentApiController::class, 'homepagePortfolios'])->name('api.admin.homepage-portfolios.index');
             Route::post('/', [AdminContentApiController::class, 'storeHomepagePortfolio'])->name('api.admin.homepage-portfolios.store');
+            Route::post('/sync', [AdminContentApiController::class, 'syncHomepagePortfolios'])->name('api.admin.homepage-portfolios.sync');
             Route::put('/reorder', [AdminContentApiController::class, 'reorderHomepagePortfolios'])->name('api.admin.homepage-portfolios.reorder');
             Route::delete('/{homepagePortfolio}', [AdminContentApiController::class, 'destroyHomepagePortfolio'])->name('api.admin.homepage-portfolios.destroy');
         });

@@ -336,24 +336,37 @@ class AdminContentApiController extends BaseApiController
 
     public function homepagePortfolios(): JsonResponse
     {
-        $items = HomepagePortfolio::with('deal.media')->ordered()->get();
+        $items = HomepagePortfolio::with('deal.media')->ordered()->get()->map(fn ($p) => $this->formatHomepagePortfolio($p));
 
         return $this->success($items);
     }
 
     public function storeHomepagePortfolio(Request $request): JsonResponse
     {
+        if (HomepagePortfolio::query()->count() >= HomepagePortfolio::MAX_SELECTIONS) {
+            return $this->error('The homepage can show a maximum of ' . HomepagePortfolio::MAX_SELECTIONS . ' selected portfolios.', 422);
+        }
+
         $validated = $request->validate([
             'deal_id' => ['required', 'exists:deals,id', 'unique:homepage_portfolios,deal_id'],
+        ], [
+            'deal_id.unique' => 'This portfolio company is already selected for the homepage.',
+            'deal_id.exists' => 'The selected company was not found.',
         ]);
+
+        $deal = \App\Models\Deal::findOrFail($validated['deal_id']);
+
+        if (! $deal->isListedInPortfolio()) {
+            return $this->error('Only companies listed in the portfolio can be featured on the homepage.', 422);
+        }
 
         $maxOrder = (int) HomepagePortfolio::max('sort_order');
         $item = HomepagePortfolio::create([
-            'deal_id' => $validated['deal_id'],
+            'deal_id' => $deal->id,
             'sort_order' => $maxOrder + 1,
         ]);
 
-        return $this->success($item->load('deal.media'), 'Portfolio added to homepage.', 201);
+        return $this->success($this->formatHomepagePortfolio($item->load('deal.media')), 'Portfolio added to homepage.', 201);
     }
 
     public function reorderHomepagePortfolios(Request $request): JsonResponse
@@ -367,14 +380,101 @@ class AdminContentApiController extends BaseApiController
             HomepagePortfolio::where('id', $id)->update(['sort_order' => $index + 1]);
         }
 
-        return $this->success(HomepagePortfolio::with('deal.media')->ordered()->get(), 'Order updated.');
+        $this->normalizePortfolioSortOrders();
+
+        $items = HomepagePortfolio::with('deal.media')->ordered()->get()->map(fn ($p) => $this->formatHomepagePortfolio($p));
+
+        return $this->success($items, 'Order updated.');
     }
 
     public function destroyHomepagePortfolio(HomepagePortfolio $homepagePortfolio): JsonResponse
     {
+        $title = $homepagePortfolio->deal?->title ?? 'Portfolio company';
         $homepagePortfolio->delete();
+        $this->normalizePortfolioSortOrders();
 
-        return $this->success(null, 'Homepage portfolio removed.');
+        return $this->success(null, "{$title} removed from homepage selection.");
+    }
+
+    public function syncHomepagePortfolios(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'deal_ids' => ['nullable', 'array', 'max:' . HomepagePortfolio::MAX_SELECTIONS],
+            'deal_ids.*' => ['integer', 'exists:deals,id'],
+        ], [
+            'deal_ids.max' => 'You can select a maximum of ' . HomepagePortfolio::MAX_SELECTIONS . ' portfolios for the homepage.',
+        ]);
+
+        $dealIds = array_values(array_unique(array_filter($validated['deal_ids'] ?? [])));
+
+        if (empty($dealIds)) {
+            HomepagePortfolio::query()->delete();
+            return $this->success([], 'Homepage selections cleared. Default latest portfolios will be shown.');
+        }
+
+        $validDeals = \App\Models\Deal::query()
+            ->whereIn('id', $dealIds)
+            ->inPortfolio()
+            ->pluck('id')
+            ->all();
+
+        if (count($validDeals) !== count($dealIds)) {
+            return $this->error('One or more selected deals are not valid portfolio companies.', 422);
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($dealIds): void {
+            HomepagePortfolio::query()
+                ->whereNotIn('deal_id', $dealIds)
+                ->delete();
+
+            foreach ($dealIds as $index => $dealId) {
+                HomepagePortfolio::query()->updateOrCreate(
+                    ['deal_id' => $dealId],
+                    ['sort_order' => $index + 1]
+                );
+            }
+        });
+
+        $this->normalizePortfolioSortOrders();
+
+        $items = HomepagePortfolio::with('deal.media')->ordered()->get()->map(fn ($p) => $this->formatHomepagePortfolio($p));
+
+        return $this->success($items, 'Homepage portfolio selections synced successfully.');
+    }
+
+    protected function formatHomepagePortfolio(HomepagePortfolio $item): array
+    {
+        return [
+            'id' => $item->id,
+            'deal_id' => $item->deal_id,
+            'sort_order' => (int) $item->sort_order,
+            'created_at' => $item->created_at?->toIso8601String(),
+            'updated_at' => $item->updated_at?->toIso8601String(),
+            'deal' => $item->deal ? [
+                'id' => $item->deal->id,
+                'title' => $item->deal->title,
+                'slug' => $item->deal->slug,
+                'sector' => $item->deal->sector,
+                'type' => $item->deal->type,
+                'is_portfolio' => (bool) $item->deal->is_portfolio,
+                'status' => $item->deal->status,
+                'description' => $item->deal->description,
+                'logo_url' => $item->deal->getLogoUrl(),
+                'cover_url' => $item->deal->getCoverUrl(),
+            ] : null,
+        ];
+    }
+
+    protected function normalizePortfolioSortOrders(): void
+    {
+        $items = HomepagePortfolio::query()->ordered()->get();
+
+        foreach ($items as $index => $item) {
+            $expectedOrder = $index + 1;
+            if ($item->sort_order !== $expectedOrder) {
+                $item->update(['sort_order' => $expectedOrder]);
+            }
+        }
     }
 
     // ==========================================
