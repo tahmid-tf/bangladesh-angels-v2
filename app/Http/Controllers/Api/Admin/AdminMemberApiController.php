@@ -89,40 +89,57 @@ class AdminMemberApiController extends BaseApiController
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required_without:full_name', 'nullable', 'string', 'max:255'],
+            'full_name' => ['required_without:name', 'nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
-            'phone' => ['nullable', 'string', 'max:20'],
+            'phone' => ['nullable', 'string', 'max:30'],
             'address' => ['nullable', 'string', 'max:255'],
             'company_name' => ['nullable', 'string', 'max:255'],
+            'organization' => ['nullable', 'string', 'max:255'],
             'designation' => ['nullable', 'string', 'max:255'],
-            'gender' => ['required', 'in:male,female,other'],
-            'role' => ['required', 'in:investor,admin,superadmin,disabled'],
-            'account_status' => ['required', 'in:free,core,advanced,institutional,disabled'],
+            'gender' => ['nullable', 'in:male,female,other'],
+            'role' => ['nullable', 'in:investor,admin,superadmin,disabled'],
+            'account_status' => ['nullable', 'in:free,core,advanced,institutional,disabled'],
+            'status' => ['nullable', 'in:active,inactive'],
             'is_approved' => ['nullable', 'boolean'],
+            'verify_email' => ['nullable', 'boolean'],
             'password' => ['required', 'string', 'min:8'],
             'primary_country' => ['nullable', 'string', 'max:100'],
+            'country' => ['nullable', 'string', 'max:100'],
+            'preference_sector' => ['nullable', 'string', 'max:255'],
             'linkedin' => ['nullable', 'url', 'max:255'],
             'investment_expertise' => ['nullable', 'in:beginner,intermediate,expert'],
             'profile_photo' => ['nullable', 'image', 'max:5120'],
         ]);
 
+        $name = trim((string) ($validated['name'] ?? $validated['full_name'] ?? ''));
+        $company = $validated['company_name'] ?? $validated['organization'] ?? null;
+        $primaryCountry = $validated['primary_country'] ?? $validated['country'] ?? 'Bangladesh';
+        $role = $validated['role'] ?? 'investor';
+        $accountStatus = $validated['account_status'] ?? 'free';
+        $gender = $validated['gender'] ?? 'male';
+        $status = $validated['status'] ?? 'active';
+
         $user = User::create([
-            'name' => $validated['name'],
+            'name' => $name,
             'email' => $validated['email'],
             'phone' => $validated['phone'] ?? null,
             'address' => $validated['address'] ?? null,
-            'company_name' => $validated['company_name'] ?? null,
+            'company_name' => $company,
             'designation' => $validated['designation'] ?? null,
-            'gender' => $validated['gender'],
-            'role' => $validated['role'],
-            'account_status' => $validated['account_status'],
-            'payment_status' => $validated['account_status'] === 'free' ? 'free' : 'paid',
+            'gender' => $gender,
+            'role' => $role,
+            'account_status' => $accountStatus,
+            'payment_status' => $accountStatus === 'free' ? 'free' : 'paid',
+            'status' => $status,
+            'preference_sector' => $validated['preference_sector'] ?? null,
             'is_approved' => $request->boolean('is_approved', true),
             'password' => Hash::make($validated['password']),
-            'primary_country' => $validated['primary_country'] ?? 'Bangladesh',
+            'primary_country' => $primaryCountry,
+            'country' => $primaryCountry,
             'linkedin' => $validated['linkedin'] ?? null,
             'investment_expertise' => $validated['investment_expertise'] ?? 'beginner',
-            'email_verified_at' => now(),
+            'email_verified_at' => $request->boolean('verify_email', true) ? now() : null,
             'approved_by' => $request->user()->id,
             'approved_at' => now(),
         ]);
