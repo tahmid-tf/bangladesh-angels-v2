@@ -232,6 +232,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', [AdminSubmissionApiController::class, 'founderPitches'])->name('api.admin.founder-pitches.index');
             Route::get('/{founderPitchSubmission}', [AdminSubmissionApiController::class, 'founderPitch'])->name('api.admin.founder-pitches.show');
             Route::get('/{founderPitchSubmission}/deck', [AdminSubmissionApiController::class, 'downloadFounderPitchDeck'])->name('api.admin.founder-pitches.deck');
+            Route::get('/{founderPitchSubmission}/deck-base64', [AdminSubmissionApiController::class, 'founderPitchDeckBase64'])->name('api.admin.founder-pitches.deck-base64');
+            Route::delete('/{founderPitchSubmission}', [AdminSubmissionApiController::class, 'destroyFounderPitch'])->name('api.admin.founder-pitches.destroy');
         });
 
         Route::prefix('angel-academy-applications')->group(function () {
