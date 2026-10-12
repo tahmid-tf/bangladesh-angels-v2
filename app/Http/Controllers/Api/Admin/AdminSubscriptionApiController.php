@@ -27,12 +27,33 @@ class AdminSubscriptionApiController extends BaseApiController
             ->whereNotIn('id', $subscriptions->pluck('user_id'))
             ->get();
 
+        $subscriptions->transform(function (Subscription $subscription) {
+            if ($subscription->user) {
+                $subscription->user->setAttribute('profile_photo_url', $subscription->user->getProfilePhotoUrl());
+            }
+            return $subscription;
+        });
+
+        $usersWithoutSubscriptions->transform(function (User $user) {
+            $user->setAttribute('profile_photo_url', $user->getProfilePhotoUrl());
+            return $user;
+        });
+
         $tiers = SubscriptionTier::ordered()->get();
+
+        $totalRows = $subscriptions->count() + $usersWithoutSubscriptions->count();
+        $paidCount = $subscriptions->filter(fn ($s) => (bool) $s->payment_id)->count();
+        $unpaidCount = $totalRows - $paidCount;
 
         return $this->success([
             'subscriptions' => $subscriptions,
             'users_without_subscriptions' => $usersWithoutSubscriptions,
             'tiers' => $tiers,
+            'counts' => [
+                'total' => $totalRows,
+                'paid' => $paidCount,
+                'unpaid' => $unpaidCount,
+            ],
         ]);
     }
 
