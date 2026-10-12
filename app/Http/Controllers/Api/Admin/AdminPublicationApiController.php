@@ -151,6 +151,22 @@ class AdminPublicationApiController extends BaseApiController
         return $this->success(null, 'Publication deleted successfully.');
     }
 
+    /**
+     * Download publication PDF file for admin.
+     */
+    public function download(Publication $publication)
+    {
+        if (! $publication->pdf_path || ! Storage::disk('local')->exists($publication->pdf_path)) {
+            return $this->error('Publication PDF file not found.', 404);
+        }
+
+        return Storage::disk('local')->download(
+            $publication->pdf_path,
+            $publication->pdf_original_name ?: 'publication.pdf',
+            ['X-Content-Type-Options' => 'nosniff']
+        );
+    }
+
     private function validated(Request $request, bool $pdfRequired = false): array
     {
         return $request->validate([
@@ -159,7 +175,7 @@ class AdminPublicationApiController extends BaseApiController
             'category' => ['required', 'string', 'max:100'],
             'status' => ['required', Rule::in([Publication::STATUS_ARCHIVED, Publication::STATUS_PUBLISHED])],
             'published_at' => ['nullable', 'date'],
-            'pdf' => [$pdfRequired ? 'required' : 'nullable', 'file', 'mimes:pdf', 'max:20480'],
+            'pdf' => [$pdfRequired ? 'required' : 'nullable', 'file', 'max:20480'],
             'pdf_original_name' => ['nullable', 'string', 'max:255'],
             'pdf_path' => ['nullable', 'string', 'max:500'],
         ]);
