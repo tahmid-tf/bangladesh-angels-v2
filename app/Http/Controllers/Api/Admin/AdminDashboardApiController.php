@@ -49,6 +49,19 @@ class AdminDashboardApiController extends BaseApiController
             ->groupBy('payment_method')
             ->get();
 
+        $recentPayments = Payment::with('user:id,name,email')
+            ->latest('payment_date')
+            ->take(10)
+            ->get();
+
+        $recentMembers = User::latest()
+            ->take(10)
+            ->get(['id', 'name', 'email', 'phone', 'role', 'account_status', 'is_approved', 'created_at']);
+
+        $recentDeals = Deal::latest()
+            ->take(10)
+            ->get(['id', 'title', 'type', 'status', 'investment_stage', 'created_at']);
+
         return $this->success([
             'metrics' => [
                 'total_revenue' => $totalRevenue,
@@ -64,6 +77,9 @@ class AdminDashboardApiController extends BaseApiController
                 'plan_distribution' => $planDistribution,
                 'payment_methods' => $paymentMethods,
             ],
+            'recent_payments' => $recentPayments,
+            'recent_members' => $recentMembers,
+            'recent_deals' => $recentDeals,
         ]);
     }
 }

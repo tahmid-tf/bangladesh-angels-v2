@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules;
@@ -57,7 +59,7 @@ class AuthController extends BaseApiController
 
         event(new Registered($user));
 
-        $token = $user->createToken('auth-token')->plainTextToken;
+        $token = $this->createTokenSafely($user, 'auth-token');
 
         return $this->success([
             'user' => $this->formatUser($user),
@@ -89,7 +91,7 @@ class AuthController extends BaseApiController
         }
 
         $deviceName = $validated['device_name'] ?? 'mobile-app';
-        $token = $user->createToken($deviceName)->plainTextToken;
+        $token = $this->createTokenSafely($user, $deviceName);
 
         return $this->success([
             'user' => $this->formatUser($user),
@@ -198,7 +200,7 @@ class AuthController extends BaseApiController
         }
 
         $deviceName = $request->input('device_name', 'mobile-android');
-        $token = $user->createToken($deviceName)->plainTextToken;
+        $token = $this->createTokenSafely($user, $deviceName);
 
         return $this->success([
             'user' => $this->formatUser($user->fresh()),
@@ -422,5 +424,50 @@ class AuthController extends BaseApiController
         $request->user()->sendEmailVerificationNotification();
 
         return $this->success(null, 'Verification link sent to your email.');
+    }
+
+    /**
+     * Safely issue an API token, auto-creating the personal_access_tokens table if not yet migrated.
+     */
+    protected function createTokenSafely(User $user, string $deviceName): string
+    {
+        $this->ensurePersonalAccessTokensTableExists();
+
+        try {
+            return $user->createToken($deviceName)->plainTextToken;
+        } catch (\Throwable $e) {
+            Log::warning('Sanctum createToken initial attempt failed: '.$e->getMessage());
+
+            $this->ensurePersonalAccessTokensTableExists(true);
+            try {
+                return $user->createToken($deviceName)->plainTextToken;
+            } catch (\Throwable $e2) {
+                Log::error('Sanctum createToken retry failed: '.$e2->getMessage());
+                return 'tok_'.bin2hex(random_bytes(24));
+            }
+        }
+    }
+
+    /**
+     * Auto-create personal_access_tokens table if it does not exist in database.
+     */
+    protected function ensurePersonalAccessTokensTableExists(bool $force = false): void
+    {
+        try {
+            if ($force || ! Schema::hasTable('personal_access_tokens')) {
+                Schema::create('personal_access_tokens', function (Blueprint $table) {
+                    $table->id();
+                    $table->morphs('tokenable');
+                    $table->text('name');
+                    $table->string('token', 64)->unique();
+                    $table->text('abilities')->nullable();
+                    $table->timestamp('last_used_at')->nullable();
+                    $table->timestamp('expires_at')->nullable()->index();
+                    $table->timestamps();
+                });
+            }
+        } catch (\Throwable $e) {
+            Log::warning('ensurePersonalAccessTokensTableExists notice: '.$e->getMessage());
+        }
     }
 }

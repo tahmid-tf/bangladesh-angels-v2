@@ -40,6 +40,17 @@ class CheckoutApiController extends BaseApiController
             $request->merge(['email' => $request->user()->email]);
         }
 
+        if (! $request->filled('policy_version')) {
+            $request->merge(['policy_version' => MembershipPolicies::version()]);
+        }
+
+        if (! $request->filled('price') && $request->filled('plan')) {
+            $matchedTier = SubscriptionTier::query()->active()->where('slug', $request->input('plan'))->first();
+            if ($matchedTier) {
+                $request->merge(['price' => (float) $matchedTier->price_yearly]);
+            }
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => array_filter(['required', 'email', Auth::check() ? null : Rule::unique('users', 'email')]),
