@@ -696,15 +696,51 @@ class AdminContentApiController extends BaseApiController
     // TEAM MEMBERS
     // ==========================================
 
-    public function teamMembers(): JsonResponse
+    public function teamMembers(Request $request): JsonResponse
     {
-        $management = TeamMember::forSection(TeamMember::SECTION_MANAGEMENT)->ordered()->get()->map(fn ($m) => $this->formatMember($m));
-        $governing = TeamMember::forSection(TeamMember::SECTION_GOVERNING_BOARD)->ordered()->get()->map(fn ($m) => $this->formatMember($m));
+        $search = trim((string) $request->input('search', ''));
+        $sectionFilter = trim((string) $request->input('section', ''));
+
+        $query = TeamMember::with('media')->ordered();
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('title', 'like', "%{$search}%")
+                    ->orWhere('subtitle', 'like', "%{$search}%");
+            });
+        }
+
+        if ($sectionFilter !== '' && in_array($sectionFilter, [TeamMember::SECTION_MANAGEMENT, TeamMember::SECTION_GOVERNING_BOARD], true)) {
+            $query->where('section', $sectionFilter);
+        }
+
+        $allMembers = $query->get();
+
+        $management = $allMembers->where('section', TeamMember::SECTION_MANAGEMENT)->values()->map(fn ($m) => $this->formatMember($m));
+        $governing = $allMembers->where('section', TeamMember::SECTION_GOVERNING_BOARD)->values()->map(fn ($m) => $this->formatMember($m));
+        $formattedList = $allMembers->map(fn ($m) => $this->formatMember($m))->values();
+
+        // Total counts across the database
+        $counts = [
+            'all' => TeamMember::count(),
+            'management' => TeamMember::where('section', TeamMember::SECTION_MANAGEMENT)->count(),
+            'governing_board' => TeamMember::where('section', TeamMember::SECTION_GOVERNING_BOARD)->count(),
+        ];
 
         return $this->success([
+            'members' => $formattedList,
             'management' => $management,
             'governing_board' => $governing,
+            'counts' => $counts,
         ]);
+    }
+
+    public function showTeamMember(TeamMember $teamMember): JsonResponse
+    {
+        $teamMember->loadMissing('media');
+
+        return $this->success($this->formatMember($teamMember));
     }
 
     public function storeTeamMember(Request $request): JsonResponse
@@ -714,8 +750,8 @@ class AdminContentApiController extends BaseApiController
             'name' => ['required', 'string', 'max:255'],
             'title' => ['required', 'string', 'max:255'],
             'subtitle' => ['nullable', 'string', 'max:255'],
-            'linkedin_url' => ['nullable', 'url', 'max:2048'],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'linkedin_url' => ['nullable', 'string', 'max:512'],
+            'sort_order' => ['nullable', 'integer', 'min:0', 'max:99999'],
             'photo' => ['nullable', 'image', 'max:5120'],
         ]);
 
@@ -723,16 +759,18 @@ class AdminContentApiController extends BaseApiController
 
         $member = TeamMember::create([
             'section' => $validated['section'],
-            'name' => $validated['name'],
-            'title' => $validated['title'],
-            'subtitle' => $validated['subtitle'] ?? null,
-            'linkedin_url' => $validated['linkedin_url'] ?? null,
-            'sort_order' => $validated['sort_order'] ?? $nextOrder,
+            'name' => trim($validated['name']),
+            'title' => trim($validated['title']),
+            'subtitle' => filled($validated['subtitle'] ?? null) ? trim((string) $validated['subtitle']) : null,
+            'linkedin_url' => filled($validated['linkedin_url'] ?? null) ? trim((string) $validated['linkedin_url']) : null,
+            'sort_order' => isset($validated['sort_order']) && $validated['sort_order'] !== '' ? (int) $validated['sort_order'] : $nextOrder,
         ]);
 
         if ($request->hasFile('photo')) {
-            $member->addMediaFromRequest('photo')->toMediaCollection('photo');
+            $member->addMediaFromRequest('photo')->toMediaCollection(TeamMember::MEDIA_PHOTO);
         }
+
+        $member->loadMissing('media');
 
         return $this->success($this->formatMember($member), 'Team member created.', 201);
     }
@@ -744,30 +782,48 @@ class AdminContentApiController extends BaseApiController
             'name' => ['required', 'string', 'max:255'],
             'title' => ['required', 'string', 'max:255'],
             'subtitle' => ['nullable', 'string', 'max:255'],
-            'linkedin_url' => ['nullable', 'url', 'max:2048'],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'linkedin_url' => ['nullable', 'string', 'max:512'],
+            'sort_order' => ['nullable', 'integer', 'min:0', 'max:99999'],
             'photo' => ['nullable', 'image', 'max:5120'],
+            'remove_photo' => ['nullable', 'boolean'],
         ]);
 
         $teamMember->update([
             'section' => $validated['section'],
-            'name' => $validated['name'],
-            'title' => $validated['title'],
-            'subtitle' => $validated['subtitle'] ?? null,
-            'linkedin_url' => $validated['linkedin_url'] ?? null,
-            'sort_order' => $validated['sort_order'] ?? $teamMember->sort_order,
+            'name' => trim($validated['name']),
+            'title' => trim($validated['title']),
+            'subtitle' => filled($validated['subtitle'] ?? null) ? trim((string) $validated['subtitle']) : null,
+            'linkedin_url' => filled($validated['linkedin_url'] ?? null) ? trim((string) $validated['linkedin_url']) : null,
+            'sort_order' => isset($validated['sort_order']) && $validated['sort_order'] !== '' ? (int) $validated['sort_order'] : $teamMember->sort_order,
         ]);
 
         if ($request->hasFile('photo')) {
-            $teamMember->clearMediaCollection('photo');
-            $teamMember->addMediaFromRequest('photo')->toMediaCollection('photo');
+            $teamMember->clearMediaCollection(TeamMember::MEDIA_PHOTO);
+            $teamMember->addMediaFromRequest('photo')->toMediaCollection(TeamMember::MEDIA_PHOTO);
+        } elseif ($request->boolean('remove_photo')) {
+            $teamMember->clearMediaCollection(TeamMember::MEDIA_PHOTO);
         }
 
-        return $this->success($this->formatMember($teamMember->fresh()), 'Team member updated.');
+        $teamMember->loadMissing('media');
+
+        return $this->success($this->formatMember($teamMember), 'Team member updated.');
+    }
+
+    public function reorderTeamMembers(Request $request): JsonResponse
+    {
+        $order = $request->input('order', []);
+        if (is_array($order)) {
+            foreach ($order as $index => $id) {
+                TeamMember::where('id', $id)->update(['sort_order' => $index + 1]);
+            }
+        }
+
+        return $this->success(null, 'Team members reordered successfully.');
     }
 
     public function destroyTeamMember(TeamMember $teamMember): JsonResponse
     {
+        $teamMember->clearMediaCollection(TeamMember::MEDIA_PHOTO);
         $teamMember->delete();
 
         return $this->success(null, 'Team member deleted.');
@@ -783,7 +839,10 @@ class AdminContentApiController extends BaseApiController
             'subtitle' => $m->subtitle,
             'linkedin_url' => $m->linkedin_url,
             'sort_order' => $m->sort_order,
-            'photo_url' => $m->getFirstMedia('photo')?->getUrl() ?? asset('default_pfp.jpg'),
+            'photo_url' => $m->photoUrl() ?: asset('default_pfp.jpg'),
+            'has_custom_photo' => $m->hasMedia(TeamMember::MEDIA_PHOTO),
+            'created_at' => $m->created_at?->toISOString(),
+            'updated_at' => $m->updated_at?->toISOString(),
         ];
     }
 }

@@ -326,6 +326,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('team-members')->group(function () {
             Route::get('/', [AdminContentApiController::class, 'teamMembers'])->name('api.admin.team-members.index');
             Route::post('/', [AdminContentApiController::class, 'storeTeamMember'])->name('api.admin.team-members.store');
+            Route::post('/reorder', [AdminContentApiController::class, 'reorderTeamMembers'])->name('api.admin.team-members.reorder');
+            Route::get('/{teamMember}', [AdminContentApiController::class, 'showTeamMember'])->name('api.admin.team-members.show');
             Route::match(['put', 'post'], '/{teamMember}', [AdminContentApiController::class, 'updateTeamMember'])->name('api.admin.team-members.update');
             Route::delete('/{teamMember}', [AdminContentApiController::class, 'destroyTeamMember'])->name('api.admin.team-members.destroy');
         });
