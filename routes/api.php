@@ -254,7 +254,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', [AdminPublicationApiController::class, 'index'])->name('api.admin.publications.index');
             Route::post('/', [AdminPublicationApiController::class, 'store'])->name('api.admin.publications.store');
             Route::get('/{publication}', [AdminPublicationApiController::class, 'show'])->name('api.admin.publications.show');
-            Route::match(['put', 'post'], '/{publication}', [AdminPublicationApiController::class, 'update'])->name('api.admin.publications.update');
+            Route::match(['put', 'patch', 'post'], '/{publication}', [AdminPublicationApiController::class, 'update'])->name('api.admin.publications.update');
             Route::patch('/{publication}/status', [AdminPublicationApiController::class, 'updateStatus'])->name('api.admin.publications.status');
             Route::delete('/{publication}', [AdminPublicationApiController::class, 'destroy'])->name('api.admin.publications.destroy');
         });
