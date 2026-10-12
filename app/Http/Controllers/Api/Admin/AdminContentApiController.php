@@ -507,6 +507,7 @@ class AdminContentApiController extends BaseApiController
             'image_alt' => ['required', 'string', 'max:255'],
             'image_badge' => ['required', 'string', 'max:160'],
             'image' => ['nullable', 'image', 'max:8192'],
+            'remove_image' => ['sometimes', 'boolean'],
         ]);
 
         $paragraphs = $validated['body'] ?? (filled($validated['body_text'] ?? null)
@@ -529,12 +530,27 @@ class AdminContentApiController extends BaseApiController
             $section = TeamAboutSection::create($attributes);
         }
 
+        if ($request->boolean('remove_image')) {
+            $section->clearMediaCollection(TeamAboutSection::MEDIA_IMAGE);
+        }
+
         if ($request->hasFile('image')) {
             $section->clearMediaCollection(TeamAboutSection::MEDIA_IMAGE);
             $section->addMediaFromRequest('image')->toMediaCollection(TeamAboutSection::MEDIA_IMAGE);
         }
 
-        return $this->success($section->fresh(), 'Team About section updated.');
+        $fresh = $section->fresh();
+
+        return $this->success([
+            'id' => $fresh->id,
+            'kicker' => $fresh->kicker,
+            'heading' => $fresh->heading,
+            'body' => $fresh->body,
+            'paragraphs' => $fresh->paragraphs(),
+            'image_alt' => $fresh->image_alt,
+            'image_badge' => $fresh->image_badge,
+            'image_url' => $fresh->imageUrl(),
+        ], 'Team About section updated.');
     }
 
     // ==========================================
