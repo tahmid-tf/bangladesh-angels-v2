@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\InvestorInvestmentRequest;
+use App\Models\Commit;
 use App\Models\Deal;
+use App\Models\Investment;
 use App\Models\InvestorInvestment;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -176,5 +178,66 @@ class AdminInvestorInvestmentApiController extends BaseApiController
             ]);
 
         return $this->success($items);
+    }
+
+    /**
+     * Deal-level investments & syndicate activity overview (matching web /admin/investments).
+     */
+    public function dealActivity(Request $request): JsonResponse
+    {
+        $q = trim((string) $request->string('q'));
+        $typeFilter = $request->string('type')->toString();
+        $statusFilter = $request->string('status')->toString();
+        $stageFilter = $request->string('stage')->toString();
+
+        $dealsQuery = Deal::query()
+            ->withCount([
+                'investments as interested_count' => fn ($query) => $query->where('type', 'interested'),
+                'investments as invest_count' => fn ($query) => $query->where('type', 'invest'),
+                'investments as review_count' => fn ($query) => $query->where('type', 'review'),
+                'commits as commit_count',
+            ])
+            ->withMax('investments', 'created_at')
+            ->withMax('commits', 'created_at')
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($innerQuery) use ($q) {
+                    $innerQuery->where('title', 'like', "%{$q}%")
+                        ->orWhere('sector', 'like', "%{$q}%")
+                        ->orWhere('description', 'like', "%{$q}%")
+                        ->orWhereHas('investments.user', function ($userQuery) use ($q) {
+                            $userQuery->where('name', 'like', "%{$q}%")
+                                ->orWhere('email', 'like', "%{$q}%");
+                        })
+                        ->orWhereHas('commits.user', function ($userQuery) use ($q) {
+                            $userQuery->where('name', 'like', "%{$q}%")
+                                ->orWhere('email', 'like', "%{$q}%");
+                        });
+                });
+            })
+            ->when(in_array($typeFilter, ['interested', 'invest', 'commit', 'review'], true), function ($query) use ($typeFilter) {
+                if ($typeFilter === 'commit') {
+                    $query->whereHas('commits');
+                } else {
+                    $query->whereHas('investments', fn ($investmentQuery) => $investmentQuery->where('type', $typeFilter));
+                }
+            })
+            ->when($statusFilter !== '', fn ($query) => $query->where('status', $statusFilter))
+            ->when($stageFilter !== '', fn ($query) => $query->where('investment_stage', $stageFilter))
+            ->latest('id');
+
+        $deals = $dealsQuery->paginate((int) $request->query('per_page', 20));
+
+        $counts = [
+            'total_deals' => Deal::count(),
+            'total_interested' => Investment::where('type', 'interested')->count(),
+            'total_invest' => Investment::where('type', 'invest')->count(),
+            'total_commits' => Commit::count(),
+            'total_reviews' => Investment::where('type', 'review')->count(),
+        ];
+
+        return $this->success([
+            'deals' => $deals,
+            'counts' => $counts,
+        ]);
     }
 }

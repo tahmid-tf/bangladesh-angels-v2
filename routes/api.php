@@ -188,6 +188,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{deal}/member-activity/mark-all-viewed', [AdminDealApiController::class, 'markAllInterestedViewed'])->name('api.admin.deals.member-activity.mark-all-viewed');
         });
 
+        // Deal Investment Activity & Syndicates
+        Route::prefix('investments')->group(function () {
+            Route::get('/', [AdminInvestorInvestmentApiController::class, 'dealActivity'])->name('api.admin.investments.index');
+        });
+
         // Completed Investor Investments
         Route::prefix('investor-investments')->group(function () {
             Route::get('/', [AdminInvestorInvestmentApiController::class, 'index'])->name('api.admin.investor-investments.index');
