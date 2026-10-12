@@ -31,11 +31,20 @@ class Blog extends Model
         'created_by',
     ];
 
+    protected $appends = [
+        'reading_minutes',
+    ];
+
     protected function casts(): array
     {
         return [
             'published_at' => 'datetime',
         ];
+    }
+
+    public function getReadingMinutesAttribute(): int
+    {
+        return $this->readingMinutes();
     }
 
     public function creator(): BelongsTo

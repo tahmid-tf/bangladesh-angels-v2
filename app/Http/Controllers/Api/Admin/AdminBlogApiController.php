@@ -26,7 +26,18 @@ class AdminBlogApiController extends BaseApiController
             ->latest('updated_at')
             ->paginate((int) $request->query('per_page', 15));
 
-        return $this->success($blogs);
+        $counts = [
+            'all' => Blog::count(),
+            'published' => Blog::where('status', Blog::STATUS_PUBLISHED)->count(),
+            'archived' => Blog::where('status', Blog::STATUS_ARCHIVED)->count(),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Success',
+            'data' => $blogs,
+            'counts' => $counts,
+        ]);
     }
 
     /**
@@ -35,14 +46,18 @@ class AdminBlogApiController extends BaseApiController
     public function store(Request $request): JsonResponse
     {
         $data = $this->validated($request);
-        $data['slug'] = Blog::makeUniqueSlug($data['slug'] ?: $data['title']);
+        $data['slug'] = Blog::makeUniqueSlug(! empty($data['slug']) ? $data['slug'] : $data['title']);
         $data['content'] = BlogContentSanitizer::clean($data['content']);
+        $data['category'] = ! empty($data['category']) ? $data['category'] : 'Educational';
+        $data['status'] = ! empty($data['status']) ? $data['status'] : Blog::STATUS_PUBLISHED;
+        $data['author_name'] = ! empty($data['author_name']) ? $data['author_name'] : ($request->user()->name ?? 'Bangladesh Angels Network');
+        $data['author_organization'] = ! empty($data['author_organization']) ? $data['author_organization'] : 'Bangladesh Angels Network';
         $data['created_by'] = $request->user()->id;
         $data['published_at'] = $this->publicationDate($data);
 
         $blog = Blog::create($data);
 
-        return $this->success($blog, 'Blog post created successfully.', 201);
+        return $this->success($blog->fresh(['creator']), 'Blog post created successfully.', 201);
     }
 
     /**
@@ -61,13 +76,19 @@ class AdminBlogApiController extends BaseApiController
     public function update(Request $request, Blog $blog): JsonResponse
     {
         $data = $this->validated($request, $blog);
-        $data['slug'] = Blog::makeUniqueSlug($data['slug'] ?: $data['title'], $blog->id);
-        $data['content'] = BlogContentSanitizer::clean($data['content']);
-        $data['published_at'] = $this->publicationDate($data, $blog);
+        if (! empty($data['title'])) {
+            $data['slug'] = Blog::makeUniqueSlug(! empty($data['slug']) ? $data['slug'] : $data['title'], $blog->id);
+        }
+        if (isset($data['content'])) {
+            $data['content'] = BlogContentSanitizer::clean($data['content']);
+        }
+        if (isset($data['status'])) {
+            $data['published_at'] = $this->publicationDate($data, $blog);
+        }
 
         $blog->update($data);
 
-        return $this->success($blog->fresh(), 'Blog post updated successfully.');
+        return $this->success($blog->fresh(['creator']), 'Blog post updated successfully.');
     }
 
     /**
@@ -86,7 +107,7 @@ class AdminBlogApiController extends BaseApiController
                 : $blog->published_at,
         ]);
 
-        return $this->success($blog->fresh(), 'Blog status updated.');
+        return $this->success($blog->fresh(['creator']), 'Blog status updated.');
     }
 
     /**
@@ -106,11 +127,11 @@ class AdminBlogApiController extends BaseApiController
             'slug' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('blogs', 'slug')->ignore($blog?->id)],
             'excerpt' => ['nullable', 'string', 'max:2000'],
             'content' => ['required', 'string'],
-            'category' => ['required', 'string', 'max:100'],
+            'category' => ['nullable', 'string', 'max:100'],
             'author_name' => ['nullable', 'string', 'max:255'],
             'author_role' => ['nullable', 'string', 'max:255'],
             'author_organization' => ['nullable', 'string', 'max:255'],
-            'status' => ['required', Rule::in([Blog::STATUS_ARCHIVED, Blog::STATUS_PUBLISHED])],
+            'status' => ['nullable', Rule::in([Blog::STATUS_ARCHIVED, Blog::STATUS_PUBLISHED])],
             'published_at' => ['nullable', 'date'],
         ]);
     }

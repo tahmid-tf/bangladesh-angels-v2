@@ -244,7 +244,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', [AdminBlogApiController::class, 'index'])->name('api.admin.blogs.index');
             Route::post('/', [AdminBlogApiController::class, 'store'])->name('api.admin.blogs.store');
             Route::get('/{blog}', [AdminBlogApiController::class, 'show'])->name('api.admin.blogs.show');
-            Route::match(['put', 'patch'], '/{blog}', [AdminBlogApiController::class, 'update'])->name('api.admin.blogs.update');
+            Route::match(['put', 'patch', 'post'], '/{blog}', [AdminBlogApiController::class, 'update'])->name('api.admin.blogs.update');
             Route::patch('/{blog}/status', [AdminBlogApiController::class, 'updateStatus'])->name('api.admin.blogs.status');
             Route::delete('/{blog}', [AdminBlogApiController::class, 'destroy'])->name('api.admin.blogs.destroy');
         });
