@@ -216,45 +216,118 @@ class AdminContentApiController extends BaseApiController
 
     public function storeLandingProgramCard(Request $request): JsonResponse
     {
+        if (LandingProgramCard::query()->count() >= LandingProgramCard::MAX_CARDS) {
+            return $this->error('The homepage can show a maximum of five program cards.', 422);
+        }
+
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'badge' => ['nullable', 'string', 'max:100'],
-            'description' => ['required', 'string', 'max:1000'],
-            'link_url' => ['required', 'string', 'max:2048'],
-            'link_label' => ['required', 'string', 'max:100'],
-            'is_external' => ['nullable', 'boolean'],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
-            'dropdown_items' => ['nullable', 'array'],
+            'eyebrow' => ['nullable', 'string', 'max:120'],
+            'badge' => ['nullable', 'string', 'max:120'],
+            'description' => ['required', 'string', 'max:1200'],
+            'primary_label' => ['nullable', 'string', 'max:120'],
+            'link_label' => ['nullable', 'string', 'max:120'],
+            'primary_link' => ['nullable', 'string', 'max:2048'],
+            'link_url' => ['nullable', 'string', 'max:2048'],
+            'secondary_label' => ['nullable', 'string', 'max:120'],
+            'secondary_link' => ['nullable', 'string', 'max:2048'],
+            'theme' => ['nullable', 'string', 'in:blush,dark,mint,sand,white'],
+            'sort_order' => ['nullable', 'integer', 'min:0', 'max:999'],
+            'dropdown_items' => ['nullable'],
         ]);
 
-        $card = LandingProgramCard::create($validated);
+        $eyebrow = $validated['eyebrow'] ?? $validated['badge'] ?? 'Program';
+        $primaryLabel = $validated['primary_label'] ?? $validated['link_label'] ?? 'Learn more';
+        $primaryLink = $validated['primary_link'] ?? $validated['link_url'] ?? '#';
 
-        return $this->success($card, 'Landing program card created.', 201);
+        $nextOrder = (int) (LandingProgramCard::query()->max('sort_order') ?? 0) + 1;
+
+        $dropdownItems = $validated['dropdown_items'] ?? null;
+        if (is_string($dropdownItems)) {
+            $dropdownItems = json_decode($dropdownItems, true);
+        }
+
+        $card = LandingProgramCard::create([
+            'eyebrow' => $eyebrow,
+            'title' => $validated['title'],
+            'description' => $validated['description'],
+            'primary_label' => $primaryLabel,
+            'primary_link' => $primaryLink,
+            'secondary_label' => $validated['secondary_label'] ?? null,
+            'secondary_link' => $validated['secondary_link'] ?? null,
+            'dropdown_items' => $dropdownItems,
+            'theme' => $validated['theme'] ?? 'white',
+            'sort_order' => (int) ($validated['sort_order'] ?? $nextOrder),
+        ]);
+
+        return $this->success($card, 'Homepage program card created successfully.', 201);
     }
 
     public function updateLandingProgramCard(Request $request, LandingProgramCard $landingProgramCard): JsonResponse
     {
         $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'badge' => ['nullable', 'string', 'max:100'],
-            'description' => ['required', 'string', 'max:1000'],
-            'link_url' => ['required', 'string', 'max:2048'],
-            'link_label' => ['required', 'string', 'max:100'],
-            'is_external' => ['nullable', 'boolean'],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
-            'dropdown_items' => ['nullable', 'array'],
+            'title' => ['sometimes', 'required', 'string', 'max:255'],
+            'eyebrow' => ['nullable', 'string', 'max:120'],
+            'badge' => ['nullable', 'string', 'max:120'],
+            'description' => ['sometimes', 'required', 'string', 'max:1200'],
+            'primary_label' => ['nullable', 'string', 'max:120'],
+            'link_label' => ['nullable', 'string', 'max:120'],
+            'primary_link' => ['nullable', 'string', 'max:2048'],
+            'link_url' => ['nullable', 'string', 'max:2048'],
+            'secondary_label' => ['nullable', 'string', 'max:120'],
+            'secondary_link' => ['nullable', 'string', 'max:2048'],
+            'theme' => ['nullable', 'string', 'in:blush,dark,mint,sand,white'],
+            'sort_order' => ['nullable', 'integer', 'min:0', 'max:999'],
+            'dropdown_items' => ['nullable'],
         ]);
 
-        $landingProgramCard->update($validated);
+        $updateData = [];
 
-        return $this->success($landingProgramCard->fresh(), 'Landing program card updated.');
+        if ($request->has('title')) {
+            $updateData['title'] = $validated['title'];
+        }
+        if ($request->has('eyebrow') || $request->has('badge')) {
+            $updateData['eyebrow'] = $validated['eyebrow'] ?? $validated['badge'] ?? $landingProgramCard->eyebrow;
+        }
+        if ($request->has('description')) {
+            $updateData['description'] = $validated['description'];
+        }
+        if ($request->has('primary_label') || $request->has('link_label')) {
+            $updateData['primary_label'] = $validated['primary_label'] ?? $validated['link_label'] ?? $landingProgramCard->primary_label;
+        }
+        if ($request->has('primary_link') || $request->has('link_url')) {
+            $updateData['primary_link'] = $validated['primary_link'] ?? $validated['link_url'] ?? $landingProgramCard->primary_link;
+        }
+        if ($request->has('secondary_label')) {
+            $updateData['secondary_label'] = $validated['secondary_label'];
+        }
+        if ($request->has('secondary_link')) {
+            $updateData['secondary_link'] = $validated['secondary_link'];
+        }
+        if ($request->has('theme')) {
+            $updateData['theme'] = $validated['theme'] ?? 'white';
+        }
+        if ($request->has('sort_order')) {
+            $updateData['sort_order'] = (int) $validated['sort_order'];
+        }
+        if ($request->has('dropdown_items')) {
+            $dropdownItems = $validated['dropdown_items'];
+            if (is_string($dropdownItems)) {
+                $dropdownItems = json_decode($dropdownItems, true);
+            }
+            $updateData['dropdown_items'] = $dropdownItems;
+        }
+
+        $landingProgramCard->update($updateData);
+
+        return $this->success($landingProgramCard->fresh(), 'Homepage program card updated successfully.');
     }
 
     public function destroyLandingProgramCard(LandingProgramCard $landingProgramCard): JsonResponse
     {
         $landingProgramCard->delete();
 
-        return $this->success(null, 'Landing program card deleted.');
+        return $this->success(null, 'Homepage program card deleted successfully.');
     }
 
     // ==========================================

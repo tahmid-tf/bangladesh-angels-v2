@@ -309,7 +309,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('landing-program-cards')->group(function () {
             Route::get('/', [AdminContentApiController::class, 'landingProgramCards'])->name('api.admin.landing-program-cards.index');
             Route::post('/', [AdminContentApiController::class, 'storeLandingProgramCard'])->name('api.admin.landing-program-cards.store');
-            Route::put('/{landingProgramCard}', [AdminContentApiController::class, 'updateLandingProgramCard'])->name('api.admin.landing-program-cards.update');
+            Route::match(['put', 'post'], '/{landingProgramCard}', [AdminContentApiController::class, 'updateLandingProgramCard'])->name('api.admin.landing-program-cards.update');
             Route::delete('/{landingProgramCard}', [AdminContentApiController::class, 'destroyLandingProgramCard'])->name('api.admin.landing-program-cards.destroy');
         });
 
