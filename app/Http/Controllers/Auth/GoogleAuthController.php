@@ -35,13 +35,18 @@ class GoogleAuthController extends Controller
 
             return Socialite::driver('google')
                 ->stateless()
-                ->with(['state' => $state])
+                ->with([
+                    'state' => $state,
+                    'prompt' => 'select_account',
+                ])
                 ->redirect();
         }
 
         $request->session()->put('google_oauth_intent', $intent);
 
-        return Socialite::driver('google')->redirect();
+        return Socialite::driver('google')
+            ->with(['prompt' => 'select_account'])
+            ->redirect();
     }
 
     public function callback(Request $request): RedirectResponse
