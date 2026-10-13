@@ -69,11 +69,24 @@ class InvestorApiController extends BaseApiController
 
         $activeDealsCount = Deal::where('type', '!=', 'portfolio')->where('status', 'active')->count();
 
-        $myRecentInvestments = Investment::with('deal')
-            ->where('user_id', $user->id)
-            ->latest()
+        $myRecentInvestments = InvestorInvestment::with('startup.media')
+            ->where('investor_id', $user->id)
+            ->orderByDesc('completed_at')
+            ->orderByDesc('id')
             ->limit(5)
-            ->get();
+            ->get()
+            ->map(function (InvestorInvestment $inv) {
+                return [
+                    'id' => $inv->id,
+                    'startup_name' => $inv->startup_name,
+                    'amount' => (float) $inv->amount,
+                    'currency' => $inv->currency,
+                    'completed_at' => $inv->completed_at?->format('Y-m-d'),
+                    'status' => 'Completed',
+                    'type' => 'invest',
+                    'deal' => $inv->startup ? $this->formatDeal($inv->startup) : null,
+                ];
+            });
 
         return $this->success([
             'summary' => [
@@ -156,8 +169,17 @@ class InvestorApiController extends BaseApiController
                 });
             });
 
+        $userInvestedDealIds = Investment::where('user_id', $user->id)
+            ->whereIn('type', ['invest', 'interested'])
+            ->pluck('deal_id')
+            ->all();
+
         $deals = $query->latest()->paginate((int) $request->query('per_page', 12))
-            ->through(fn (Deal $deal) => $this->formatDeal($deal));
+            ->through(function (Deal $deal) use ($userInvestedDealIds) {
+                $formatted = $this->formatDeal($deal);
+                $formatted['has_expressed_interest'] = in_array($deal->id, $userInvestedDealIds);
+                return $formatted;
+            });
 
         return $this->success($deals);
     }
@@ -355,18 +377,42 @@ class InvestorApiController extends BaseApiController
     }
 
     /**
-     * Get investor's own investments.
+     * Get investor's own investments (Personal ledger).
      */
     public function myInvestments(Request $request): JsonResponse
     {
         $user = $request->user();
-        $type = $request->query('type');
+        $search = trim((string) $request->query('search', ''));
+        $currency = trim((string) $request->query('currency', ''));
 
-        $investments = Investment::with(['deal.media'])
-            ->where('user_id', $user->id)
-            ->when($type && in_array($type, ['interested', 'invest', 'review']), fn ($q) => $q->where('type', $type))
-            ->latest()
-            ->paginate((int) $request->query('per_page', 20));
+        $query = InvestorInvestment::with('startup.media')
+            ->where('investor_id', $user->id)
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('startup_name', 'like', "%{$search}%")
+                        ->orWhere('currency', 'like', "%{$search}%")
+                        ->orWhere('amount', 'like', "%{$search}%")
+                        ->orWhereDate('completed_at', $search);
+                });
+            })
+            ->when($currency !== '' && strtolower($currency) !== 'all', fn ($q) => $q->where('currency', $currency))
+            ->orderByDesc('completed_at')
+            ->orderByDesc('id');
+
+        $investments = $query->paginate((int) $request->query('per_page', 20));
+
+        $investments->through(function (InvestorInvestment $inv) {
+            return [
+                'id' => $inv->id,
+                'startup_name' => $inv->startup_name,
+                'amount' => (float) $inv->amount,
+                'currency' => $inv->currency,
+                'completed_at' => $inv->completed_at?->format('Y-m-d'),
+                'status' => 'Completed',
+                'type' => 'invest',
+                'deal' => $inv->startup ? $this->formatDeal($inv->startup) : null,
+            ];
+        });
 
         return $this->success($investments);
     }
@@ -378,10 +424,24 @@ class InvestorApiController extends BaseApiController
     {
         $user = $request->user();
 
-        $investments = InvestorInvestment::query()
+        $investments = InvestorInvestment::with('startup.media')
             ->where('investor_id', $user->id)
-            ->latest('completed_at')
+            ->orderByDesc('completed_at')
+            ->orderByDesc('id')
             ->paginate((int) $request->query('per_page', 20));
+
+        $investments->through(function (InvestorInvestment $inv) {
+            return [
+                'id' => $inv->id,
+                'startup_name' => $inv->startup_name,
+                'amount' => (float) $inv->amount,
+                'currency' => $inv->currency,
+                'completed_at' => $inv->completed_at?->format('Y-m-d'),
+                'status' => 'Completed',
+                'type' => 'invest',
+                'deal' => $inv->startup ? $this->formatDeal($inv->startup) : null,
+            ];
+        });
 
         return $this->success($investments);
     }
