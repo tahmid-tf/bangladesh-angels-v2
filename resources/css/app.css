@@ -2560,6 +2560,36 @@ html {
     font-size: 0.78rem;
 }
 
+.ban-footer__payment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 36px;
+    margin-bottom: 8px;
+}
+
+.ban-footer__payment-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 1024px;
+    padding: 10px 16px;
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16);
+}
+
+.ban-footer__payment-card picture,
+.ban-footer__payment-card img {
+    display: block;
+    width: 100%;
+    max-width: 1000px;
+    height: auto;
+    object-fit: contain;
+}
+
 .ban-footer__business {
     display: flex;
     justify-content: space-between;
@@ -3195,6 +3225,15 @@ html {
         align-items: flex-start;
         flex-direction: column;
         gap: 16px;
+    }
+
+    .ban-footer__payment {
+        margin-top: 28px;
+    }
+
+    .ban-footer__payment-card {
+        padding: 6px 10px;
+        border-radius: 10px;
     }
 
     .ban-footer__policy-links {

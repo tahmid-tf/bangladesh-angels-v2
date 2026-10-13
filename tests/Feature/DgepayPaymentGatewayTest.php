@@ -555,6 +555,14 @@ class DgepayPaymentGatewayTest extends IsolatedDatabaseTestCase
         $this->assertSame('paid', $user->payment_status);
         $this->assertSame('core', $user->account_status);
     }
+
+    public function test_footer_renders_dgepay_payment_compliance_banner(): void
+    {
+        $response = $this->get(route('home'));
+        $response->assertOk();
+        $response->assertSee('dgepay-banner.webp');
+        $response->assertSee('Verified by DGePay');
+    }
 }
 
 
