@@ -73,11 +73,11 @@
       </section>
     </div>
 
-    <div class="ban-footer__payment" aria-label="Accepted payment methods and gateway verification" style="display: flex; justify-content: center; align-items: center; margin-top: 36px; margin-bottom: 8px;">
-      <div class="ban-footer__payment-card" style="width: 100%; max-width: 1024px; background: #ffffff; border-radius: 14px; padding: 10px 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16); border: 1px solid rgba(255, 255, 255, 0.2);">
+    <div class="ban-footer__payment" aria-label="Accepted payment methods and gateway verification" style="display: flex; justify-content: center; align-items: center; margin-top: 32px; margin-bottom: 6px;">
+      <div class="ban-footer__payment-card" style="width: 100%; max-width: 660px; background: #ffffff; border-radius: 12px; padding: 8px 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14); border: 1px solid rgba(255, 255, 255, 0.2);">
         <picture style="width: 100%; display: flex; justify-content: center;">
           <source srcset="{{ asset('dgepay-banner.webp') }}" type="image/webp">
-          <img src="{{ asset('dgepay-banner.jpg') }}" alt="Pay with Visa, Mastercard, American Express, NexusPay, bKash, Nagad, Rocket, CellFin, Upay, Internet Banking - Verified by DGePay" width="1024" height="194" loading="lazy" style="width: 100%; max-width: 1000px; height: auto; display: block; object-fit: contain;">
+          <img src="{{ asset('dgepay-banner.jpg') }}" alt="Pay with Visa, Mastercard, American Express, NexusPay, bKash, Nagad, Rocket, CellFin, Upay, Internet Banking - Verified by DGePay" width="1024" height="194" loading="lazy" style="width: 100%; max-width: 640px; height: auto; display: block; object-fit: contain;">
         </picture>
       </div>
     </div>
