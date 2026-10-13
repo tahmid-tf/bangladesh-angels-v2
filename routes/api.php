@@ -42,6 +42,7 @@ Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register'])->name('api.auth.register');
     Route::post('/login', [AuthController::class, 'login'])->name('api.auth.login');
     Route::post('/google', [AuthController::class, 'googleLogin'])->name('api.auth.google');
+    Route::get('/google/redirect', [\App\Http\Controllers\Auth\GoogleAuthController::class, 'redirect'])->name('api.auth.google.redirect');
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->name('api.auth.forgot-password');
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('api.auth.reset-password');
 });
