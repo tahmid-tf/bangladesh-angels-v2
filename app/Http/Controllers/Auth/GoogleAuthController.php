@@ -49,7 +49,7 @@ class GoogleAuthController extends Controller
             ->redirect();
     }
 
-    public function callback(Request $request): RedirectResponse
+    public function callback(Request $request): mixed
     {
         // Decode state if provided (used for mobile and stateless flows)
         $stateData = [];
@@ -129,7 +129,14 @@ class GoogleAuthController extends Controller
                 'is_new_user' => $isNewUser ? '1' : '0',
             ]);
 
-            return redirect($target);
+            return response(
+                '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Redirecting to BD Angels...</title><meta http-equiv="refresh" content="0;url='.e($target).'"><script>window.location.replace('.json_encode($target).');</script><style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;background:#fff;color:#092F29;margin:0;padding:24px;text-align:center}.spinner{width:44px;height:44px;border:4px solid #E5E7EB;border-top-color:#0F7359;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:20px}@keyframes spin{to{transform:rotate(360deg)}}.btn{display:inline-block;margin-top:20px;background:#0F7359;color:#fff;padding:12px 24px;border-radius:9999px;text-decoration:none;font-weight:700;font-size:14px}</style></head><body><div class="spinner"></div><h2 style="margin:0 0 8px;font-size:20px">Returning to BD Angels...</h2><p style="margin:0;color:#5A746D;font-size:14px">Please wait while we complete your sign in.</p><a href="'.e($target).'" class="btn">Tap to Open App</a></body></html>',
+                200,
+                [
+                    'Content-Type' => 'text/html',
+                    'Location' => $target,
+                ]
+            );
         }
 
         // Web Authentication Flow
@@ -215,12 +222,21 @@ class GoogleAuthController extends Controller
         return redirect()->route('login')->withErrors(['google' => $message]);
     }
 
-    private function mobileFailureRedirect(string $returnTo, string $message): RedirectResponse
+    private function mobileFailureRedirect(string $returnTo, string $message): \Illuminate\Http\Response
     {
         $sep = str_contains($returnTo, '?') ? '&' : '?';
-        return redirect($returnTo.$sep.http_build_query([
+        $target = $returnTo.$sep.http_build_query([
             'error' => $message,
-        ]));
+        ]);
+
+        return response(
+            '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Redirecting...</title><meta http-equiv="refresh" content="0;url='.e($target).'"><script>window.location.replace('.json_encode($target).');</script></head><body><p>Redirecting to app...</p><a href="'.e($target).'">Return to App</a></body></html>',
+            200,
+            [
+                'Content-Type' => 'text/html',
+                'Location' => $target,
+            ]
+        );
     }
 
     /** Use the current site URL so Google redirect_uri matches how the user opened the app. */
